@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Þe Olde Scribe — a guessing game and a scriptorium</title>
+<meta name="description" content="Words rendered in olde English script with thorn, eth, wynn, eng, yogh and the long s. Guess them, then translate your own.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@300;400;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Gentium+Book+Plus&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#08090a;
+  --ink-raised:#101314;
+  --ink-card:#141819;
+  --labradorite:#1d3f45;
+  --labradorite-lit:#2f7a7d;
+  --copper:#b87333;
+  --copper-lit:#e0a35f;
+  --silver:#8d9491;
+  --parchment:#e9e0cd;
+  --rule:rgba(141,148,145,.22);
+  /* Gentium and Segoe UI Historic are the safety net: they carry wynn, yogh and
+     the Tironian et when the display and body faces do not. */
+  --display:'Grenze Gotisch','Gentium Book Plus','Segoe UI Historic','Palatino Linotype',serif;
+  --body:'EB Garamond','Gentium Book Plus','Segoe UI Historic',Georgia,serif;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--ink);
+  color:var(--parchment);
+  font-family:var(--body);
+  font-size:17px;
+  line-height:1.6;
+  background-image:
+    radial-gradient(900px 500px at 12% -8%, rgba(47,122,125,.16), transparent 62%),
+    radial-gradient(700px 420px at 96% 8%, rgba(184,115,51,.10), transparent 60%);
+  background-attachment:fixed;
+}
+
+.wrap{max-width:70rem;margin:0 auto;padding:0 1.25rem}
+
+/* ---------- masthead ---------- */
+header{padding:4rem 0 3rem;border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-size:.68rem;letter-spacing:.34em;text-transform:uppercase;
+  color:var(--silver);margin:0 0 1.25rem
+}
+h1{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(3rem,15vw,7.5rem);
+  line-height:.92;margin:0;color:var(--parchment);
+  letter-spacing:.01em;
+}
+h1 .lit{color:var(--copper-lit)}
+.standfirst{
+  margin:1.5rem 0 0;max-width:36rem;color:var(--silver);
+  font-size:1.05rem;font-style:italic
+}
+.standfirst a{color:var(--copper-lit);text-decoration:none;border-bottom:1px solid rgba(184,115,51,.4)}
+.standfirst a:hover{border-bottom-color:var(--copper-lit)}
+
+/* ---------- sections ---------- */
+section{padding:4rem 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem}
+.num{
+  font-size:.7rem;letter-spacing:.28em;color:var(--copper);
+  font-variant-numeric:tabular-nums
+}
+h2{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(1.9rem,7vw,3.2rem);line-height:1;margin:0
+}
+.blurb{color:var(--silver);max-width:38rem;margin:.9rem 0 2rem;font-size:.98rem}
+.blurb a{color:var(--copper-lit);text-decoration:none;border-bottom:1px solid rgba(184,115,51,.4)}
+
+/* ---------- cards ---------- */
+.deck{display:grid;grid-template-columns:1fr;gap:1rem}
+.card{
+  position:relative;
+  background:var(--ink-card);
+  border:1px solid var(--rule);
+  padding:2.2rem 1.4rem 1.6rem;
+  text-align:center;cursor:pointer;
+  /* A card is a <button>, so it must shed the global button typography. */
+  font-family:var(--body);font-size:1rem;
+  text-transform:none;letter-spacing:normal;
+  transition:border-color .35s ease, background .35s ease;
+  overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 50% 0%, rgba(47,122,125,.16), transparent 70%);
+  opacity:0;transition:opacity .4s ease;pointer-events:none
+}
+.card:hover{border-color:rgba(184,115,51,.45)}
+.card:hover::before{opacity:1}
+.card:focus-visible{outline:2px solid var(--copper-lit);outline-offset:3px}
+.card.revealed{border-color:rgba(184,115,51,.6);background:#171a1a}
+
+.old{
+  /* Body face, not blackletter: the puzzle is the letters, not the calligraphy. */
+  font-family:var(--body);font-weight:400;
+  font-size:clamp(1.9rem,8vw,2.7rem);
+  line-height:1.15;color:var(--parchment);
+  word-break:break-word;
+  transition:color .35s ease
+}
+.card.revealed .old{color:var(--copper-lit)}
+
+.answer{
+  display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows .45s cubic-bezier(.2,.7,.2,1), opacity .35s ease;
+  opacity:0;margin-top:0
+}
+.card.revealed .answer{grid-template-rows:1fr;opacity:1;margin-top:1.2rem}
+.answer > div{overflow:hidden}
+.answer .hr{height:1px;background:linear-gradient(90deg,transparent,var(--copper),transparent);margin-bottom:.85rem}
+.answer .modern{
+  font-size:1.05rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--parchment)
+}
+.prompt{
+  font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--silver);opacity:.5;margin-top:1.4rem
+}
+.card.revealed .prompt{display:none}
+
+/* ---------- controls ---------- */
+.controls{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.75rem}
+button{
+  font-family:var(--body);font-size:.72rem;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--parchment);
+  background:transparent;border:1px solid var(--rule);
+  padding:.85rem 1.5rem;cursor:pointer;
+  transition:border-color .3s ease,color .3s ease,background .3s ease
+}
+button:hover{border-color:var(--copper);color:var(--copper-lit)}
+button:active{background:rgba(184,115,51,.08)}
+button.primary{border-color:rgba(184,115,51,.55);color:var(--copper-lit)}
+button:focus-visible{outline:2px solid var(--copper-lit);outline-offset:3px}
+
+/* ---------- scriptorium ---------- */
+textarea{
+  width:100%;min-height:8rem;resize:vertical;
+  background:var(--ink-raised);border:1px solid var(--rule);
+  color:var(--parchment);font-family:var(--body);font-size:1.05rem;
+  padding:1.1rem;line-height:1.55
+}
+textarea:focus{outline:none;border-color:rgba(47,122,125,.7)}
+.output{
+  margin-top:1rem;min-height:8rem;padding:1.6rem 1.2rem;
+  background:var(--ink-card);border:1px solid var(--rule);
+  border-left:2px solid var(--copper);
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(1.5rem,6vw,2.1rem);line-height:1.45;
+  color:var(--parchment);white-space:pre-wrap;word-break:break-word
+}
+.output.empty{color:var(--silver);opacity:.45;font-style:italic}
+.tally{
+  margin-top:.9rem;font-size:.66rem;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--silver);min-height:1rem
+}
+
+/* ---------- the key ---------- */
+.key{
+  display:grid;grid-template-columns:1fr;gap:1px;
+  background:var(--rule);border:1px solid var(--rule);
+}
+.entry{
+  background:var(--ink-raised);
+  display:grid;grid-template-columns:5.5rem 1fr;
+  align-items:center;gap:1rem;padding:1.1rem 1.2rem
+}
+.entry .g{
+  font-family:var(--display);font-weight:400;
+  font-size:2.3rem;line-height:1;color:var(--copper-lit);text-align:center
+}
+.entry .nm{
+  font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--silver)
+}
+.entry .df{font-size:.98rem;color:var(--parchment);margin-top:.15rem}
+.entry .ex{font-size:.88rem;color:var(--silver);margin-top:.3rem}
+.entry .ex b{font-family:var(--display);font-weight:400;font-size:1.15rem;color:var(--parchment)}
+
+footer{padding:3rem 0 4rem;color:var(--silver);font-size:.88rem;max-width:46rem}
+footer b{color:var(--parchment);font-weight:500}
+footer p + p{margin-top:1rem}
+
+@media (min-width:640px){
+  body{font-size:18px}
+  .deck{grid-template-columns:repeat(2,1fr);gap:1.25rem}
+  .card{padding:2.8rem 1.6rem 1.8rem}
+  .key{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Thorn · Eth · Wynn · Eng · Yogh · Long s</p>
+  <h1>Þe Olde<br><span class="lit">Scribe</span></h1>
+  <p class="standfirst">Nine characters English threw away. Guess what the scribe has written, then set your own words in his hand. The <a href="#key">key is at the bottom</a>, for when pride gives out.</p>
+</header>
+
+<section>
+  <div class="sec-head"><span class="num">01</span><h2>Þe guessing game</h2></div>
+  <p class="blurb">Four words drawn from a hoard of six score. No hints: some carry a single strange letter, some carry five. Read them aloud and the sound usually gives the game away. Tap a card to see whether you had it.</p>
+
+  <div class="deck" id="deck"></div>
+
+  <div class="controls">
+    <button class="primary" id="shuffle">Shuffle the hoard</button>
+    <button id="revealAll">Reveal all four</button>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="num">02</span><h2>Þe scriptorium</h2></div>
+  <p class="blurb">Write anything below and watch it fall back a thousand years. Punctuation, numbers and names all survive the crossing.</p>
+
+  <label for="input" class="eyebrow" style="display:block;margin-bottom:.6rem">Your words</label>
+  <textarea id="input" spellcheck="false" placeholder="The weather in the northern kingdom was nothing but thunder and wind through the willows…"></textarea>
+
+  <div class="output empty" id="output" aria-live="polite">Ðe ƿords appear here.</div>
+  <p class="tally" id="tally"></p>
+
+  <div class="controls">
+    <button class="primary" id="copy">Copy the script</button>
+    <button id="clear">Clear</button>
+  </div>
+</section>
+
+<section id="key">
+  <div class="sec-head"><span class="num">03</span><h2>Þe key</h2></div>
+  <p class="blurb">Every character the scribe uses, and what it swallowed.</p>
+
+  <div class="key">
+    <div class="entry"><div class="g">Þ þ</div><div>
+      <div class="nm">Thorn</div>
+      <div class="df">The hard <i>th</i>, as in <i>thin</i>.</div>
+      <div class="ex"><b>þiſtle</b> = thistle</div></div></div>
+
+    <div class="entry"><div class="g">Ð ð</div><div>
+      <div class="nm">Eth</div>
+      <div class="df">The soft, buzzing <i>th</i>, as in <i>this</i>.</div>
+      <div class="ex"><b>moðer</b> = mother</div></div></div>
+
+    <div class="entry"><div class="g">Ƿ ƿ</div><div>
+      <div class="nm">Wynn</div>
+      <div class="df">Every <i>w</i>. Yes, it looks like a p. That is why we lost it.</div>
+      <div class="ex"><b>ƿilloƿ</b> = willow</div></div></div>
+
+    <div class="entry"><div class="g">Ŋ ŋ</div><div>
+      <div class="nm">Eng</div>
+      <div class="df">The <i>ng</i> sound at the back of the throat.</div>
+      <div class="ex"><b>kiŋ</b> = king</div></div></div>
+
+    <div class="entry"><div class="g">Ȝ ȝ</div><div>
+      <div class="nm">Yogh</div>
+      <div class="df">The old <i>gh</i>, and a <i>y</i> starting a word.</div>
+      <div class="ex"><b>niȝt</b> = night · <b>ȝear</b> = year</div></div></div>
+
+    <div class="entry"><div class="g">ſ</div><div>
+      <div class="nm">Long s</div>
+      <div class="df">An <i>s</i> anywhere but the end of a word.</div>
+      <div class="ex"><b>ƿhiſper</b> = whisper</div></div></div>
+
+    <div class="entry"><div class="g">Æ æ</div><div>
+      <div class="nm">Ash</div>
+      <div class="df">The <i>ae</i> pair, welded shut.</div>
+      <div class="ex"><b>Cæſar</b> = Caesar</div></div></div>
+
+    <div class="entry"><div class="g">Œ œ</div><div>
+      <div class="nm">Ethel</div>
+      <div class="df">The <i>oe</i> pair, likewise.</div>
+      <div class="ex"><b>amœba</b> = amoeba</div></div></div>
+
+    <div class="entry"><div class="g">⁊</div><div>
+      <div class="nm">Tironian et</div>
+      <div class="df">Shorthand for the word <i>and</i>. An ampersand's grandfather.</div>
+      <div class="ex"><b>briȝt ⁊ early</b> = bright and early</div></div></div>
+  </div>
+</section>
+
+<footer>
+  <p><b>A note on honesty.</b> Thorn and eth were never cleanly divided even by the scribes who used them, and no rule can perfectly predict which one a word wants. This one leans on a dictionary of the awkward cases and a fallback: a <i>th</i> sitting between two vowels is soft, everything else is hard. Eng and yogh get the same treatment. It is right the vast majority of the time and will occasionally write something a monk would frown at.</p>
+  <p>It also cannot see the seams inside compound words, so the odd <i>lighthouſe</i> comes out with a thorn where two words merely collided. The scribes made worse mistakes.</p>
+</footer>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   The engine. Nine substitutions; three of them need real judgement.
+------------------------------------------------------------------ */
+
+// Words whose every <th> is voiced, and which the intervocalic rule
+// would otherwise miss: function words, and -ther after a consonant.
+const VOICED_TH = new Set(`the this that these those them themselves they their theirs there
+therefore thereby therein thereof thereafter then than though although thus thence thither
+thou thee thy thine with within without withdraw withstand withstanding withhold withal
+smooth smoothly northern southern farther further furthermore clothes booth bequeath
+wherewithal notwithstanding`.split(/\s+/));
+
+// Words where a <th> sits between vowels but is hard regardless.
+const VOICELESS_TH = new Set(`nothing nothingness something anything everything author
+authority method methods ether ethic ethics ethical python athlete athletic mathematics
+arithmetic sympathy apathy empathy lethal atheist panther anthem enthusiasm catholic
+healthy wealthy filthy earthy stealthy mythical mythology ruthless faithful faithfulness
+truthful worthless worthwhile brothel lithium marathon triathlon pathetic authentic
+anthology`.split(/\s+/));
+
+// <ng> that keeps an audible g: eng plus g.
+const HARD_NG = new Set(`finger fingers fingernail hunger hungry angry anger angered linger
+lingered lingering longer longest stronger strongest younger youngest youngster single
+singly singles angle angles triangle rectangle england english tangle tangled mingle
+mingled jungle jungles language languages bungalow fungus fungi penguin penguins mango
+mangoes mongoose dinghy nightingale elongate prolonged distinguish anguish languid`.split(/\s+/));
+
+// <ng> that is really a soft j sound: leave it entirely alone.
+const SOFT_NG = new Set(`change changes changed changing changeable danger dangers dangerous
+angel angels angelic engine engines engineer engineering orange oranges hinge hinges range
+ranges ranger rangers strange stranger strangest ginger plunge plunged sponge sponges
+revenge challenge challenges arrange arranged avenge fringe fringes lounge cringe singe
+tinge tangent congestion ingest longitude lozenge syringe scavenger passenger messenger
+manger stringent astringent`.split(/\s+/));
+
+// <gh> that is a plain hard g and wants no yogh.
+const HARD_GH = new Set(`ghost ghosts ghostly ghastly ghoul ghouls gherkin ghetto spaghetti
+aghast dinghy yoghurt burgher sorghum afghan`.split(/\s+/));
+
+const VOWELS = 'aeiouy';
+const isVowel = c => !!c && VOWELS.includes(c);
+
+function thIsVoiced(word, i){
+  if (VOICED_TH.has(word)) return true;
+  if (VOICELESS_TH.has(word)) return false;
+  const prev = word[i - 1], next = word[i + 2];
+  // -the and -thes endings: breathe, clothe, scythe, bathes
+  if (next === 'e' && (i + 3 === word.length || word.slice(i + 2) === 'es')) return true;
+  return isVowel(prev) && isVowel(next);
+}
+
+function transformWord(word){
+  const low = word.toLowerCase();
+  if (low === 'and') return '⁊';
+
+  const softNg = SOFT_NG.has(low);
+  const hardNg = HARD_NG.has(low);
+  const hardGh = HARD_GH.has(low);
+  const out = []; // {ch, src} — src lets us restore the original capitalisation
+  let i = 0;
+
+  while (i < low.length){
+    const pair = low.slice(i, i + 2);
+
+    if (pair === 'th'){
+      out.push({ ch: thIsVoiced(low, i) ? 'ð' : 'þ', src: i });
+      i += 2; continue;
+    }
+    if (pair === 'ng' && !softNg){
+      out.push({ ch: 'ŋ', src: i });
+      if (hardNg) out.push({ ch: 'g', src: i + 1 });
+      i += 2; continue;
+    }
+    // Yogh takes gh, but never a word-initial one: ghost keeps its g.
+    if (pair === 'gh' && i > 0 && !hardGh){
+      out.push({ ch: 'ȝ', src: i });
+      i += 2; continue;
+    }
+    if (pair === 'ae'){ out.push({ ch: 'æ', src: i }); i += 2; continue; }
+    if (pair === 'oe'){ out.push({ ch: 'œ', src: i }); i += 2; continue; }
+
+    if (low[i] === 'w'){ out.push({ ch: 'ƿ', src: i }); i++; continue; }
+    // Consonantal y opening a word also took a yogh.
+    if (low[i] === 'y' && i === 0 && isVowel(low[1])){ out.push({ ch: 'ȝ', src: i }); i++; continue; }
+    // Long s everywhere except the last letter of the word.
+    if (low[i] === 's' && i < low.length - 1){ out.push({ ch: 'ſ', src: i }); i++; continue; }
+
+    out.push({ ch: low[i], src: i });
+    i++;
+  }
+
+  // 'ſ'.toUpperCase() is 'S', which is exactly right: there is no capital long s.
+  return out.map(o => (word[o.src] !== word[o.src].toLowerCase() ? o.ch.toUpperCase() : o.ch)).join('');
+}
+
+const translate = text => text.replace(/[A-Za-z]+/g, transformWord);
+
+/* ------------------------------------------------------------------
+   The hoard. Weighted towards words that stack several strange letters.
+------------------------------------------------------------------ */
+
+const HOARD = `notwithstanding wherewithal thanksgiving nightingale wheelwright wainwright
+thoroughfare nothingness wretchedness worthiness faithfulness strengthening songthrush
+wanderlust weathervane withstanding wrongdoing whispering thundering smothering sweltering
+worshipping northwards southwards lengthwise wavelength whirlwind moonlight birthright
+thoughtful throughout wholesome whetstone woodworking wilderness kingdom lightning
+twilight westward wanderer gathering weathering withering wandering wondering wintering
+westering washing wingspan yesterday yearning youngster daughter laughter slaughter
+neighbour brightness naughty height weight thought through although enough plough
+mother father brother weather feather leather heather gather together another either
+neither whither thither worthy northern southern farther breathe clothe soothe writhe
+scythe loathe wither lather bother heathen smooth thunder thistle thorn throne thousand
+thirst thread thicket threshold thimble thumb thief thrush throat health wealth north
+south earth hearth breath wreath mouth faith filth mirth truth youth month strength
+length warmth birth death cloth broth froth sloth tooth smith wrath sheath window willow
+wander weaver winter wisdom wolf wonder worship wound wraith wren wrist whisper whistle
+widow witch wizard warden warrior weapon weary welkin whale wheat wheel white wicker king
+ring song strong spring morning evening tongue young among hunger anger finger nothing
+something everything thrall thane brethren swarthy underneath forthwith wyrd wight
+woodland`.trim().split(/\s+/);
+
+/* ------------------------------------------------------------------
+   The game.
+------------------------------------------------------------------ */
+
+const deck = document.getElementById('deck');
+let pool = [];
+
+function drawFour(){
+  // Draw from a shrinking pool so a shuffle never repeats a word until the hoard is spent.
+  if (pool.length < 4) pool = HOARD.slice().sort(() => Math.random() - 0.5);
+  return pool.splice(0, 4);
+}
+
+function render(){
+  deck.innerHTML = '';
+  for (const modern of drawFour()){
+    const old = transformWord(modern);
+    const card = document.createElement('button');
+    card.className = 'card';
+    card.type = 'button';
+    card.setAttribute('aria-label', 'Reveal the modern spelling of ' + old);
+    card.innerHTML = `
+      <div class="old">${old}</div>
+      <div class="answer"><div>
+        <div class="hr"></div>
+        <div class="modern">${modern}</div>
+      </div></div>
+      <div class="prompt">Tap to reveal</div>`;
+    card.addEventListener('click', () => card.classList.add('revealed'));
+    deck.appendChild(card);
+  }
+}
+
+document.getElementById('shuffle').addEventListener('click', render);
+document.getElementById('revealAll').addEventListener('click', () => {
+  deck.querySelectorAll('.card').forEach(c => c.classList.add('revealed'));
+});
+render();
+
+/* ------------------------------------------------------------------
+   The scriptorium.
+------------------------------------------------------------------ */
+
+const GLYPH_NAMES = {
+  'þ':'Thorn', 'ð':'Eth', 'ƿ':'Wynn', 'ŋ':'Eng',
+  'ȝ':'Yogh', 'ſ':'Long s', 'æ':'Ash', 'œ':'Ethel', '⁊':'Tironian et'
+};
+
+const input   = document.getElementById('input');
+const output  = document.getElementById('output');
+const tally   = document.getElementById('tally');
+const copyBtn = document.getElementById('copy');
+
+function renderTranslation(){
+  const text = input.value;
+  if (!text.trim()){
+    output.textContent = 'Ðe ƿords appear here.';
+    output.classList.add('empty');
+    tally.textContent = '';
+    return;
+  }
+  const scribed = translate(text);
+  output.textContent = scribed;
+  output.classList.remove('empty');
+
+  // Counted by hand rather than by regex: /ſ/i would also catch a plain capital S.
+  const counts = {};
+  for (const ch of scribed){
+    const key = ch.toLowerCase();
+    if (GLYPH_NAMES[key]) counts[key] = (counts[key] || 0) + 1;
+  }
+  const parts = Object.keys(GLYPH_NAMES)
+    .filter(g => counts[g])
+    .map(g => `${GLYPH_NAMES[g]} ×${counts[g]}`);
+  tally.textContent = parts.length ? parts.join('  ·  ') : 'No olde letters in that one.';
+}
+
+input.addEventListener('input', renderTranslation);
+
+copyBtn.addEventListener('click', async () => {
+  if (output.classList.contains('empty')) return;
+  const original = copyBtn.textContent;
+  try {
+    await navigator.clipboard.writeText(output.textContent);
+    copyBtn.textContent = 'Copied';
+  } catch {
+    copyBtn.textContent = 'Copy blocked';
+  }
+  setTimeout(() => { copyBtn.textContent = original; }, 1600);
+});
+
+document.getElementById('clear').addEventListener('click', () => {
+  input.value = '';
+  renderTranslation();
+  input.focus();
+});
+</script>
+
+</body>
+</html>
