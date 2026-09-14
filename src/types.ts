@@ -1,6 +1,6 @@
 export type GlyphKey = 'thorn' | 'eth' | 'wynn' | 'eng' | 'yogh' | 'longs' | 'ash' | 'ethel' | 'tironian';
 export type GlyphSettings = Record<GlyphKey, boolean>;
-export type AssetCategory = 'Beasts' | 'Botanicals' | 'Architecture' | 'Curiosities' | 'Ornaments';
+export type AssetCategory = 'Beasts' | 'Botanicals' | 'Architecture' | 'Curiosities' | 'Ornaments' | 'Beast parts' | 'Armor' | 'Textiles' | 'Castle parts' | 'Flora' | 'Household' | 'Symbols';
 export interface ArtAsset { id: string; name: string; category: AssetCategory; src: string; tags: string[]; width: number; height: number; }
 export interface BaseLayer { id: string; name: string; x: number; y: number; width: number; height: number; rotation: number; opacity: number; locked: boolean; hidden: boolean; flipX: boolean; flipY: boolean; }
 export interface ImageLayer extends BaseLayer { type: 'image'; src: string; assetId?: string; }

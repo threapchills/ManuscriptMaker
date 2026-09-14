@@ -1,6 +1,6 @@
 # Manuscript — agent handover
 
-Updated: 2026-09-13. Read together with `TODO.md` and `AGENTS.md`.
+Updated: 2026-09-14. Read together with `TODO.md` and `AGENTS.md`.
 
 ## User intent and working preferences
 
@@ -18,17 +18,20 @@ Latest additions are recorded in `TODO.md`: Book/Map setup, initial dimensions, 
 - Native pointer dragging, rotated aspect-preserving image resize, rotation, flips, opacity, lock/hide, duplication, layer forward/back order, undo/redo.
 - Selection controls are a separate top overlay so other artwork never blocks resize/rotation handles or changes visual stacking.
 - Three template choices: bestiary, botanical, blank. Botanical uses `oak-tree.png` and must not ship missing that asset; use an existing plant if oak is not generated yet.
-- Version 1 single-page manuscript JSON, validation, localStorage autosave, project download/open. Original images and text preferences survive the project round trip.
+- Version 2 complete book/map JSON with v1 single-page migration, validation, localStorage autosave, project download/open. Original images and text preferences survive the project round trip. Invalid saved data pauses autosave and offers a recovery download; it must be backed up before replacement.
+- Book/Map setup with custom starting dimensions; up to 100 book pages; navigation, add/duplicate/reorder/remove. Whole-project undo/redo owns every page. `src/project.ts` is the pure model and `src/useProject.ts` owns history; canvas still receives only the active page.
+- Layer list supports drag reordering as well as accessible arrows. Current page exports include the book title and page number.
 - PNG at 2× and self-contained SVG with images and font data embedded. SVG uses `foreignObject`, so PNG is most portable.
-- Generated complete illustrations are stored in `public/assets/`; inspect actual files/catalog before claiming any asset count. New modular sheet pipeline is the intended next expansion.
+- Library contains 7 complete illustrations and 32 transparent modular beast parts. `scripts/slice_art_sheets.py` validates and trims sheets, stages contact sheets/reports in `.local/art-crops`, and publishes raster files plus `src/generated-assets.json`. Source originals and prompts live in `art-source/`. Beast sheet is 1672×941 (requested 4K, not upscaled); connected-component extraction recovered grid drift, and all 32 subjects were visually checked. Castle-parts manifest is prepared but not yet generated.
 
 ## Verification completed
 
-- `npm test`: 85 tests pass, including spelling rules and project validation/round trips.
-- `npm run build`: successful before the latest small UX additions; rerun at release.
+- `npm test`: 125 tests pass on 2026-09-14, including spelling rules, v1 migration, project validation and multi-page round trips.
+- `npm run build`: successful on 2026-09-14.
+- `npm run test:browser`: passed on 2026-09-14. Verifies book/map setup, custom dimensions, page duplication/reordering/removal/undo, glyph toggles and typography, locking, complete-project download/reopen/autosave reload, layer drag order/undo, PNG dimensions, mobile drawers/canvas, and absence of runtime errors. Desktop result visually inspected. This script uses an isolated Playwright browser profile.
 - Headless canvas check `.local/canvas-smoke.mjs`: drag at fractional zoom; single-step drag undo; locking; visibility; rotated resizing and fixed-corner geometry; rotation; drops; PNG size; SVG image/font embedding; guides/controls absent from exports; no browser runtime errors. Passed.
 - Export PNG was visually inspected and matched the canvas.
-- Broader `.local/app-smoke.mjs` checks text UI, editable-project round trip, autosave reload, search/favorites, and mobile UI. Check its latest report; do not assume it passed.
+- Older `.local/app-smoke.mjs` targets the single-page UI; use the checked-in `scripts/check-workshop.mjs` for the current project UI.
 - Dependencies were audited and the test dependency upgraded to Vitest 4.1.11; last install reported zero vulnerabilities.
 
 Temporary `.local/` contains test scripts/output and a credential-safe Pages API helper; it is ignored and must never be committed. The helper reads the existing Git credential in memory and does not print secrets. Do not put tokens into source or tools output.
@@ -37,21 +40,19 @@ Temporary `.local/` contains test scripts/output and a credential-safe Pages API
 
 - `.github/workflows/pages.yml` tests/builds `main` and deploys `dist` via GitHub Actions.
 - Pages was switched from legacy root-branch hosting to Actions using the authorized existing GitHub credentials.
-- Confirm the deployment commit and live URL after pushing; update this section with actual completion.
+- First working checkpoint **b392de1** deployed successfully through Actions run **34782429132**. The published app was opened and visually confirmed at https://threapchills.github.io/ManuscriptMaker/.
 - Local branch began as `codex/manuscript-studio` based on the existing remote main. Initial repository contained only a placeholder index.
 
 ## Next engineering decisions
 
-1. Publish the current valid single-page checkpoint first, including no broken template assets.
-2. Introduce a clean versioned Project model (`book` or `map`) above page content; migrate v1 single-page files. Do not store a duplicate active-page copy that can drift out of sync with the page list.
-3. Make history apply to the whole project, including page operations. Keep canvas/export components working with one page.
-4. Add Book/Map dimension setup and page navigation; then page add/duplicate/reorder/remove and complete-project save/load.
-5. Add drag reordering of layers alongside accessible arrow controls.
-6. Implement the manifest-driven 8×4 sheet slicer and batch catalog generator. Keep source sheets outside `public/`, lazy-load thumbnails, and verify alpha/subject alignment.
+1. Push the verified book/map and beast-parts checkpoint immediately, then verify Actions/live deployment.
+2. Generate the prepared castle-parts sheet: prioritize small walls, windows, doors, roofs and arches. Continue with fine beast details such as tongues. Preserve complete starter art too.
+3. Continue economical 8×4 modular batches; request 4K but record actual returned size. Inspect every cutout before publication.
+4. Next engineering priorities: larger-project persistence, reusable compositions/grouping, cross-page copy/paste and whole-book exports.
 
 ## Limitations to preserve or resolve explicitly
 
-- Current version is single-page; multi-page books and maps are not yet implemented.
+- Book pages are implemented; exports currently cover the selected page only. Whole-book image/PDF export remains open.
 - Text styling is per passage, not inline rich-text ranges. Glyph conversion is approximate creative spelling, not translation.
 - localStorage can run out for many uploads; the UI warns users to download the project. IndexedDB is a better next persistence layer for books.
 - App state must never accept unsafe imported image URLs. Current validator allows bundled asset paths and raster image data URLs only.

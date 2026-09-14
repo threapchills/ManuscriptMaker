@@ -1,0 +1,418 @@
+[
+  {
+    "id": "beast-head-dragon",
+    "name": "Dragon head",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-head-dragon.png",
+    "tags": [
+      "head",
+      "dragon",
+      "scales"
+    ],
+    "width": 200,
+    "height": 234
+  },
+  {
+    "id": "beast-head-fox",
+    "name": "Fox head",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-head-fox.png",
+    "tags": [
+      "head",
+      "fox",
+      "animal"
+    ],
+    "width": 192,
+    "height": 207
+  },
+  {
+    "id": "beast-head-wolf",
+    "name": "Wolf head",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-head-wolf.png",
+    "tags": [
+      "head",
+      "wolf",
+      "animal"
+    ],
+    "width": 190,
+    "height": 209
+  },
+  {
+    "id": "beast-head-hare",
+    "name": "Hare head",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-head-hare.png",
+    "tags": [
+      "head",
+      "hare",
+      "rabbit"
+    ],
+    "width": 151,
+    "height": 252
+  },
+  {
+    "id": "beast-head-owl",
+    "name": "Owl head",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-head-owl.png",
+    "tags": [
+      "head",
+      "owl",
+      "bird"
+    ],
+    "width": 165,
+    "height": 174
+  },
+  {
+    "id": "beast-head-stag",
+    "name": "Stag head",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-head-stag.png",
+    "tags": [
+      "head",
+      "stag",
+      "deer"
+    ],
+    "width": 202,
+    "height": 253
+  },
+  {
+    "id": "beast-horn-ram",
+    "name": "Curled ram horn",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-horn-ram.png",
+    "tags": [
+      "horn",
+      "ram",
+      "curl"
+    ],
+    "width": 164,
+    "height": 154
+  },
+  {
+    "id": "beast-antler",
+    "name": "Branching antler",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-antler.png",
+    "tags": [
+      "horn",
+      "antler",
+      "stag"
+    ],
+    "width": 183,
+    "height": 205
+  },
+  {
+    "id": "beast-body-dragon",
+    "name": "Dragon body",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-body-dragon.png",
+    "tags": [
+      "body",
+      "dragon",
+      "scales"
+    ],
+    "width": 208,
+    "height": 137
+  },
+  {
+    "id": "beast-body-wolf",
+    "name": "Wolf body",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-body-wolf.png",
+    "tags": [
+      "body",
+      "wolf",
+      "fur"
+    ],
+    "width": 196,
+    "height": 142
+  },
+  {
+    "id": "beast-body-lion",
+    "name": "Lion body",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-body-lion.png",
+    "tags": [
+      "body",
+      "lion",
+      "fur"
+    ],
+    "width": 203,
+    "height": 149
+  },
+  {
+    "id": "beast-body-bird",
+    "name": "Bird body",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-body-bird.png",
+    "tags": [
+      "body",
+      "bird",
+      "feathers"
+    ],
+    "width": 184,
+    "height": 139
+  },
+  {
+    "id": "beast-wing-butterfly",
+    "name": "Butterfly wing",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-wing-butterfly.png",
+    "tags": [
+      "wing",
+      "butterfly",
+      "insect"
+    ],
+    "width": 172,
+    "height": 216
+  },
+  {
+    "id": "beast-wing-feather",
+    "name": "Feathered wing",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-wing-feather.png",
+    "tags": [
+      "wing",
+      "feather",
+      "bird"
+    ],
+    "width": 201,
+    "height": 230
+  },
+  {
+    "id": "beast-wing-bat",
+    "name": "Bat wing",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-wing-bat.png",
+    "tags": [
+      "wing",
+      "bat",
+      "membrane"
+    ],
+    "width": 201,
+    "height": 219
+  },
+  {
+    "id": "beast-wing-dragon",
+    "name": "Dragon wing",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-wing-dragon.png",
+    "tags": [
+      "wing",
+      "dragon",
+      "scales"
+    ],
+    "width": 204,
+    "height": 235
+  },
+  {
+    "id": "beast-leg-lion-front",
+    "name": "Lion foreleg",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-leg-lion-front.png",
+    "tags": [
+      "leg",
+      "paw",
+      "lion"
+    ],
+    "width": 154,
+    "height": 201
+  },
+  {
+    "id": "beast-leg-lion-back",
+    "name": "Lion hindleg",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-leg-lion-back.png",
+    "tags": [
+      "leg",
+      "paw",
+      "lion"
+    ],
+    "width": 124,
+    "height": 204
+  },
+  {
+    "id": "beast-leg-wolf",
+    "name": "Wolf foreleg",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-leg-wolf.png",
+    "tags": [
+      "leg",
+      "paw",
+      "wolf"
+    ],
+    "width": 153,
+    "height": 201
+  },
+  {
+    "id": "beast-leg-hare",
+    "name": "Hare hindleg",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-leg-hare.png",
+    "tags": [
+      "leg",
+      "paw",
+      "hare"
+    ],
+    "width": 141,
+    "height": 202
+  },
+  {
+    "id": "beast-foot-talon",
+    "name": "Bird talon",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-foot-talon.png",
+    "tags": [
+      "foot",
+      "talon",
+      "bird"
+    ],
+    "width": 147,
+    "height": 195
+  },
+  {
+    "id": "beast-leg-dragon",
+    "name": "Dragon claw leg",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-leg-dragon.png",
+    "tags": [
+      "leg",
+      "claw",
+      "dragon"
+    ],
+    "width": 139,
+    "height": 195
+  },
+  {
+    "id": "beast-leg-hoof",
+    "name": "Hoofed foreleg",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-leg-hoof.png",
+    "tags": [
+      "leg",
+      "hoof",
+      "deer"
+    ],
+    "width": 103,
+    "height": 201
+  },
+  {
+    "id": "beast-foot-frog",
+    "name": "Webbed frog foot",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-foot-frog.png",
+    "tags": [
+      "foot",
+      "frog",
+      "webbed"
+    ],
+    "width": 150,
+    "height": 175
+  },
+  {
+    "id": "beast-tail-dragon",
+    "name": "Dragon tail",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-tail-dragon.png",
+    "tags": [
+      "tail",
+      "dragon",
+      "scales"
+    ],
+    "width": 186,
+    "height": 224
+  },
+  {
+    "id": "beast-tail-fox",
+    "name": "Fox tail",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-tail-fox.png",
+    "tags": [
+      "tail",
+      "fox",
+      "fur"
+    ],
+    "width": 188,
+    "height": 188
+  },
+  {
+    "id": "beast-tail-lion",
+    "name": "Lion tail",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-tail-lion.png",
+    "tags": [
+      "tail",
+      "lion",
+      "tuft"
+    ],
+    "width": 175,
+    "height": 224
+  },
+  {
+    "id": "beast-tail-rat",
+    "name": "Rat tail",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-tail-rat.png",
+    "tags": [
+      "tail",
+      "rat",
+      "curl"
+    ],
+    "width": 175,
+    "height": 147
+  },
+  {
+    "id": "beast-ears-hare",
+    "name": "Hare ears",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-ears-hare.png",
+    "tags": [
+      "ears",
+      "hare",
+      "rabbit"
+    ],
+    "width": 166,
+    "height": 189
+  },
+  {
+    "id": "beast-ear-pointed",
+    "name": "Pointed ear",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-ear-pointed.png",
+    "tags": [
+      "ear",
+      "goblin",
+      "monster"
+    ],
+    "width": 119,
+    "height": 197
+  },
+  {
+    "id": "beast-fin-fish",
+    "name": "Fish fin",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-fin-fish.png",
+    "tags": [
+      "fin",
+      "fish",
+      "scales"
+    ],
+    "width": 167,
+    "height": 198
+  },
+  {
+    "id": "beast-tail-fish",
+    "name": "Fish tail",
+    "category": "Beast parts",
+    "src": "/ManuscriptMaker/assets/beast-tail-fish.png",
+    "tags": [
+      "tail",
+      "fish",
+      "fin"
+    ],
+    "width": 182,
+    "height": 203
+  }
+]

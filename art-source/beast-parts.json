@@ -1,0 +1,343 @@
+{
+  "id": "beast-parts",
+  "category": "Beast parts",
+  "columns": 8,
+  "rows": 4,
+  "targetWidth": 3840,
+  "targetHeight": 2160,
+  "source": "art-source/sheets/beast-parts.png",
+  "generation": {
+    "tool": "built-in image_gen",
+    "model": "not exposed by tool",
+    "status": "generated-and-sliced",
+    "createdAt": "2026-09-13",
+    "generatedAt": "2026-09-14",
+    "actualWidth": 1672,
+    "actualHeight": 941,
+    "sourceFile": "exec-0d141803-93d4-4c34-beea-e98e332cc681.png",
+    "inspection": "All 32 row-major subjects visually checked in contact sheet; transparent silhouettes preserved. Fixed grid drift recovered with connected-component masking. Actual output below requested 4K; not upscaled."
+  },
+  "prompt": "Use case: historical-scene. Create an original production sprite sheet of modular beast anatomy for an illuminated manuscript composition editor. Image: 16:9 landscape, target 3840×2160, genuine transparent RGBA background with alpha. Layout: invisible EIGHT COLUMNS by FOUR ROWS, exactly THIRTY-TWO isolated cutouts. All cells are identical in size (target 480×540 pixels). Place the center of each object exactly at its cell center. Each complete object must fit inside the inner 72% of cell width and height, leaving broad fully transparent gutters around all four sides. One independent object in each cell. Art may never touch or cross cell boundaries. Do not cluster or arrange objects freely; strict regular equal spacing is essential because the result will be cut at exact equal row and column boundaries.\n\nStyle: detailed 14th-century illuminated manuscript marginalia, hand-painted flat gouache with fine brown ink contours and subtle dry pigment texture. Restrained warm burgundy, lapis indigo, sage green, antique gold, warm taupe and ivory. Consistent line weight, stylistic scale and finish across all 32 objects. Modular fantasy creature assembly pieces, charming historical flat perspective. Anatomy pieces are decorative drawn components with clean attachment bases; no blood, injury or flesh interiors.\n\nFollow this exact row-major subject order, left to right in each row:\nROW 1: Column 1: Burgundy dragon head facing left, two small gold horns, clean neck attachment; Column 2: Rust red fox head facing left, cream muzzle, black pointed ears, clean neck attachment; Column 3: Sage gray wolf head facing left, alert pointed ears, clean neck attachment; Column 4: Golden taupe hare head facing left, two long upright ears, clean neck attachment; Column 5: Front facing indigo owl head with round gold eyes, clean neck attachment; Column 6: Warm brown stag head facing left with modest gold antlers, clean neck attachment; Column 7: One detached coiled antique gold ram horn; Column 8: One detached branching golden brown stag antler.\nROW 2: Column 1: Burgundy dragon torso only, horizontal oval tapered chest and abdomen, no head legs tail or wings, clean attachment ends; Column 2: Sage gray furry wolf torso only, horizontal standing silhouette, no head legs or tail, clean attachment ends; Column 3: Golden tawny lion torso only, horizontal standing silhouette, no head legs or tail, clean attachment ends; Column 4: Indigo feathered plump bird torso only, no head legs tail or wings, clean attachment ends; Column 5: One burgundy and gold butterfly wing with fine spot markings; Column 6: One elegant indigo and gold feathered bird wing angled upward; Column 7: One sage and burgundy bat wing with slender gold ribs; Column 8: One ornate blue dragon wing with gold webbing and small burgundy scales at attachment.\nROW 3: Column 1: One golden lion foreleg and rounded paw with neat claws, clean upper attachment; Column 2: One bent golden lion hindleg with broad haunch and paw, clean upper attachment; Column 3: One sage gray furry wolf foreleg with dark paw, clean upper attachment; Column 4: One long folded taupe hare hindleg and long foot, clean upper attachment; Column 5: One golden bird lower leg with three curled talons, clean upper attachment; Column 6: One burgundy scaled short reptile leg ending in three gold claws, clean upper attachment; Column 7: One slender tawny deer foreleg with black split hoof, clean upper attachment; Column 8: One sage green webbed frog foot with short ankle, clean attachment.\nROW 4: Column 1: One long burgundy scaled serpentine tail curled into an S, gold pointed tip; Column 2: One curved fluffy rust fox tail with cream tip; Column 3: One thin golden lion tail with burgundy tuft, graceful curve; Column 4: One slender pink taupe rat tail curled into a spiral; Column 5: One paired set of upright taupe hare ears joined at a small clean base; Column 6: One elongated sage green pointed ear with burgundy inner detail; Column 7: One fan shaped indigo fish fin with golden fine rays; Column 8: One gold and indigo forked fish tail fin with a short scaly attachment base.\n\nCritical output constraints: transparent background, real alpha, no parchment or white rectangle, no painted checkerboard, no shadows, no visible grid lines, no borders, no labels, no numbers, no letters, no watermarks, no extra objects. Exactly eight objects per row and exactly four rows. Show every silhouette fully, preserve transparent negative space between objects and inside wings/antlers. Do not combine neighboring components.",
+  "items": [
+    {
+      "id": "beast-head-dragon",
+      "name": "Dragon head",
+      "tags": [
+        "head",
+        "dragon",
+        "scales"
+      ],
+      "subject": "Burgundy dragon head facing left, two small gold horns, clean neck attachment"
+    },
+    {
+      "id": "beast-head-fox",
+      "name": "Fox head",
+      "tags": [
+        "head",
+        "fox",
+        "animal"
+      ],
+      "subject": "Rust red fox head facing left, cream muzzle, black pointed ears, clean neck attachment"
+    },
+    {
+      "id": "beast-head-wolf",
+      "name": "Wolf head",
+      "tags": [
+        "head",
+        "wolf",
+        "animal"
+      ],
+      "subject": "Sage gray wolf head facing left, alert pointed ears, clean neck attachment"
+    },
+    {
+      "id": "beast-head-hare",
+      "name": "Hare head",
+      "tags": [
+        "head",
+        "hare",
+        "rabbit"
+      ],
+      "subject": "Golden taupe hare head facing left, two long upright ears, clean neck attachment"
+    },
+    {
+      "id": "beast-head-owl",
+      "name": "Owl head",
+      "tags": [
+        "head",
+        "owl",
+        "bird"
+      ],
+      "subject": "Front facing indigo owl head with round gold eyes, clean neck attachment"
+    },
+    {
+      "id": "beast-head-stag",
+      "name": "Stag head",
+      "tags": [
+        "head",
+        "stag",
+        "deer"
+      ],
+      "subject": "Warm brown stag head facing left with modest gold antlers, clean neck attachment"
+    },
+    {
+      "id": "beast-horn-ram",
+      "name": "Curled ram horn",
+      "tags": [
+        "horn",
+        "ram",
+        "curl"
+      ],
+      "subject": "One detached coiled antique gold ram horn"
+    },
+    {
+      "id": "beast-antler",
+      "name": "Branching antler",
+      "tags": [
+        "horn",
+        "antler",
+        "stag"
+      ],
+      "subject": "One detached branching golden brown stag antler"
+    },
+    {
+      "id": "beast-body-dragon",
+      "name": "Dragon body",
+      "tags": [
+        "body",
+        "dragon",
+        "scales"
+      ],
+      "subject": "Burgundy dragon torso only, horizontal oval tapered chest and abdomen, no head legs tail or wings, clean attachment ends"
+    },
+    {
+      "id": "beast-body-wolf",
+      "name": "Wolf body",
+      "tags": [
+        "body",
+        "wolf",
+        "fur"
+      ],
+      "subject": "Sage gray furry wolf torso only, horizontal standing silhouette, no head legs or tail, clean attachment ends"
+    },
+    {
+      "id": "beast-body-lion",
+      "name": "Lion body",
+      "tags": [
+        "body",
+        "lion",
+        "fur"
+      ],
+      "subject": "Golden tawny lion torso only, horizontal standing silhouette, no head legs or tail, clean attachment ends"
+    },
+    {
+      "id": "beast-body-bird",
+      "name": "Bird body",
+      "tags": [
+        "body",
+        "bird",
+        "feathers"
+      ],
+      "subject": "Indigo feathered plump bird torso only, no head legs tail or wings, clean attachment ends"
+    },
+    {
+      "id": "beast-wing-butterfly",
+      "name": "Butterfly wing",
+      "tags": [
+        "wing",
+        "butterfly",
+        "insect"
+      ],
+      "subject": "One burgundy and gold butterfly wing with fine spot markings"
+    },
+    {
+      "id": "beast-wing-feather",
+      "name": "Feathered wing",
+      "tags": [
+        "wing",
+        "feather",
+        "bird"
+      ],
+      "subject": "One elegant indigo and gold feathered bird wing angled upward"
+    },
+    {
+      "id": "beast-wing-bat",
+      "name": "Bat wing",
+      "tags": [
+        "wing",
+        "bat",
+        "membrane"
+      ],
+      "subject": "One sage and burgundy bat wing with slender gold ribs"
+    },
+    {
+      "id": "beast-wing-dragon",
+      "name": "Dragon wing",
+      "tags": [
+        "wing",
+        "dragon",
+        "scales"
+      ],
+      "subject": "One ornate blue dragon wing with gold webbing and small burgundy scales at attachment"
+    },
+    {
+      "id": "beast-leg-lion-front",
+      "name": "Lion foreleg",
+      "tags": [
+        "leg",
+        "paw",
+        "lion"
+      ],
+      "subject": "One golden lion foreleg and rounded paw with neat claws, clean upper attachment"
+    },
+    {
+      "id": "beast-leg-lion-back",
+      "name": "Lion hindleg",
+      "tags": [
+        "leg",
+        "paw",
+        "lion"
+      ],
+      "subject": "One bent golden lion hindleg with broad haunch and paw, clean upper attachment"
+    },
+    {
+      "id": "beast-leg-wolf",
+      "name": "Wolf foreleg",
+      "tags": [
+        "leg",
+        "paw",
+        "wolf"
+      ],
+      "subject": "One sage gray furry wolf foreleg with dark paw, clean upper attachment"
+    },
+    {
+      "id": "beast-leg-hare",
+      "name": "Hare hindleg",
+      "tags": [
+        "leg",
+        "paw",
+        "hare"
+      ],
+      "subject": "One long folded taupe hare hindleg and long foot, clean upper attachment"
+    },
+    {
+      "id": "beast-foot-talon",
+      "name": "Bird talon",
+      "tags": [
+        "foot",
+        "talon",
+        "bird"
+      ],
+      "subject": "One golden bird lower leg with three curled talons, clean upper attachment"
+    },
+    {
+      "id": "beast-leg-dragon",
+      "name": "Dragon claw leg",
+      "tags": [
+        "leg",
+        "claw",
+        "dragon"
+      ],
+      "subject": "One burgundy scaled short reptile leg ending in three gold claws, clean upper attachment"
+    },
+    {
+      "id": "beast-leg-hoof",
+      "name": "Hoofed foreleg",
+      "tags": [
+        "leg",
+        "hoof",
+        "deer"
+      ],
+      "subject": "One slender tawny deer foreleg with black split hoof, clean upper attachment"
+    },
+    {
+      "id": "beast-foot-frog",
+      "name": "Webbed frog foot",
+      "tags": [
+        "foot",
+        "frog",
+        "webbed"
+      ],
+      "subject": "One sage green webbed frog foot with short ankle, clean attachment"
+    },
+    {
+      "id": "beast-tail-dragon",
+      "name": "Dragon tail",
+      "tags": [
+        "tail",
+        "dragon",
+        "scales"
+      ],
+      "subject": "One long burgundy scaled serpentine tail curled into an S, gold pointed tip"
+    },
+    {
+      "id": "beast-tail-fox",
+      "name": "Fox tail",
+      "tags": [
+        "tail",
+        "fox",
+        "fur"
+      ],
+      "subject": "One curved fluffy rust fox tail with cream tip"
+    },
+    {
+      "id": "beast-tail-lion",
+      "name": "Lion tail",
+      "tags": [
+        "tail",
+        "lion",
+        "tuft"
+      ],
+      "subject": "One thin golden lion tail with burgundy tuft, graceful curve"
+    },
+    {
+      "id": "beast-tail-rat",
+      "name": "Rat tail",
+      "tags": [
+        "tail",
+        "rat",
+        "curl"
+      ],
+      "subject": "One slender pink taupe rat tail curled into a spiral"
+    },
+    {
+      "id": "beast-ears-hare",
+      "name": "Hare ears",
+      "tags": [
+        "ears",
+        "hare",
+        "rabbit"
+      ],
+      "subject": "One paired set of upright taupe hare ears joined at a small clean base"
+    },
+    {
+      "id": "beast-ear-pointed",
+      "name": "Pointed ear",
+      "tags": [
+        "ear",
+        "goblin",
+        "monster"
+      ],
+      "subject": "One elongated sage green pointed ear with burgundy inner detail"
+    },
+    {
+      "id": "beast-fin-fish",
+      "name": "Fish fin",
+      "tags": [
+        "fin",
+        "fish",
+        "scales"
+      ],
+      "subject": "One fan shaped indigo fish fin with golden fine rays"
+    },
+    {
+      "id": "beast-tail-fish",
+      "name": "Fish tail",
+      "tags": [
+        "tail",
+        "fish",
+        "fin"
+      ],
+      "subject": "One gold and indigo forked fish tail fin with a short scaly attachment base"
+    }
+  ]
+}

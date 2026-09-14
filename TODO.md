@@ -1,6 +1,6 @@
 # Manuscript project ToDos
 
-Last updated: 2026-09-13. This file records the user's requested direction, including messages sent during implementation. `docs/HANDOVER.md` records the concrete implementation state.
+Last updated: 2026-09-14. This file records the user's requested direction, including messages sent during implementation. `docs/HANDOVER.md` records the concrete implementation state.
 
 ## Release checkpoint — highest priority
 
@@ -9,27 +9,30 @@ Last updated: 2026-09-13. This file records the user's requested direction, incl
 - [x] Drag, resize, rotate, flip, hide, lock, duplicate, and reorder layers with undo/redo.
 - [x] Save/load editable single-page projects and autosave the current manuscript locally.
 - [x] Export PNG/SVG with artwork and fonts included.
-- [ ] Publish the latest verified working version to GitHub Pages and verify the live app.
+- [x] Publish the latest verified working version to GitHub Pages and verify the live app (first checkpoint b392de1).
 
 ## Project foundations — user priority
 
-- [ ] Begin with a **Book / Map** choice and editable canvas dimensions.
-- [ ] Book mode: multiple flippable pages, page navigation, add/duplicate/reorder/remove pages.
-- [ ] Save/load the complete book or map, preserving layers and original text on every page.
-- [ ] Make layer order immediately understandable; add drag reordering alongside accessible forward/back controls.
-- [ ] Preserve old single-page files through schema migration. Avoid coupling content to the selected page.
-- [ ] Export a chosen page and, later, the entire book (image set / PDF).
+- [x] Begin with a **Book / Map** choice and editable canvas dimensions.
+- [x] Book mode: multiple flippable pages, page navigation, add/duplicate/reorder/remove pages.
+- [x] Save/load the complete book or map, preserving layers and original text on every page.
+- [x] Make layer order immediately understandable; add drag reordering alongside accessible forward/back controls.
+- [x] Preserve old single-page files through schema migration. Avoid coupling content to the selected page.
+- [x] Export the selected page as PNG/SVG, named with the book title and page number.
+- [ ] Export the entire book (image set / PDF).
 
 ## Efficient modular art library — latest user brief
 
 - [ ] Generate **8 × 4** sheets (32 elements), **16:9, 4K**, with an invisible standardized grid and genuine transparent background.
 - [ ] Request the user's preferred “images2.5” generator only if the available tool exposes that model. Current built-in imagegen schema has no model selector; do not claim otherwise.
 - [ ] Use modular categories inspired by the game's organization: **beast body parts, armor, textiles, castle elements, flora, household goods, icons/symbols**, plus demons, towns, tunnels, and animals as needed.
-- [ ] Build a reproducible Python slicer using manifest row/column ordering; preserve alpha, trim empty margins, pad cutouts, validate every cell, and publish catalog entries automatically.
+- [x] Build a reproducible Python slicer using manifest row/column ordering; preserve alpha, trim empty margins, pad cutouts, validate every cell, and publish catalog entries automatically.
 - [ ] Check for empty cells, opaque fake transparency, cross-cell art, duplicate or missing pieces, and clipping. Regenerate only failed sheets/cells where practical.
-- [ ] Keep original sheets, exact prompts, row-major labels, and generated-file provenance. Do not burn calls making one small item at a time.
+- [x] Keep original sheets, exact prompts, row-major labels, and generated-file provenance. Do not burn calls making one small item at a time.
 - [ ] Expand to hundreds of composable elements without making the UI slow; lazy thumbnails, searchable categories, favorites, stable IDs.
-- [ ] Existing complete illustrations remain available as starter art; modular parts are the main expansion strategy.
+- [x] Existing complete illustrations remain available as starter art; modular parts are the main expansion strategy.
+
+Current library: 32 transparent beast parts and 7 complete illustrations. Beast sheet was returned at 1672×941, below the requested 4K, and was not upscaled. All 32 labels and silhouettes visually checked. Castle-parts manifest is prepared but its source sheet has not yet been generated. Latest user clarification: small walls, windows, wings, tongues and similar components are the priority, with some complete subjects retained.
 
 ## Text and composition growth
 

@@ -1,0 +1,314 @@
+{
+  "id": "castle-parts",
+  "category": "Castle parts",
+  "columns": 8,
+  "rows": 4,
+  "targetWidth": 3840,
+  "targetHeight": 2160,
+  "source": "art-source/sheets/castle-parts.png",
+  "generation": {
+    "tool": "built-in image_gen",
+    "model": "not exposed by tool",
+    "status": "prepared",
+    "createdAt": "2026-09-14"
+  },
+  "prompt": "Create an original production sprite sheet of small MODULAR ARCHITECTURAL BUILDING BLOCKS for an illuminated manuscript editor. No complete castles, complete houses, complete towers, scenes, landscapes or finished structures. User will assemble structures from these pieces. Target 3840x2160 landscape 16:9, true transparent RGBA. Invisible equal grid EXACTLY 8 columns by4 rows =32 isolated objects. Center each object in its assigned cell. IMPORTANT each object must fit within only65 percent of its cell width AND height; wide transparent gutters allaround. No printed lines, text, numbers, checkerboard or paper background. Gouache medieval manuscript miniatures, fine brown ink outlines, muted stone ivory, burgundy, lapis blue, antique gold and sage. Flat front/side illustrative view as specified, consistent lineweight. Strict row-major order below. No extra subjects. All silhouettes fully visible and isolated.\nRow 1, column 1: A short straight rectangular pale stone wall segment, front view, no towers or doors.\nRow 1, column 2: A short straight red brick wall segment, front view.\nRow 1, column 3: A small broken stone wall segment with a jagged top edge.\nRow 1, column 4: A short horizontal stone crenellated parapet strip, only battlements.\nRow 1, column 5: A short L-shaped stone wall corner with two visible sides.\nRow 1, column 6: A rectangular section of stone masonry surrounding one open rounded arch, no door.\nRow 1, column 7: One small medieval white plaster wall panel with dark crossed timber framing.\nRow 1, column 8: A small stone masonry segment with green moss between blocks.\nRow 2, column 1: One narrow pointed Gothic stone window frame with blue panes.\nRow 2, column 2: One circular rose window with simple indigo and amber stained glass.\nRow 2, column 3: One double pointed lancet window frame with two narrow openings.\nRow 2, column 4: One square wooden window frame with two open burgundy shutters.\nRow 2, column 5: One narrow vertical arrow slit framed by pale stone blocks.\nRow 2, column 6: One small square lead lattice window with antique gold diamond panes.\nRow 2, column 7: One tiny projecting stone balcony with a wooden railing, no building.\nRow 2, column 8: One horizontal stone window sill with a trailing small vine, no wall.\nRow 3, column 1: One rounded oak plank door with two black iron strap hinges.\nRow 3, column 2: One pair of tall burgundy wooden double doors, no surrounding wall.\nRow 3, column 3: One pointed iron portcullis grid with a simple stone arch frame.\nRow 3, column 4: One square wooden trapdoor seen at a slight angle, one iron ring.\nRow 3, column 5: One freestanding pointed stone arch frame, open center, no surrounding building.\nRow 3, column 6: One freestanding rounded stone arch frame, open center.\nRow 3, column 7: One short slender pale stone column with simple capital and foot.\nRow 3, column 8: One decorative twisted burgundy and gold column, flat manuscript style.\nRow 4, column 1: One detached conical lapis blue tiled turret roof, no tower below.\nRow 4, column 2: One detached triangular burgundy tiled gable roof, no walls below.\nRow 4, column 3: One detached small gold domed roof with finial, no building below.\nRow 4, column 4: One short pale stone chimney pot with a simple cap.\nRow 4, column 5: One short run of six stone stairs viewed from the side at slight angle.\nRow 4, column 6: One simple vertical wooden ladder, six rungs.\nRow 4, column 7: One small rocky semicircular tunnel mouth with dark interior, only the entrance rim.\nRow 4, column 8: One single stone bridge arch segment with a short flat top, no landscape.\n",
+  "items": [
+    {
+      "id": "wall-stone-straight",
+      "name": "Straight stone wall",
+      "tags": [
+        "wall",
+        "stone",
+        "straight"
+      ],
+      "subject": "A short straight rectangular pale stone wall segment, front view, no towers or doors"
+    },
+    {
+      "id": "wall-brick-straight",
+      "name": "Red brick wall",
+      "tags": [
+        "wall",
+        "brick",
+        "straight"
+      ],
+      "subject": "A short straight red brick wall segment, front view"
+    },
+    {
+      "id": "wall-stone-ruined",
+      "name": "Broken stone wall",
+      "tags": [
+        "wall",
+        "stone",
+        "ruined"
+      ],
+      "subject": "A small broken stone wall segment with a jagged top edge"
+    },
+    {
+      "id": "wall-crenellation",
+      "name": "Battlement strip",
+      "tags": [
+        "wall",
+        "crenellation"
+      ],
+      "subject": "A short horizontal stone crenellated parapet strip, only battlements"
+    },
+    {
+      "id": "wall-corner",
+      "name": "Stone corner",
+      "tags": [
+        "wall",
+        "corner"
+      ],
+      "subject": "A short L-shaped stone wall corner with two visible sides"
+    },
+    {
+      "id": "wall-arch-opening",
+      "name": "Arched wall opening",
+      "tags": [
+        "wall",
+        "arch",
+        "opening"
+      ],
+      "subject": "A rectangular section of stone masonry surrounding one open rounded arch, no door"
+    },
+    {
+      "id": "wall-timber",
+      "name": "Timber wall panel",
+      "tags": [
+        "wall",
+        "timber"
+      ],
+      "subject": "One small medieval white plaster wall panel with dark crossed timber framing"
+    },
+    {
+      "id": "wall-moss",
+      "name": "Mossy masonry",
+      "tags": [
+        "wall",
+        "moss"
+      ],
+      "subject": "A small stone masonry segment with green moss between blocks"
+    },
+    {
+      "id": "window-gothic",
+      "name": "Gothic window",
+      "tags": [
+        "window",
+        "gothic"
+      ],
+      "subject": "One narrow pointed Gothic stone window frame with blue panes"
+    },
+    {
+      "id": "window-round",
+      "name": "Round window",
+      "tags": [
+        "window",
+        "round"
+      ],
+      "subject": "One circular rose window with simple indigo and amber stained glass"
+    },
+    {
+      "id": "window-lancet",
+      "name": "Twin lancet window",
+      "tags": [
+        "window",
+        "lancet"
+      ],
+      "subject": "One double pointed lancet window frame with two narrow openings"
+    },
+    {
+      "id": "window-shutters",
+      "name": "Shuttered window",
+      "tags": [
+        "window",
+        "shutters"
+      ],
+      "subject": "One square wooden window frame with two open burgundy shutters"
+    },
+    {
+      "id": "window-arrow-slit",
+      "name": "Arrow slit",
+      "tags": [
+        "window",
+        "arrow",
+        "slit"
+      ],
+      "subject": "One narrow vertical arrow slit framed by pale stone blocks"
+    },
+    {
+      "id": "window-lattice",
+      "name": "Lead lattice window",
+      "tags": [
+        "window",
+        "lattice"
+      ],
+      "subject": "One small square lead lattice window with antique gold diamond panes"
+    },
+    {
+      "id": "window-balcony",
+      "name": "Window balcony",
+      "tags": [
+        "window",
+        "balcony"
+      ],
+      "subject": "One tiny projecting stone balcony with a wooden railing, no building"
+    },
+    {
+      "id": "window-sill",
+      "name": "Flowered window sill",
+      "tags": [
+        "window",
+        "sill"
+      ],
+      "subject": "One horizontal stone window sill with a trailing small vine, no wall"
+    },
+    {
+      "id": "door-oak",
+      "name": "Oak door",
+      "tags": [
+        "door",
+        "oak"
+      ],
+      "subject": "One rounded oak plank door with two black iron strap hinges"
+    },
+    {
+      "id": "door-double",
+      "name": "Double door",
+      "tags": [
+        "door",
+        "double"
+      ],
+      "subject": "One pair of tall burgundy wooden double doors, no surrounding wall"
+    },
+    {
+      "id": "door-portcullis",
+      "name": "Portcullis",
+      "tags": [
+        "door",
+        "portcullis"
+      ],
+      "subject": "One pointed iron portcullis grid with a simple stone arch frame"
+    },
+    {
+      "id": "door-trapdoor",
+      "name": "Wooden trapdoor",
+      "tags": [
+        "door",
+        "trapdoor"
+      ],
+      "subject": "One square wooden trapdoor seen at a slight angle, one iron ring"
+    },
+    {
+      "id": "arch-pointed",
+      "name": "Pointed stone arch",
+      "tags": [
+        "arch",
+        "pointed"
+      ],
+      "subject": "One freestanding pointed stone arch frame, open center, no surrounding building"
+    },
+    {
+      "id": "arch-rounded",
+      "name": "Rounded stone arch",
+      "tags": [
+        "arch",
+        "rounded"
+      ],
+      "subject": "One freestanding rounded stone arch frame, open center"
+    },
+    {
+      "id": "column-stone",
+      "name": "Stone column",
+      "tags": [
+        "column",
+        "stone"
+      ],
+      "subject": "One short slender pale stone column with simple capital and foot"
+    },
+    {
+      "id": "column-twisted",
+      "name": "Twisted column",
+      "tags": [
+        "column",
+        "twisted"
+      ],
+      "subject": "One decorative twisted burgundy and gold column, flat manuscript style"
+    },
+    {
+      "id": "roof-cone-blue",
+      "name": "Blue conical roof",
+      "tags": [
+        "roof",
+        "cone",
+        "blue"
+      ],
+      "subject": "One detached conical lapis blue tiled turret roof, no tower below"
+    },
+    {
+      "id": "roof-gable-red",
+      "name": "Red gabled roof",
+      "tags": [
+        "roof",
+        "gable",
+        "red"
+      ],
+      "subject": "One detached triangular burgundy tiled gable roof, no walls below"
+    },
+    {
+      "id": "roof-dome-gold",
+      "name": "Golden dome",
+      "tags": [
+        "roof",
+        "dome",
+        "gold"
+      ],
+      "subject": "One detached small gold domed roof with finial, no building below"
+    },
+    {
+      "id": "roof-chimney",
+      "name": "Stone chimney",
+      "tags": [
+        "roof",
+        "chimney"
+      ],
+      "subject": "One short pale stone chimney pot with a simple cap"
+    },
+    {
+      "id": "stairs-stone",
+      "name": "Stone steps",
+      "tags": [
+        "stairs",
+        "stone"
+      ],
+      "subject": "One short run of six stone stairs viewed from the side at slight angle"
+    },
+    {
+      "id": "stairs-ladder",
+      "name": "Wooden ladder",
+      "tags": [
+        "stairs",
+        "ladder"
+      ],
+      "subject": "One simple vertical wooden ladder, six rungs"
+    },
+    {
+      "id": "tunnel-mouth",
+      "name": "Tunnel entrance",
+      "tags": [
+        "tunnel",
+        "mouth"
+      ],
+      "subject": "One small rocky semicircular tunnel mouth with dark interior, only the entrance rim"
+    },
+    {
+      "id": "bridge-arch",
+      "name": "Bridge arch segment",
+      "tags": [
+        "bridge",
+        "arch"
+      ],
+      "subject": "One single stone bridge arch segment with a short flat top, no landscape"
+    }
+  ]
+}
