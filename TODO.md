@@ -47,6 +47,6 @@ Current library: 64 transparent modular parts (32 beast and 32 castle) plus 7 co
 
 - [x] Add shared agent guidance and architecture/handover documentation for Astra, Claude, DeepSeek, and other coding agents.
 - [x] Record the user's new scope and art-generation cost constraints.
-- [ ] Keep verification, deployment commit, known limitations, and next steps current after each checkpoint.
+- [x] Keep verification, deployment commit, known limitations, and next steps current after each checkpoint.
 
 The user explicitly asked to get the current working version live ASAP before usage runs out, then get as far as practical. This is an evolving project, not a claim of parity with a commercial game's full library.

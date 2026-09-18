@@ -41,14 +41,14 @@ Temporary `.local/` contains test scripts/output and a credential-safe Pages API
 - `.github/workflows/pages.yml` tests/builds `main` and deploys `dist` via GitHub Actions.
 - Pages was switched from legacy root-branch hosting to Actions using the authorized existing GitHub credentials.
 - First working checkpoint **b392de1** deployed successfully through Actions run **34782429132**. The published app was opened and visually confirmed at https://threapchills.github.io/ManuscriptMaker/.
+- Castle-parts and whole-book image-export checkpoint **ac7b0ea** is on `main` and deployed successfully through Actions run **35377479558**. The public site returned HTTP 200 and served the new bundle during the 2026-09-18 verification.
 - Local branch began as `codex/manuscript-studio` based on the existing remote main. Initial repository contained only a placeholder index.
 
 ## Next engineering decisions
 
-1. Verify the `main` Pages run for the castle and book-export checkpoint.
-2. Generate the prepared finishing-parts sheet: prioritize tongues, eyes, armor, textiles and flora. The 2026-09-18 attempt reached the account image-generation limit, so the manifest and exact prompt remain ready for a later run. Preserve complete starter art too.
-3. Continue economical 8×4 modular batches; request 4K but record actual returned size. Inspect every cutout before publication.
-4. Next engineering priorities: larger-project persistence, reusable compositions/grouping, cross-page copy/paste and whole-book exports.
+1. Generate the prepared finishing-parts sheet: prioritize tongues, eyes, armor, textiles and flora. The 2026-09-18 attempt reached the account image-generation limit, so the manifest and exact prompt remain ready for a later run. Preserve complete starter art too.
+2. Continue economical 8×4 modular batches; request 4K but record actual returned size. Inspect every cutout before publication.
+3. Next engineering priorities: whole-book PDF export, larger-project persistence, reusable compositions/grouping, and cross-page copy/paste.
 
 ## Limitations to preserve or resolve explicitly
 
