@@ -19,7 +19,8 @@ Last updated: 2026-09-18. This file records the user's requested direction, incl
 - [x] Make layer order immediately understandable; add drag reordering alongside accessible forward/back controls.
 - [x] Preserve old single-page files through schema migration. Avoid coupling content to the selected page.
 - [x] Export the selected page as PNG/SVG, named with the book title and page number.
-- [ ] Export the entire book (image set / PDF).
+- [x] Export the entire book as a per-page PNG/SVG image set.
+- [ ] Export the entire book as a PDF.
 
 ## Efficient modular art library — latest user brief
 

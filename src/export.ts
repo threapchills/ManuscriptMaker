@@ -1,5 +1,7 @@
 import { getFontEmbedCSS, toPng, toSvg } from 'html-to-image';
 import type { Manuscript } from './types';
+import type { Project } from './project';
+import { transformText } from './text';
 
 function safeFilename(title: string) {
   return title.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, '').replace(/\s+/g, '-').slice(0, 100) || 'my-manuscript';
@@ -14,21 +16,77 @@ function download(data: string, filename: string) {
   anchor.remove();
 }
 
-/** Work on an unscaled, off-screen copy so editor gestures never enter an export. */
+function makeExportPage(manuscript: Manuscript): HTMLElement {
+  const page = document.createElement('div');
+  page.id = 'manuscript-export-page';
+  page.className = `manuscript-page manuscript-paper--${manuscript.paper}`;
+  Object.assign(page.style, {
+    width: `${manuscript.width}px`, height: `${manuscript.height}px`,
+    transform: 'none', transformOrigin: 'top left', margin: '0', overflow: 'hidden',
+  });
+
+  if (manuscript.border !== 'none') {
+    const border = document.createElement('div');
+    border.className = `manuscript-border manuscript-border--${manuscript.border}`;
+    border.setAttribute('aria-hidden', 'true');
+    if (manuscript.border === 'illuminated') {
+      for (const position of ['nw', 'ne', 'sw', 'se']) {
+        const corner = document.createElement('span');
+        corner.className = `manuscript-corner manuscript-corner--${position}`;
+        border.appendChild(corner);
+      }
+      for (const position of ['top', 'bottom']) {
+        const gem = document.createElement('span');
+        gem.className = `manuscript-border-gem manuscript-border-gem--${position}`;
+        border.appendChild(gem);
+      }
+    }
+    page.appendChild(border);
+  }
+
+  for (const layer of manuscript.layers) {
+    if (layer.hidden) continue;
+    const layerElement = document.createElement('div');
+    layerElement.className = `manuscript-layer${layer.locked ? ' is-locked' : ''}`;
+    layerElement.dataset.layerId = layer.id;
+    Object.assign(layerElement.style, {
+      left: `${layer.x}px`, top: `${layer.y}px`, width: `${layer.width}px`,
+      height: `${layer.height}px`, transform: `rotate(${layer.rotation}deg)`,
+    });
+    const content = document.createElement('div');
+    content.className = 'manuscript-layer-content';
+    Object.assign(content.style, {
+      opacity: String(layer.opacity), transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+    });
+    if (layer.type === 'image') {
+      const image = document.createElement('img');
+      image.src = layer.src;
+      image.alt = layer.name;
+      image.draggable = false;
+      content.appendChild(image);
+    } else {
+      const text = document.createElement('div');
+      text.className = 'manuscript-text';
+      text.textContent = transformText(layer.text, layer.glyphs);
+      Object.assign(text.style, {
+        fontFamily: layer.fontFamily, fontSize: `${layer.fontSize}px`, color: layer.color,
+        fontWeight: String(layer.bold ? 700 : 400), fontStyle: layer.italic ? 'italic' : 'normal',
+        textAlign: layer.align, lineHeight: String(layer.lineHeight), letterSpacing: `${layer.letterSpacing}px`,
+      });
+      content.appendChild(text);
+    }
+    layerElement.appendChild(content);
+    page.appendChild(layerElement);
+  }
+  return page;
+}
+
+/** Work on an unscaled, off-screen page so editor gestures never enter an export. */
 async function renderExport(manuscript: Manuscript, format: 'png' | 'svg') {
-  const source = document.getElementById('manuscript-page');
-  if (!source) throw new Error('Open a manuscript before exporting.');
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
   Object.assign(host.style, { position: 'fixed', left: '-100000px', top: '0', pointerEvents: 'none' });
-  const page = source.cloneNode(true) as HTMLElement;
-  page.id = 'manuscript-export-page';
-  page.querySelectorAll('[data-export-ignore]').forEach(element => element.remove());
-  page.querySelectorAll('.is-selected').forEach(element => element.classList.remove('is-selected'));
-  Object.assign(page.style, {
-    transform: 'none', transformOrigin: 'top left', width: `${manuscript.width}px`,
-    height: `${manuscript.height}px`, margin: '0', overflow: 'hidden',
-  });
+  const page = makeExportPage(manuscript);
   host.appendChild(page);
   document.body.appendChild(host);
   try {
@@ -57,6 +115,23 @@ export async function exportPNG(manuscript: Manuscript, filename?: string): Prom
 /** A self-contained SVG with embedded artwork, font data and HTML typography. */
 export async function exportSVG(manuscript: Manuscript, filename?: string): Promise<void> {
   download(await renderExport(manuscript, 'svg'), filename || `${safeFilename(manuscript.title)}.svg`);
+}
+
+async function exportPages(project: Project, format: 'png' | 'svg'): Promise<void> {
+  for (const [index, page] of project.pages.entries()) {
+    const data = await renderExport(page, format);
+    download(data, `${safeFilename(project.title)}-page-${index + 1}.${format}`);
+  }
+}
+
+/** Download every book page as an individual high-resolution PNG. */
+export async function exportBookPNG(project: Project): Promise<void> {
+  await exportPages(project, 'png');
+}
+
+/** Download every book page as a self-contained SVG. */
+export async function exportBookSVG(project: Project): Promise<void> {
+  await exportPages(project, 'svg');
 }
 
 export const exportPng = exportPNG;

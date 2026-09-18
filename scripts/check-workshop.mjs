@@ -46,6 +46,7 @@ try{
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('manuscript-maker:v1'))?.pages?.length===4);await page.reload();await expect(page.getByLabel('Current book page')).toContainText('Page 2 of 4');
   const restored=await download();assert.deepEqual(restored.pages,saved.pages);
   pass('Map setup and whole-project reopen/autosave reload preserve every page');
+  const pageFiles=[];const collectPageDownload=file=>pageFiles.push(file);page.on('download',collectPageDownload);await page.getByRole('button',{name:'Export',exact:true}).click();await page.getByRole('button',{name:/^PNG pages/}).click();await expect.poll(()=>pageFiles.length,{timeout:30000}).toBe(saved.pages.length);page.off('download',collectPageDownload);const safeBookTitle=saved.title.replace(/[<>:"/\\|?*\u0000-\u001f]/g,'').replace(/\s+/g,'-').slice(0,100)||'my-manuscript';assert.deepEqual(pageFiles.map(file=>file.suggestedFilename()),saved.pages.map((_,index)=>`${safeBookTitle}-page-${index+1}.png`));pass('Whole-book export downloads one PNG per page without changing the active page');
   await page.getByLabel('Current book page').selectOption(saved.pages[0].id);await page.getByRole('button',{name:'Library',exact:true}).click();
   const rows=page.locator('.layers-list .layer-row');const rowNames=()=>page.locator('.layer-select').allTextContents();const before=await rowNames();await rows.nth(0).dragTo(rows.nth(3));const reordered=await rowNames();assert.notDeepEqual(reordered,before);await page.getByRole('button',{name:'Undo (Ctrl+Z)',exact:true}).click();assert.deepEqual(await rowNames(),before);
   await page.getByLabel('Search illustrations').fill('unfindable');await expect(page.getByText('No pieces found')).toBeVisible();await page.getByRole('button',{name:'Browse the collection'}).click();
@@ -54,7 +55,7 @@ try{
   await expect(page.locator('.asset-card').first()).toHaveCSS('opacity','1');
   await page.screenshot({path:'.local/workshop-book-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await expect(page.getByRole('button',{name:'Open project',exact:true})).toBeVisible();
-  const sizes=await page.evaluate(()=>({width:document.body.scrollWidth,canvas:document.getElementById('manuscript-page').getBoundingClientRect().toJSON()}));assert.ok(sizes.width<=390);assert.ok(sizes.canvas.x>=0&&sizes.canvas.right<=390);
+  await page.getByRole('button',{name:'Fit page to workspace'}).click();const sizes=await page.evaluate(()=>({width:document.body.scrollWidth,canvas:document.getElementById('manuscript-page').getBoundingClientRect().toJSON()}));assert.ok(sizes.width<=390);assert.ok(sizes.canvas.x>=0&&sizes.canvas.right<=390);
   await page.locator('.mobile-nav').getByRole('button',{name:'Library',exact:true}).click();await expect(page.getByLabel('Search illustrations')).toBeVisible();await page.locator('.asset-picture').first().click();await expect(page.locator('.library-panel')).toBeHidden();
   await page.locator('.mobile-nav').getByRole('button',{name:'Add text',exact:true}).click();await page.getByLabel('Your words',{exact:true}).fill('A little mobile manuscript');await page.getByRole('button',{name:'Close tools',exact:true}).click();
   await page.screenshot({path:'.local/workshop-book-mobile.png',fullPage:true});pass('Mobile page navigation, responsive canvas and creation drawers');

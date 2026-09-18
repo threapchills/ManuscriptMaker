@@ -21,14 +21,14 @@ Latest additions are recorded in `TODO.md`: Book/Map setup, initial dimensions, 
 - Version 2 complete book/map JSON with v1 single-page migration, validation, localStorage autosave, project download/open. Original images and text preferences survive the project round trip. Invalid saved data pauses autosave and offers a recovery download; it must be backed up before replacement.
 - Book/Map setup with custom starting dimensions; up to 100 book pages; navigation, add/duplicate/reorder/remove. Whole-project undo/redo owns every page. `src/project.ts` is the pure model and `src/useProject.ts` owns history; canvas still receives only the active page.
 - Layer list supports drag reordering as well as accessible arrows. Current page exports include the book title and page number.
-- PNG at 2× and self-contained SVG with images and font data embedded. SVG uses `foreignObject`, so PNG is most portable.
+- PNG at 2× and self-contained SVG with images and font data embedded. Book mode also downloads one PNG or SVG per page. These exports render from an offscreen page model and never modify the live canvas. SVG uses `foreignObject`, so PNG is most portable.
 - Library contains 7 complete illustrations, 32 transparent modular beast parts, and 32 transparent modular castle parts. `scripts/slice_art_sheets.py` validates and trims sheets, stages contact sheets/reports in `.local/art-crops`, and publishes raster files plus `src/generated-assets.json`. Source originals and prompts live in `art-source/`. The beast and castle sheets are each 1672×941 (requested 4K, not upscaled); connected-component extraction recovered grid drift, both reports have no cell errors, and the 64 modular subjects were visually checked. The next prepared batch is `art-source/finishing-parts.json`, covering tongues, eyes, armor, textiles, and flora.
 
 ## Verification completed
 
 - `npm test`: 130 tests pass on 2026-09-18, including spelling rules, asset catalog validation, v1 migration, project validation and multi-page round trips.
 - `npm run build`: successful on 2026-09-18.
-- `npm run test:browser`: passed on 2026-09-18. Verifies book/map setup, custom dimensions, page duplication/reordering/removal/undo, glyph toggles and typography, locking, complete-project download/reopen/autosave reload, layer drag order/undo, PNG dimensions, mobile drawers/canvas, and absence of runtime errors. Desktop result visually inspected. This script uses an isolated Playwright browser profile.
+- `npm run test:browser`: passed on 2026-09-18. Verifies book/map setup, custom dimensions, page duplication/reordering/removal/undo, glyph toggles and typography, locking, complete-project download/reopen/autosave reload, one-file-per-page book PNG export, layer drag order/undo, PNG dimensions, mobile fit/drawers/canvas, and absence of runtime errors. Desktop result visually inspected. This script uses an isolated Playwright browser profile.
 - Headless canvas check `.local/canvas-smoke.mjs`: drag at fractional zoom; single-step drag undo; locking; visibility; rotated resizing and fixed-corner geometry; rotation; drops; PNG size; SVG image/font embedding; guides/controls absent from exports; no browser runtime errors. Passed.
 - Export PNG was visually inspected and matched the canvas.
 - Older `.local/app-smoke.mjs` targets the single-page UI; use the checked-in `scripts/check-workshop.mjs` for the current project UI.
@@ -45,8 +45,8 @@ Temporary `.local/` contains test scripts/output and a credential-safe Pages API
 
 ## Next engineering decisions
 
-1. Push this verified castle-parts checkpoint, then verify Actions/live deployment.
-2. Generate the prepared finishing-parts sheet: prioritize tongues, eyes, armor, textiles and flora. Preserve complete starter art too.
+1. Verify the `main` Pages run for the castle and book-export checkpoint.
+2. Generate the prepared finishing-parts sheet: prioritize tongues, eyes, armor, textiles and flora. The 2026-09-18 attempt reached the account image-generation limit, so the manifest and exact prompt remain ready for a later run. Preserve complete starter art too.
 3. Continue economical 8×4 modular batches; request 4K but record actual returned size. Inspect every cutout before publication.
 4. Next engineering priorities: larger-project persistence, reusable compositions/grouping, cross-page copy/paste and whole-book exports.
 
