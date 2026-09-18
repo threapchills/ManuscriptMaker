@@ -18,7 +18,6 @@ function download(data: string, filename: string) {
 async function renderExport(manuscript: Manuscript, format: 'png' | 'svg') {
   const source = document.getElementById('manuscript-page');
   if (!source) throw new Error('Open a manuscript before exporting.');
-  await document.fonts.ready;
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
   Object.assign(host.style, { position: 'fixed', left: '-100000px', top: '0', pointerEvents: 'none' });
@@ -33,6 +32,8 @@ async function renderExport(manuscript: Manuscript, format: 'png' | 'svg') {
   host.appendChild(page);
   document.body.appendChild(host);
   try {
+    // Capture the selected folio before yielding so a page turn cannot swap it.
+    await document.fonts.ready;
     await Promise.all(Array.from(page.querySelectorAll('img')).map(async img => {
       try { await img.decode(); }
       catch { throw new Error(`The illustration “${img.alt || 'Untitled'}” could not be loaded. Please try exporting again.`); }

@@ -1,6 +1,6 @@
 # Manuscript project ToDos
 
-Last updated: 2026-09-14. This file records the user's requested direction, including messages sent during implementation. `docs/HANDOVER.md` records the concrete implementation state.
+Last updated: 2026-09-18. This file records the user's requested direction, including messages sent during implementation. `docs/HANDOVER.md` records the concrete implementation state.
 
 ## Release checkpoint — highest priority
 
@@ -32,7 +32,7 @@ Last updated: 2026-09-14. This file records the user's requested direction, incl
 - [ ] Expand to hundreds of composable elements without making the UI slow; lazy thumbnails, searchable categories, favorites, stable IDs.
 - [x] Existing complete illustrations remain available as starter art; modular parts are the main expansion strategy.
 
-Current library: 32 transparent beast parts and 7 complete illustrations. Beast sheet was returned at 1672×941, below the requested 4K, and was not upscaled. All 32 labels and silhouettes visually checked. Castle-parts manifest is prepared but its source sheet has not yet been generated. Latest user clarification: small walls, windows, wings, tongues and similar components are the priority, with some complete subjects retained.
+Current library: 64 transparent modular parts (32 beast and 32 castle) plus 7 complete illustrations. Both sheets were returned at 1672×941, below the requested 4K, and were not upscaled. The slicer reports no empty, opaque, cross-cell or clipped cells for the current sheets, and all 64 labels and silhouettes were visually checked. The next prepared sheet is `finishing-parts.json`, with tongues, eyes, armor, textiles and flora. Latest user clarification: small walls, windows, wings, tongues and similar components are the priority, with some complete subjects retained.
 
 ## Text and composition growth
 

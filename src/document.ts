@@ -8,7 +8,8 @@ export function makeText(text = 'Here begins your story…'): TextLayer {
   return { ...baseLayer('A new passage'), type:'text', text, width:400,height:180,fontFamily:FONT_OPTIONS[1].family,fontSize:27,color:'#3d3025',bold:false,italic:false,align:'left',lineHeight:1.5,letterSpacing:0,glyphs:{...DEFAULT_GLYPHS} };
 }
 export function assetLayer(asset: ArtAsset, x = 230, y = 330): Layer {
-  const width = asset.category === 'Beast parts' ? 125 : asset.category === 'Symbols' ? 90 : ['Botanicals','Flora','Armor','Textiles','Household'].includes(asset.category) ? 160 : 250;
+  const size = asset.category === 'Symbols' ? 90 : asset.kind === 'part' ? 125 : ['Botanicals','Flora','Armor','Textiles','Household'].includes(asset.category) ? 160 : 250;
+  const width = asset.kind === 'part' ? size * asset.width / Math.max(asset.width, asset.height) : size;
   return { ...baseLayer(asset.name), type:'image',src:asset.src,assetId:asset.id,x,y,width,height:width * asset.height / asset.width };
 }
 export function newManuscript(template = 'bestiary'): Manuscript {

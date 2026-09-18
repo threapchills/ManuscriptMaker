@@ -43,12 +43,12 @@ try{
   const map=await download();assert.equal(map.mode,'map');assert.equal(map.pages.length,1);
   // Restore the book using a fresh file so the map download cannot overwrite it.
   const {writeFile}=await import('node:fs/promises');await writeFile('.local/book-roundtrip.json',JSON.stringify(saved));await page.locator('input[type=file]').first().setInputFiles('.local/book-roundtrip.json');await expect(page.getByLabel('Current book page')).toContainText('Page 2 of 4');
-  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('manuscript-maker:v1')).pages.length===4);await page.reload();await expect(page.getByLabel('Current book page')).toContainText('Page 2 of 4');
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('manuscript-maker:v1'))?.pages?.length===4);await page.reload();await expect(page.getByLabel('Current book page')).toContainText('Page 2 of 4');
   const restored=await download();assert.deepEqual(restored.pages,saved.pages);
   pass('Map setup and whole-project reopen/autosave reload preserve every page');
   await page.getByLabel('Current book page').selectOption(saved.pages[0].id);await page.getByRole('button',{name:'Library',exact:true}).click();
   const rows=page.locator('.layers-list .layer-row');const rowNames=()=>page.locator('.layer-select').allTextContents();const before=await rowNames();await rows.nth(0).dragTo(rows.nth(3));const reordered=await rowNames();assert.notDeepEqual(reordered,before);await page.getByRole('button',{name:'Undo (Ctrl+Z)',exact:true}).click();assert.deepEqual(await rowNames(),before);
-  await page.getByLabel('Search illustrations').fill('unfindable');await expect(page.getByText('No creatures found')).toBeVisible();await page.getByRole('button',{name:'Browse the collection'}).click();
+  await page.getByLabel('Search illustrations').fill('unfindable');await expect(page.getByText('No pieces found')).toBeVisible();await page.getByRole('button',{name:'Browse the collection'}).click();
   pass('Layer drag reordering/undo and library empty-state recovery');
   await page.getByRole('button',{name:'Export',exact:true}).click();const pngPending=page.waitForEvent('download');await page.getByRole('button',{name:/PNG image/}).click();const png=await pngPending;await png.saveAs('.local/book-page-export.png');const pngBytes=await readFile('.local/book-page-export.png');assert.equal(pngBytes.readUInt32BE(16),1600);assert.equal(pngBytes.readUInt32BE(20),2080);pass('Current book page exports as PNG at 2× its custom dimensions');
   await expect(page.locator('.asset-card').first()).toHaveCSS('opacity','1');

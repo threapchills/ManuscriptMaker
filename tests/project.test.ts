@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { activePage, addPage, loadProject, movePage, newProject, removePage, validateProject, withActivePage, type Project } from '../src/project';
+import { activePage, addPage, appendLayerToPage, loadProject, movePage, newProject, removePage, validateProject, withActivePage, type Project } from '../src/project';
 import { makeText, newManuscript, STORAGE_KEY } from '../src/document';
 import type { TextLayer } from '../src/types';
 
@@ -123,6 +123,28 @@ describe('complete project save compatibility', () => {
 });
 
 describe('immutable page operations and history snapshots', () => {
+  it('adds delayed uploads to their original page without changing the current page', () => {
+    const original = deepFreeze(newProject({ mode: 'book', template: 'blank' }));
+    const afterTurn = { ...original, activePageId: original.pages[1].id };
+    const layer = makeText('An arriving layer');
+    const next = appendLayerToPage(afterTurn, original.pages[0].id, layer);
+    expect(next.activePageId).toBe(afterTurn.activePageId);
+    expect(next.pages[0].layers).toEqual([layer]);
+    expect(next.pages[1]).toBe(afterTurn.pages[1]);
+    expect(original.pages[0].layers).toEqual([]);
+    expect(() => validateProject(next)).not.toThrow();
+  });
+
+  it('rejects uploads to removed or full pages so saved books stay loadable', () => {
+    const project = newProject({ mode: 'book', template: 'blank' });
+    const fullPage = { ...project.pages[0], layers: Array.from({ length: 300 }, () => makeText()) };
+    const full = deepFreeze(withActivePage(project, fullPage));
+    expect(() => appendLayerToPage(full, 'removed-page', makeText())).toThrow(/removed/);
+    expect(() => appendLayerToPage(full, fullPage.id, makeText())).toThrow(/300 layers/);
+    expect(full.pages[0].layers).toHaveLength(300);
+    expect(() => validateProject(full)).not.toThrow();
+  });
+
   it('updates only active content and preserves older snapshots for undo', () => {
     const original = deepFreeze(newProject({ mode: 'book' }));
     const changedPage = { ...activePage(original), title: 'Revised opening' };

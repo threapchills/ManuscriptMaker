@@ -18,3 +18,5 @@
 .recovery-banner{display:flex;align-items:center;gap:12px;padding:12px;background:#5a3928;color:#fff0cc;font-size:12px;flex-wrap:wrap;z-index:90}.recovery-banner span{flex:1}.recovery-banner button{border:1px solid #c9a06d;border-radius:3px;padding:7px}.page-manager .field-label{margin-top:12px}.page-manager input{padding:9px;background:#252e22;border:1px solid #586c48;border-radius:3px}.layer-grip{cursor:grab}
 
 .workshop:has(.book-navigation) .toast{bottom:112px}@media(max-width:780px){.workshop:has(.book-navigation) .toast{bottom:158px}}
+.collection-switch{display:flex;gap:4px;margin-top:16px;background:#20261f;border:1px solid #4c5544;padding:3px;border-radius:5px}.collection-switch button{flex:1;font-size:11px;padding:8px 3px;border-radius:3px;color:#b9c0ae}.collection-switch button[aria-pressed=true]{background:#c8d2b3;color:#273125}.collection-switch+.search-field{margin-top:12px}
+.art-library{display:contents}.art-library[hidden]{display:none}

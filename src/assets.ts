@@ -8,5 +8,5 @@ export const ASSETS: ArtAsset[] = [
   {id:'hare',name:'The watchful hare',category:'Beasts',src:'/ManuscriptMaker/assets/hare.png',tags:['hare','rabbit','animal','fauna'],width:1254,height:1254},
   {id:'grotesque',name:'The cheerful grotesque',category:'Curiosities',src:'/ManuscriptMaker/assets/grotesque.png',tags:['demon','monster','wings','horns','green'],width:1254,height:1254},
   {id:'oak-tree',name:'The golden oak',category:'Botanicals',src:'/ManuscriptMaker/assets/oak-tree.png',tags:['tree','oak','acorn','plant','flora','leaves'],width:1254,height:1254},
-  ...modularAssets as ArtAsset[],
+  ...(modularAssets as ArtAsset[]).map(asset => ({ ...asset, kind: 'part' as const })),
 ];

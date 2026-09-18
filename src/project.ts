@@ -1,4 +1,4 @@
-import type { Manuscript } from './types';
+import type { Layer, Manuscript } from './types';
 import { newManuscript, STORAGE_KEY, uid, validateManuscript } from './document';
 
 export interface Project {
@@ -134,6 +134,15 @@ export function withActivePage(project: Project, page: Manuscript): Project {
   if (page.id !== project.activePageId || !project.pages.some(item => item.id === page.id)) throw new Error('The updated page does not match the active page.');
   if (activePage(project) === page) return project;
   return { ...project, pages: project.pages.map(item => item.id === page.id ? page : item), updatedAt: now() };
+}
+
+/** Async uploads stay on their original page even when the user turns pages. */
+export function appendLayerToPage(project: Project, pageId: string, layer: Layer): Project {
+  const page = project.pages.find(item => item.id === pageId);
+  if (!page) throw new Error('The upload’s page was removed. Choose a page and upload the illustration again.');
+  if (page.layers.length >= 300) throw new Error('This page has 300 layers. Remove a layer before adding another.');
+  const updatedAt = now();
+  return { ...project, updatedAt, pages: project.pages.map(item => item.id === pageId ? { ...item, layers: [...item.layers, layer], updatedAt } : item) };
 }
 
 /** Insert immediately after the active page; map/limit boundaries are no-ops. */

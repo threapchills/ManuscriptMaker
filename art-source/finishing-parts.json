@@ -1,0 +1,323 @@
+{
+  "id": "finishing-parts",
+  "category": "Beast parts",
+  "columns": 8,
+  "rows": 4,
+  "targetWidth": 3840,
+  "targetHeight": 2160,
+  "source": "art-source/sheets/finishing-parts.png",
+  "generation": {
+    "tool": "built-in image_gen",
+    "model": "not exposed by tool",
+    "status": "prepared",
+    "createdAt": "2026-09-14"
+  },
+  "prompt": "Use case: historical-scene. Create one original production sprite sheet of TINY MODULAR FINISHING PIECES for an illuminated manuscript composition editor. The user assembles their own creatures and objects from these isolated components. Target 3840×2160 landscape 16:9, real transparent RGBA background. Invisible strict regular grid of EXACTLY 8 COLUMNS and 4 ROWS, 32 objects total, one object per cell. Center every object precisely in its cell and keep its entire silhouette inside the inner 60% of BOTH cell width and cell height. Broad fully transparent gutters are essential. Equal row spacing, equal column spacing. No complete creatures, no scenes, no people, no buildings. Medieval manuscript gouache, fine dark brown ink contours, muted burgundy, lapis blue, sage, ivory and antique gold. Charming detailed hand-painted components with clean attachment points. No gore. No text, labels, numbers, grid lines, background paper, checkerboard, shadows or watermarks. Transparent space inside open shapes.\n\nStrict row-major subjects:\nRow 1, column 1: one long thin burgundy forked serpent tongue, gently curved, clean rounded attachment base.\nRow 1, column 2: one broad burgundy curled tongue, playful S curve, no mouth or face.\nRow 1, column 3: one hooked golden eagle beak, side view, clean base, no head.\nRow 1, column 4: one curved ivory boar tusk with simple antique gold base ring.\nRow 1, column 5: one almond-shaped lapis blue creature eye with fine brown outline, no face.\nRow 1, column 6: one oval gold creature eye with vertical burgundy pupil and brown outline, no face.\nRow 1, column 7: one connected spray of five fine brown curved whiskers joined at a small gold base.\nRow 1, column 8: one joined fan of three short lapis and sage crest feathers, no head.\nRow 2, column 1: one small medieval open-faced steel helmet with gold rim, no person.\nRow 2, column 2: one separate simple steel breastplate with antique gold edge, front view, no body.\nRow 2, column 3: one separate rounded burgundy and gold shoulder armor plate.\nRow 2, column 4: one separate steel armored glove, relaxed downward fingers, no arm.\nRow 2, column 5: one separate slender steel shin guard with gold rim, no leg or foot.\nRow 2, column 6: one small curved chainmail collar, open arc shape, no wearer.\nRow 2, column 7: one decorative square brass belt buckle with pin, open center, no belt.\nRow 2, column 8: one round antique gold metal shield boss with four rivets, no shield.\nRow 3, column 1: one short hanging burgundy cloth banner with two pointed tails, blank center, no pole.\nRow 3, column 2: one flowing triangular lapis cloth pennant, no pole, blank.\nRow 3, column 3: one gently curved broad antique gold ribbon strip, blank.\nRow 3, column 4: one small burgundy tassel with a gold knot, hanging vertically.\nRow 3, column 5: one short golden rope tied in a simple decorative knot, clean loose ends.\nRow 3, column 6: one detached small burgundy and ivory striped cloth awning with scalloped edge, no structure.\nRow 3, column 7: one small sage green fabric drape tied at one upper corner, no rod.\nRow 3, column 8: one small horizontal ivory parchment scroll with curled ends, completely blank.\nRow 4, column 1: one curved sage green plant stem with two tiny attachment buds, no flower.\nRow 4, column 2: one gold and sage lobed oak leaf with a short petiole.\nRow 4, column 3: one long pointed sage leaf with fine gold veins.\nRow 4, column 4: one single lapis five-petaled flower head with gold center, no stem.\nRow 4, column 5: one burgundy rose flower head, fully open, no leaves or stem.\nRow 4, column 6: one small brown Y-shaped bare branch with three tiny twig tips.\nRow 4, column 7: one detached red mushroom cap with ivory dots and thin visible underside, no stalk.\nRow 4, column 8: one small connected cluster of thin brown plant roots, clean top attachment, no soil.\n\n32 clearly separated components. NO objects can touch another cell. Preserve generous transparent margins even around long thin parts.",
+  "items": [
+    {
+      "id": "detail-tongue-forked",
+      "name": "Forked tongue",
+      "category": "Beast parts",
+      "tags": [
+        "tongue",
+        "forked"
+      ],
+      "subject": "one long thin burgundy forked serpent tongue, gently curved, clean rounded attachment base"
+    },
+    {
+      "id": "detail-tongue-curled",
+      "name": "Curled tongue",
+      "category": "Beast parts",
+      "tags": [
+        "tongue",
+        "curled"
+      ],
+      "subject": "one broad burgundy curled tongue, playful S curve, no mouth or face"
+    },
+    {
+      "id": "detail-beak-gold",
+      "name": "Golden beak",
+      "category": "Beast parts",
+      "tags": [
+        "beak",
+        "gold"
+      ],
+      "subject": "one hooked golden eagle beak, side view, clean base, no head"
+    },
+    {
+      "id": "detail-tusk-ivory",
+      "name": "Ivory tusk",
+      "category": "Beast parts",
+      "tags": [
+        "tusk",
+        "ivory"
+      ],
+      "subject": "one curved ivory boar tusk with simple antique gold base ring"
+    },
+    {
+      "id": "detail-eye-lapis",
+      "name": "Lapis eye",
+      "category": "Beast parts",
+      "tags": [
+        "eye",
+        "lapis"
+      ],
+      "subject": "one almond-shaped lapis blue creature eye with fine brown outline, no face"
+    },
+    {
+      "id": "detail-eye-gold",
+      "name": "Golden eye",
+      "category": "Beast parts",
+      "tags": [
+        "eye",
+        "gold"
+      ],
+      "subject": "one oval gold creature eye with vertical burgundy pupil and brown outline, no face"
+    },
+    {
+      "id": "detail-whiskers",
+      "name": "Whisker spray",
+      "category": "Beast parts",
+      "tags": [
+        "whiskers"
+      ],
+      "subject": "one connected spray of five fine brown curved whiskers joined at a small gold base"
+    },
+    {
+      "id": "detail-crest-feather",
+      "name": "Feather crest",
+      "category": "Beast parts",
+      "tags": [
+        "crest",
+        "feather"
+      ],
+      "subject": "one joined fan of three short lapis and sage crest feathers, no head"
+    },
+    {
+      "id": "armor-helmet-open",
+      "name": "Open helmet",
+      "category": "Armor",
+      "tags": [
+        "helmet",
+        "open"
+      ],
+      "subject": "one small medieval open-faced steel helmet with gold rim, no person"
+    },
+    {
+      "id": "armor-breastplate",
+      "name": "Breastplate",
+      "category": "Armor",
+      "tags": [
+        "breastplate"
+      ],
+      "subject": "one separate simple steel breastplate with antique gold edge, front view, no body"
+    },
+    {
+      "id": "armor-pauldron",
+      "name": "Shoulder plate",
+      "category": "Armor",
+      "tags": [
+        "pauldron"
+      ],
+      "subject": "one separate rounded burgundy and gold shoulder armor plate"
+    },
+    {
+      "id": "armor-gauntlet",
+      "name": "Gauntlet",
+      "category": "Armor",
+      "tags": [
+        "gauntlet"
+      ],
+      "subject": "one separate steel armored glove, relaxed downward fingers, no arm"
+    },
+    {
+      "id": "armor-greave",
+      "name": "Shin guard",
+      "category": "Armor",
+      "tags": [
+        "greave"
+      ],
+      "subject": "one separate slender steel shin guard with gold rim, no leg or foot"
+    },
+    {
+      "id": "armor-mail-collar",
+      "name": "Mail collar",
+      "category": "Armor",
+      "tags": [
+        "mail",
+        "collar"
+      ],
+      "subject": "one small curved chainmail collar, open arc shape, no wearer"
+    },
+    {
+      "id": "armor-buckle",
+      "name": "Belt buckle",
+      "category": "Armor",
+      "tags": [
+        "buckle"
+      ],
+      "subject": "one decorative square brass belt buckle with pin, open center, no belt"
+    },
+    {
+      "id": "armor-shield-boss",
+      "name": "Shield boss",
+      "category": "Armor",
+      "tags": [
+        "shield",
+        "boss"
+      ],
+      "subject": "one round antique gold metal shield boss with four rivets, no shield"
+    },
+    {
+      "id": "cloth-banner-forked",
+      "name": "Forked banner",
+      "category": "Textiles",
+      "tags": [
+        "banner",
+        "forked"
+      ],
+      "subject": "one short hanging burgundy cloth banner with two pointed tails, blank center, no pole"
+    },
+    {
+      "id": "cloth-pennant",
+      "name": "Lapis pennant",
+      "category": "Textiles",
+      "tags": [
+        "pennant"
+      ],
+      "subject": "one flowing triangular lapis cloth pennant, no pole, blank"
+    },
+    {
+      "id": "cloth-ribbon",
+      "name": "Gold ribbon",
+      "category": "Textiles",
+      "tags": [
+        "ribbon"
+      ],
+      "subject": "one gently curved broad antique gold ribbon strip, blank"
+    },
+    {
+      "id": "cloth-tassel",
+      "name": "Burgundy tassel",
+      "category": "Textiles",
+      "tags": [
+        "tassel"
+      ],
+      "subject": "one small burgundy tassel with a gold knot, hanging vertically"
+    },
+    {
+      "id": "cloth-rope-knot",
+      "name": "Rope knot",
+      "category": "Textiles",
+      "tags": [
+        "rope",
+        "knot"
+      ],
+      "subject": "one short golden rope tied in a simple decorative knot, clean loose ends"
+    },
+    {
+      "id": "cloth-canopy",
+      "name": "Striped awning",
+      "category": "Textiles",
+      "tags": [
+        "canopy"
+      ],
+      "subject": "one detached small burgundy and ivory striped cloth awning with scalloped edge, no structure"
+    },
+    {
+      "id": "cloth-drape",
+      "name": "Folded drape",
+      "category": "Textiles",
+      "tags": [
+        "drape"
+      ],
+      "subject": "one small sage green fabric drape tied at one upper corner, no rod"
+    },
+    {
+      "id": "cloth-scroll",
+      "name": "Blank scroll",
+      "category": "Textiles",
+      "tags": [
+        "scroll"
+      ],
+      "subject": "one small horizontal ivory parchment scroll with curled ends, completely blank"
+    },
+    {
+      "id": "flora-stem",
+      "name": "Curved stem",
+      "category": "Flora",
+      "tags": [
+        "stem"
+      ],
+      "subject": "one curved sage green plant stem with two tiny attachment buds, no flower"
+    },
+    {
+      "id": "flora-leaf-oak",
+      "name": "Oak leaf",
+      "category": "Flora",
+      "tags": [
+        "leaf",
+        "oak"
+      ],
+      "subject": "one gold and sage lobed oak leaf with a short petiole"
+    },
+    {
+      "id": "flora-leaf-pointed",
+      "name": "Pointed leaf",
+      "category": "Flora",
+      "tags": [
+        "leaf",
+        "pointed"
+      ],
+      "subject": "one long pointed sage leaf with fine gold veins"
+    },
+    {
+      "id": "flora-flower-blue",
+      "name": "Blue flower",
+      "category": "Flora",
+      "tags": [
+        "flower",
+        "blue"
+      ],
+      "subject": "one single lapis five-petaled flower head with gold center, no stem"
+    },
+    {
+      "id": "flora-flower-red",
+      "name": "Burgundy flower",
+      "category": "Flora",
+      "tags": [
+        "flower",
+        "red"
+      ],
+      "subject": "one burgundy rose flower head, fully open, no leaves or stem"
+    },
+    {
+      "id": "flora-branch",
+      "name": "Bare branch",
+      "category": "Flora",
+      "tags": [
+        "branch"
+      ],
+      "subject": "one small brown Y-shaped bare branch with three tiny twig tips"
+    },
+    {
+      "id": "flora-mushroom-cap",
+      "name": "Mushroom cap",
+      "category": "Flora",
+      "tags": [
+        "mushroom",
+        "cap"
+      ],
+      "subject": "one detached red mushroom cap with ivory dots and thin visible underside, no stalk"
+    },
+    {
+      "id": "flora-roots",
+      "name": "Root cluster",
+      "category": "Flora",
+      "tags": [
+        "roots"
+      ],
+      "subject": "one small connected cluster of thin brown plant roots, clean top attachment, no soil"
+    }
+  ]
+}

@@ -1,29 +1,26 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Eye, EyeOff, Feather, FilePlus2, FlipHorizontal2, FlipVertical2, Flower2, FolderOpen, Frame, Grip, HelpCircle, ImagePlus, Layers3, LockKeyhole, Maximize, Minus, MousePointer2, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Sparkles, Trash2, Type, Undo2, UnlockKeyhole, Upload, X } from 'lucide-react';
-import type { AssetCategory, ImageLayer, Layer, Manuscript, TextLayer } from './types';
+import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Eye, EyeOff, Feather, FilePlus2, FlipHorizontal2, FlipVertical2, FolderOpen, Frame, Grip, HelpCircle, ImagePlus, Layers3, LockKeyhole, Maximize, Minus, MousePointer2, Plus, Redo2, RotateCcw, SlidersHorizontal, Sparkles, Trash2, Type, Undo2, UnlockKeyhole, X } from 'lucide-react';
+import type { ImageLayer, Layer, Manuscript, TextLayer } from './types';
 import { ASSETS } from './assets';
 import ManuscriptCanvas from './ManuscriptCanvas';
 import TextEditor from './TextEditor';
+import ArtLibrary from './ArtLibrary';
 import { exportPNG, exportSVG } from './export';
 import { assetLayer, baseLayer, makeText, STORAGE_KEY, uid } from './document';
 
 import { useProject } from './useProject';
-import { addPage, removePage, movePage, newProject, validateProject, downloadBookProject } from './project';
+import { appendLayerToPage, addPage, removePage, movePage, newProject, validateProject, downloadBookProject } from './project';
 import ProjectSetup from './ProjectSetup';
 import type { ProjectSetupOptions } from './ProjectSetup';
 
 type Tab = 'library'|'write'|'page';
-const CATEGORIES: ('All'|AssetCategory|'Favorites')[] = ['All',...new Set(ASSETS.map(asset=>asset.category)),'Favorites'];
 function IconButton({title,children,onClick,disabled=false,active=false}:{title:string;children:ReactNode;onClick:()=>void;disabled?:boolean;active?:boolean}){ return <button type="button" className={`icon-button ${active?'active':''}`} title={title} aria-label={title} disabled={disabled} onClick={onClick}>{children}</button>; }
 
 export default function App(){
   const {project,projectRef,doc,docRef,history,future,transient,commitProject,commit,changeTransient,undo,redo,switchPage,recovery,recover,isNew}=useProject();
   const [selectedId,setSelectedId]=useState<string|null>(null);
   const [tab,setTab]=useState<Tab>('library');
-  const [query,setQuery]=useState('');
-  const [category,setCategory]=useState<(typeof CATEGORIES)[number]>('Beast parts');
-  const [favorites,setFavorites]=useState<string[]>(()=>{try{const saved:unknown=JSON.parse(localStorage.getItem('manuscript-favorites')||'[]');return Array.isArray(saved)?saved.filter((v):v is string=>typeof v==='string'):[]}catch{return []}});
   const [zoom,setZoom]=useState(.65),[fit,setFit]=useState(true),[guides,setGuides]=useState(false);
   const [toast,setToast]=useState(''),[saveStatus,setSaveStatus]=useState('Saved on this device');
   const [exportMenu,setExportMenu]=useState(false),[exporting,setExporting]=useState(false),[modal,setModal]=useState<'new'|'help'|null>(isNew?'new':null);
@@ -33,7 +30,6 @@ export default function App(){
   const notify=useCallback((message:string)=>setToast(message),[]);
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),3600);return()=>clearTimeout(timer)},[toast]);
   useEffect(()=>{if(recovery){setSaveStatus('Saved file needs recovery');return}setSaveStatus('Saving…');const timer=setTimeout(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(project));setSaveStatus('Saved on this device')}catch{setSaveStatus('Storage full · download your project')}},450);return()=>clearTimeout(timer)},[project,recovery]);
-  useEffect(()=>{try{localStorage.setItem('manuscript-favorites',JSON.stringify(favorites))}catch{/* Optional preference */}},[favorites]);
   useLayoutEffect(()=>{const el=stageRef.current;if(!el)return;const update=()=>{if(fit)setZoom(Math.max(.15,Math.min(1.05,(el.clientWidth-90)/doc.width,(el.clientHeight-(project.mode==='book'?151:105))/doc.height)))};update();const observer=new ResizeObserver(update);observer.observe(el);return()=>observer.disconnect()},[fit,doc.width,doc.height,project.mode]);
 
   const changeLayer=useCallback((id:string,patch:Partial<Layer>,finish=true)=>{
@@ -75,14 +71,38 @@ export default function App(){
   },[modal]);
 
   const importProject=async(file?:File)=>{if(!file)return;try{if(file.size>80*1024*1024)throw new Error('Please choose a project smaller than 80 MB.');const next=validateProject(JSON.parse(await file.text()));if(recovery)recover();commitProject(next);setSelectedId(null);setFit(true);notify('Manuscript opened. Your previous project is available with Undo.')}catch(error){notify(error instanceof Error?error.message:'This project could not be opened.')}if(importRef.current)importRef.current.value=''};
-  const importImage=async(file?:File)=>{if(!file)return;if(!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)){notify('Choose a PNG, JPEG, WebP, or GIF image.');return}if(file.size>5*1024*1024){notify('Choose an image smaller than 5 MB.');return}const reader=new FileReader();reader.onload=()=>{const src=String(reader.result),img=new Image();img.onload=()=>{const scale=Math.min(1,350/img.naturalWidth,350/img.naturalHeight),width=Math.max(1,img.naturalWidth*scale),height=Math.max(1,img.naturalHeight*scale);const layer:ImageLayer={...baseLayer(file.name.replace(/\.[^.]+$/,'')),type:'image',src,width,height,x:(docRef.current.width-width)/2,y:(docRef.current.height-height)/2};commit({...docRef.current,layers:[...docRef.current.layers,layer]});setSelectedId(layer.id);notify('Your illustration is on the page')};img.onerror=()=>notify('This image could not be read.');img.src=src};reader.onerror=()=>notify('This image could not be read.');reader.readAsDataURL(file);if(imageRef.current)imageRef.current.value=''};
-  const doExport=async(format:'png'|'svg')=>{setExportMenu(false);setExporting(true);try{await document.fonts.ready;await(format==='png'?exportPNG({...doc,title:project.mode==='book'?`${project.title}-page-${pageIndex+1}`:project.title}):exportSVG({...doc,title:project.mode==='book'?`${project.title}-page-${pageIndex+1}`:project.title}));notify(`${format.toUpperCase()} exported`)}catch{notify('Export could not finish. Try again after the artwork has loaded.')}finally{setExporting(false)}};
+  const importImage=async(file?:File)=>{
+    if(!file)return;
+    if(!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)){notify('Choose a PNG, JPEG, WebP, or GIF image.');return}
+    if(file.size>5*1024*1024){notify('Choose an image smaller than 5 MB.');return}
+    const targetProjectId=projectRef.current.id,targetPageId=docRef.current.id;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const src=String(reader.result),img=new Image();
+      img.onload=()=>{
+        try{
+          const current=projectRef.current;
+          if(current.id!==targetProjectId)throw new Error('The project changed while the image loaded. Upload it again in this project.');
+          const targetPage=current.pages.find(page=>page.id===targetPageId);
+          if(!targetPage)throw new Error('The upload’s page was removed. Choose a page and upload again.');
+          const scale=Math.min(1,350/img.naturalWidth,350/img.naturalHeight),width=Math.max(1,img.naturalWidth*scale),height=Math.max(1,img.naturalHeight*scale);
+          const layer:ImageLayer={...baseLayer(file.name.replace(/\.[^.]+$/,'')),type:'image',src,width,height,x:(targetPage.width-width)/2,y:(targetPage.height-height)/2};
+          commitProject(appendLayerToPage(current,targetPageId,layer));
+          if(current.activePageId===targetPageId)setSelectedId(layer.id);
+          notify(current.activePageId===targetPageId?'Your illustration is on the page':`Illustration added to ${targetPage.title}`);
+        }catch(error){notify(error instanceof Error?error.message:'This illustration could not be added.')}
+      };
+      img.onerror=()=>notify('This image could not be read.');img.src=src;
+    };
+    reader.onerror=()=>notify('This image could not be read.');reader.readAsDataURL(file);
+    if(imageRef.current)imageRef.current.value='';
+  };
+  const doExport=async(format:'png'|'svg')=>{setExportMenu(false);setExporting(true);try{await(format==='png'?exportPNG({...doc,title:project.mode==='book'?`${project.title}-page-${pageIndex+1}`:project.title}):exportSVG({...doc,title:project.mode==='book'?`${project.title}-page-${pageIndex+1}`:project.title}));notify(`${format.toUpperCase()} exported`)}catch{notify('Export could not finish. Try again after the artwork has loaded.')}finally{setExporting(false)}};
   const chooseTemplate=(options:ProjectSetupOptions)=>{try{if(recovery)recover();commitProject(newProject(options));setSelectedId(null);setModal(null);setFit(true);notify(`Your ${options.mode} is ready. Undo returns to the previous project.`)}catch(error){notify(error instanceof Error?error.message:'Could not create the project.')}};
   const pageIndex=project.pages.findIndex(page=>page.id===project.activePageId);
   const turnPage=(id:string)=>{switchPage(id);setSelectedId(null);setFit(true)};
   const pageAction=(action:'add'|'duplicate'|'remove'|'earlier'|'later')=>{const next=action==='add'?addPage(project):action==='duplicate'?addPage(project,true):action==='remove'?removePage(project):movePage(project,action==='earlier'?-1:1);commitProject(next);setSelectedId(null);setFit(true);if(action==='remove')notify('Page removed. Undo restores the page and every layer.')};
   const reorderLayer=(from:string,to:string)=>{const layers=[...doc.layers],source=layers.findIndex(l=>l.id===from),target=layers.findIndex(l=>l.id===to);if(source<0||target<0||source===target||layers[source].locked)return;const [moved]=layers.splice(source,1);layers.splice(target,0,moved);commit({...doc,layers});setSelectedId(from)};
-  const assets=ASSETS.filter(a=>(category==='All'||category==='Favorites'&&favorites.includes(a.id)||a.category===category)&&(!query||`${a.name} ${a.category} ${a.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase())));
   const selectedIndex=doc.layers.findIndex(l=>l.id===selectedId);
 
   return <div className="workshop">
@@ -96,7 +116,7 @@ export default function App(){
     <main className="workspace">
       <aside className={`library-panel ${mobilePanel==='library'?'mobile-open':''}`} aria-label="Creation tools">
         <nav className="panel-tabs" aria-label="Creation tools"><button className={tab==='library'?'active':''} onClick={()=>setTab('library')}><Sparkles size={16}/>Library</button><button className={tab==='write'?'active':''} onClick={()=>setTab('write')}><Type size={17}/>Write</button><button className={tab==='page'?'active':''} onClick={()=>setTab('page')}><BookOpen size={16}/>Page</button><button className="mobile-close" aria-label="Close tools" onClick={()=>setMobilePanel(null)}><X size={16}/></button></nav>
-        {tab==='library'&&<><div className="library-intro"><div className="eyebrow">THE ARTIST’S COLLECTION</div><h1>A cabinet of curiosities</h1><p>Drag a little wonder onto your page.</p><label className="search-field"><Search size={16}/><input aria-label="Search illustrations" placeholder="Find dragons, flowers, castles…" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="Clear search" onClick={()=>setQuery('')}><X size={13}/></button>}</label></div><div className="categories" aria-label="Illustration categories">{CATEGORIES.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c==='Favorites'?'♡ Favorites':c}</button>)}</div><div className="collection-meta"><span>{category==='All'?'ALL ILLUSTRATIONS':category.toUpperCase()}</span><span>{assets.length} pieces</span></div><div className="asset-grid">{assets.map((a,i)=><div className="asset-card" key={a.id} style={{animationDelay:`${Math.min(i,8)*30}ms`}}><button className="asset-picture" title={`Add ${a.name} · or drag onto the page`} onClick={()=>addArt(a.id)} draggable onDragStart={e=>{e.dataTransfer.setData('application/x-manuscript-asset',a.id);e.dataTransfer.effectAllowed='copy'}}><img src={a.src} alt={a.name} loading={i>5?'lazy':'eager'} draggable={false}/><span className="asset-add"><Plus size={16}/></span></button><div className="asset-caption"><span>{a.name}</span><button aria-label={`${favorites.includes(a.id)?'Unfavorite':'Favorite'} ${a.name}`} title="Favorite illustration" className={favorites.includes(a.id)?'favorited':''} onClick={()=>setFavorites(v=>v.includes(a.id)?v.filter(id=>id!==a.id):[...v,a.id])}>{favorites.includes(a.id)?'♥':'♡'}</button></div></div>)}{!assets.length&&<div className="empty-library"><Flower2 size={28}/><h3>{category==='Favorites'?'A collection of your own':'No creatures found'}</h3><p>{category==='Favorites'?'Tap the heart beside an illustration to keep it here.':'Try another word or explore all illustrations.'}</p><button className="button" onClick={()=>{setCategory('All');setQuery('')}}>Browse the collection</button></div>}</div><div className="library-footer"><button className="upload-button" onClick={()=>imageRef.current?.click()}><Upload size={15}/>Bring your own illustration<Plus size={14}/></button><span>PNG, JPG, WebP, GIF · up to 5 MB</span></div></>}
+        <ArtLibrary hidden={tab!=='library'} onAdd={addArt} onUpload={()=>imageRef.current?.click()}/>
         {tab==='write'&&<div className="write-panel"><div className="panel-heading"><div className="eyebrow">WORDS WORTH KEEPING</div><h2>The scribe’s desk</h2><p>Old letters. Entirely your choice.</p></div><button className="button add-text-button" onClick={addText}><Plus size={16}/>Add a text passage</button>{selected?.type==='text'?<TextEditor layer={selected} onChange={patch=>changeLayer(selected.id,patch)}/>:<div className="writing-empty"><span className="large-glyph">Þ</span><h3>Give your page a voice.</h3><p>Add a passage, or select a text layer to choose its lettering and hand.</p><div className="glyph-sampler">Þ ð ƿ ŋ ȝ ſ æ œ ⁊</div><small>All nine characters can be switched on or off independently.</small></div>}</div>}
         {tab==='page'&&<div className="page-panel"><div className="panel-heading"><div className="eyebrow">BEGIN WITH THE PAGE</div><h2>Parchment & pigment</h2><p>A fitting home for your imagination.</p></div><div className="control-section"><h3>Parchment</h3><div className="paper-options">{(['vellum','ivory','rose','midnight'] as const).map(p=><button key={p} className={doc.paper===p?'active':''} onClick={()=>commit({...doc,paper:p})}><span className={`paper-swatch ${p}`}>{doc.paper===p&&<Check size={18}/>}</span><span>{p==='vellum'?'Aged vellum':p==='ivory'?'Clean ivory':p==='rose'?'Rose wash':'Midnight'}</span></button>)}</div></div><div className="control-section"><h3>Border treatment</h3><div className="border-options">{(['illuminated','double','none'] as const).map(b=><button className={doc.border===b?'active':''} key={b} onClick={()=>commit({...doc,border:b})}><span className={`border-preview ${b}`}>✧</span>{b==='illuminated'?'Illuminated':b==='double'?'Ruled':'Unbound'}</button>)}</div></div><div className="control-section"><h3>Page proportions</h3><label className="field-label">Format<select value={`${doc.width}x${doc.height}`} onChange={e=>{const[w,h]=e.target.value.split('x').map(Number);commit({...doc,width:w,height:h});setFit(true)}}><option value="720x960">Portrait folio · 3:4</option><option value="720x1020">Classic page · A series</option><option value="960x720">Landscape · 4:3</option><option value="800x800">Square · 1:1</option>{!['720x960','720x1020','960x720','800x800'].includes(`${doc.width}x${doc.height}`)&&<option value={`${doc.width}x${doc.height}`}>Custom · {doc.width} × {doc.height}</option>}</select></label><p className="field-note">Changing the page keeps your layers in place.</p></div>{project.mode==='book'&&<section className="page-manager"><h3>Your book</h3><label className="field-label">Page name<input value={doc.title} aria-label="Page name" maxLength={100} onChange={e=>commit({...doc,title:e.target.value})}/></label><div className="page-thumbnails">{project.pages.map((page,index)=><button key={page.id} title={page.title} className={page.id===doc.id?'active':''} aria-label={`Go to page ${index+1}`} onClick={()=>turnPage(page.id)}><span className="page-thumbnail-number">{index+1}</span><span>Page {index+1}</span></button>)}</div><div className="page-manager-actions"><IconButton title="Move page earlier" disabled={pageIndex===0} onClick={()=>pageAction('earlier')}><ArrowUp size={16}/></IconButton><IconButton title="Move page later" disabled={pageIndex===project.pages.length-1} onClick={()=>pageAction('later')}><ArrowDown size={16}/></IconButton><IconButton title="Duplicate page" disabled={project.pages.length>=100} onClick={()=>pageAction('duplicate')}><Copy size={16}/></IconButton><IconButton title="Remove current page" disabled={project.pages.length<=1} onClick={()=>pageAction('remove')}><Trash2 size={16}/></IconButton></div><button className="add-layer" onClick={()=>pageAction('add')} disabled={project.pages.length>=100}><Plus size={14}/>Add a blank page</button></section>}<button className="button full-width" onClick={()=>setModal('new')}><FilePlus2 size={16}/>Start from a fresh folio</button></div>}
       </aside>
