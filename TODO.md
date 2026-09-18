@@ -20,7 +20,7 @@ Last updated: 2026-09-18. This file records the user's requested direction, incl
 - [x] Preserve old single-page files through schema migration. Avoid coupling content to the selected page.
 - [x] Export the selected page as PNG/SVG, named with the book title and page number.
 - [x] Export the entire book as a per-page PNG/SVG image set.
-- [ ] Export the entire book as a PDF.
+- [x] Export the entire book as a multi-page PDF.
 
 ## Efficient modular art library — latest user brief
 

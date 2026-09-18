@@ -1,5 +1,6 @@
 import { getFontEmbedCSS, toPng, toSvg } from 'html-to-image';
 import type { Manuscript } from './types';
+import type { jsPDF as JsPDF } from 'jspdf';
 import type { Project } from './project';
 import { transformText } from './text';
 
@@ -14,6 +15,17 @@ function download(data: string, filename: string) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
+}
+
+function downloadBlob(data: Blob, filename: string) {
+  const url = URL.createObjectURL(data);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function makeExportPage(manuscript: Manuscript): HTMLElement {
@@ -132,6 +144,26 @@ export async function exportBookPNG(project: Project): Promise<void> {
 /** Download every book page as a self-contained SVG. */
 export async function exportBookSVG(project: Project): Promise<void> {
   await exportPages(project, 'svg');
+}
+
+/** Download every book page as a printable multi-page PDF. */
+export async function exportBookPDF(project: Project): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  let pdf: JsPDF | undefined;
+  for (const [index, page] of project.pages.entries()) {
+    const image = await renderExport(page, 'png');
+    const width = page.width * 0.75;
+    const height = page.height * 0.75;
+    const orientation = width >= height ? 'landscape' : 'portrait';
+    if (!pdf) {
+      pdf = new jsPDF({ orientation, unit: 'pt', format: [width, height], compress: true });
+      pdf.setProperties({ title: project.title, subject: 'Illuminated manuscript book' });
+    } else {
+      pdf.addPage([width, height], orientation);
+    }
+    pdf.addImage(image, 'PNG', 0, 0, width, height, undefined, 'FAST');
+    if (index === project.pages.length - 1) downloadBlob(pdf.output('blob'), `${safeFilename(project.title)}.pdf`);
+  }
 }
 
 export const exportPng = exportPNG;
