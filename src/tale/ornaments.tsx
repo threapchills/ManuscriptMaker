@@ -141,7 +141,7 @@ export function DropCap({ letter, size = 78, tone = 'red' }: { letter: string; s
 }
 
 /** Ink icons drawn with a quill: slightly uneven strokes, round nibs. */
-export type IconName = 'undo' | 'redo' | 'rotate' | 'flip' | 'bin' | 'lens' | 'bell' | 'lute' | 'sweep' | 'front' | 'back' | 'book' | 'close' | 'gear' | 'left' | 'right' | 'up' | 'down' | 'restart' | 'hand' | 'dice' | 'pen' | 'home';
+export type IconName = 'undo' | 'redo' | 'rotate' | 'flip' | 'bin' | 'lens' | 'bell' | 'lute' | 'sweep' | 'front' | 'back' | 'book' | 'close' | 'gear' | 'left' | 'right' | 'up' | 'down' | 'restart' | 'hand' | 'dice' | 'pen' | 'home' | 'check' | 'copy';
 const ICONS: Record<IconName, ReactNode> = {
   undo: <><path d="M9 7 L4 12 L9 17" /><path d="M4.5 12 H14 C18 12 20.5 14.4 20.5 17.5 C20.5 19 19.8 20 19 20.6" /></>,
   redo: <><path d="M15 7 L20 12 L15 17" /><path d="M19.5 12 H10 C6 12 3.5 14.4 3.5 17.5 C3.5 19 4.2 20 5 20.6" /></>,
@@ -166,6 +166,8 @@ const ICONS: Record<IconName, ReactNode> = {
   dice: <><rect x="4.5" y="4.5" width="15" height="15" rx="2.5" /><circle cx="9" cy="9" r=".9" fill="currentColor" /><circle cx="15" cy="15" r=".9" fill="currentColor" /><circle cx="12" cy="12" r=".9" fill="currentColor" /><circle cx="15" cy="9" r=".9" fill="currentColor" /><circle cx="9" cy="15" r=".9" fill="currentColor" /></>,
   pen: <><path d="M19.5 4.5 C14.5 5.5 10 10 8 15.5 L7 19.5 L10.5 16.8 C14.8 15.6 18.2 11.2 19.5 4.5 Z" /><path d="M7 19.5 L4.5 21" /><path d="M11 13.5 L15.5 8.8" opacity=".6" /></>,
   home: <><path d="M4 11 L12 4.5 L20 11" /><path d="M6.5 9.4 V19.5 H17.5 V9.4" /><path d="M10.2 19.5 V14.5 H13.8 V19.5" /></>,
+  check: <><path d="M4.8 12.8 L9.6 17.4 L19.4 6.6" strokeWidth="2.4" /></>,
+  copy: <><rect x="8.5" y="8" width="11" height="12.5" rx="1.4" /><path d="M5.5 16 V4.8 C5.5 4.1 6 3.6 6.7 3.6 H15" /></>,
 };
 
 export function InkIcon({ name, size = 22 }: { name: IconName; size?: number }) {

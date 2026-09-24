@@ -105,7 +105,7 @@ export default function TitleScreen({ hasTale, onBegin, onScriptorium }: { hasTa
                   <span>{hasTale ? 'Continue the tale' : 'Begin the tale'}</span>
                 </button>
                 <button type="button" className="cover-choice" onClick={() => { audio.unlock(); audio.play('page'); onScriptorium(); }} onPointerEnter={() => audio.play('tick')}>
-                  <span>The scriptorium</span><small>make books and maps of your own</small>
+                  <span>The scriptorium</span><small>build and play folios of your own</small>
                 </button>
               </nav>
               <span className="cover-clasp cover-clasp--top" /><span className="cover-clasp cover-clasp--bottom" />

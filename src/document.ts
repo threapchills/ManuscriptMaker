@@ -61,9 +61,25 @@ export function validateManuscript(value: unknown): Manuscript {
     if(l.type==='image' && !(typeof l.src==='string' && (/^\/ManuscriptMaker\/assets\/[a-z0-9-]+\.png$/.test(l.src) || /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(l.src)))) throw new Error('This file contains an unsupported image source.');
     if(l.type==='image' && l.gameRole !== undefined && !['scenery','player','solid','platform','goal','hazard','ladder'].includes(l.gameRole)) throw new Error('This file contains an unsupported play role.');
     if(l.type==='image' && l.imageFit !== undefined && !['contain','fill'].includes(l.imageFit)) throw new Error('This file contains an unsupported image fit.');
+    if(l.type==='image' && l.motion !== undefined && !['drift','sway','bob','turn'].includes(l.motion)) throw new Error('This file contains an unsupported motion.');
+    if(l.front !== undefined && typeof l.front !== 'boolean') throw new Error('One of the manuscript layers is invalid.');
     if(l.type==='text' && (typeof l.text!=='string' || l.text.length>50000 || !numeric(l.fontSize,8,240) || !numeric(l.lineHeight,.7,3) || !numeric(l.letterSpacing,-5,30) || typeof l.fontFamily!=='string' || l.fontFamily.length>400 || typeof l.color!=='string' || !/^#[0-9a-f]{6}$/i.test(l.color) || !['left','center','right','justify'].includes(l.align) || typeof l.bold!=='boolean' || typeof l.italic!=='boolean' || !l.glyphs || Object.keys(DEFAULT_GLYPHS).some(k=>typeof l.glyphs[k as keyof typeof DEFAULT_GLYPHS]!=='boolean'))) throw new Error('This file contains unsupported text settings.');
   }
+  if(d.scene !== undefined) validateScene(d.scene, d);
   return d;
+}
+function validateScene(scene: unknown, page: Manuscript) {
+  const bad = () => { throw new Error('This file contains unsupported play settings.'); };
+  if(!scene || typeof scene !== 'object' || Array.isArray(scene)) bad();
+  const s = scene as Record<string, unknown>;
+  if(s.sky !== undefined && !['day','dawn','dusk','night','none'].includes(s.sky as string)) bad();
+  if(s.waterY !== undefined && s.waterY !== null && !numeric(s.waterY, 0, page.height)) bad();
+  if(s.brief !== undefined && (typeof s.brief !== 'string' || s.brief.length > 4000)) bad();
+  if(s.spawn !== undefined) { const p = s.spawn as { x: unknown; y: unknown }; if(!p || !numeric(p.x, -10000, 10000) || !numeric(p.y, -10000, 10000)) bad(); }
+  if(s.letters !== undefined) {
+    if(!Array.isArray(s.letters) || s.letters.length > 60) bad();
+    for(const l of s.letters as Array<Record<string, unknown>>) if(!l || typeof l.id !== 'string' || !numeric(l.x, -10000, 10000) || !numeric(l.y, -10000, 10000) || typeof l.glyph !== 'string' || l.glyph.length < 1 || l.glyph.length > 3) bad();
+  }
 }
 export function loadManuscript(): Manuscript {
   try { const saved=localStorage.getItem(STORAGE_KEY); if(saved) return validateManuscript(JSON.parse(saved)); } catch { /* Keep the workspace usable when browser storage is unavailable. */ }

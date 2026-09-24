@@ -64,9 +64,17 @@ export class PlaySession {
 
   /** Swap in fresh collision (the player changed the page) and start again. */
   setField(field: Field): void {
-    this.spec = { ...this.spec, field };
+    this.configure({ ...this.spec, field });
+  }
+
+  /** Take a whole new scene description — pieces, letters, start, stream — keeping light and particles. */
+  configure(spec: SessionSpec): void {
+    const lettersChanged = JSON.stringify(spec.collectibles ?? []) !== JSON.stringify(this.spec.collectibles ?? []);
+    this.spec = spec;
     this.lensImage = null;
-    this.world = createWorld({ ...this.world.spec, field });
+    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
+    this.collectedAt = [];
+    if (lettersChanged) this.paintLetters();
   }
 
   /** What lies just ahead of the traveller: used by automated playtests. */

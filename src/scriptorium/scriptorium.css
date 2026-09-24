@@ -1,0 +1,67 @@
+/* ——— the Scriptorium: the maker's own book, dressed like the tale ——— */
+
+/* The contents spread */
+.book-title-input { display: block; width: 100%; font: 700 60px/1.05 var(--blackletter); color: var(--ink); background: transparent; border: 0; border-bottom: 2px dashed transparent; margin: 12px 0 2px; padding: 0 2px 4px; outline: none; transition: border-color .2s, background .2s; user-select: text; -webkit-user-select: text; }
+.book-title-input:hover { border-color: rgba(179, 38, 30, .3); }
+.book-title-input:focus { border-color: var(--vermilion); background: rgba(255, 252, 240, .45); }
+.scriptorium-contents .chapter-intro { margin-bottom: 20px; }
+.scriptorium-contents .traveller-card { margin: 6px 0 18px; }
+.book-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.book-files { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 26px; }
+.book-files .text-link { font-size: 19px; }
+
+.maker-list { max-height: 560px; overflow-y: auto; margin: 14px -12px 16px -6px; padding: 0 12px 0 6px; scrollbar-width: thin; }
+.maker-list::-webkit-scrollbar { width: 6px; }
+.maker-list::-webkit-scrollbar-thumb { background: rgba(90, 60, 30, .3); border-radius: 4px; }
+.maker-row { display: flex; align-items: center; gap: 8px; border-radius: 10px; transition: background .18s; }
+.maker-row:hover, .maker-row:focus-within { background: rgba(179, 38, 30, .06); }
+.maker-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 8px 4px 8px 0; border-radius: 10px; text-align: left; }
+.maker-open .folio-numeral { width: 50px; }
+.maker-open:hover .folio-name, .maker-open:focus-visible .folio-name { color: var(--vermilion); }
+.maker-open:hover .folio-thumb { transform: rotate(-1.2deg) scale(1.04); box-shadow: 0 0 0 2px #c9a13b, 0 0 0 3px #7d1812, 0 8px 16px rgba(60, 35, 10, .38); }
+.maker-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.maker-name .folio-name { font-size: 30px; overflow: hidden; text-overflow: ellipsis; transition: color .15s; }
+.maker-name small { font: italic 16px var(--book); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.maker-name em { color: var(--vermilion); }
+.maker-note { width: 34px; display: grid; place-items: center; flex-shrink: 0; }
+.maker-tools { display: grid; grid-template-columns: repeat(2, 32px); gap: 0 2px; opacity: .3; transition: opacity .18s; flex-shrink: 0; }
+.maker-row:hover .maker-tools, .maker-row:focus-within .maker-tools { opacity: 1; }
+.maker-tools .ink-tool { width: 32px; height: 32px; }
+.ink-tool.is-danger { color: #fff4dc; background: var(--vermilion); }
+.ink-tool.is-danger:hover:not(:disabled) { background: var(--vermilion-deep, #7d1812); }
+
+/* A folio in miniature */
+.folio-thumb { position: relative; flex-shrink: 0; display: block; overflow: hidden; border-radius: 3px; background: #8fb8e0; box-shadow: 0 0 0 2px #c9a13b, 0 0 0 3px #7d1812, 0 3px 8px rgba(60, 35, 10, .3); transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .2s; }
+.folio-thumb.paper-vellum { background-color: #eedfba; } .folio-thumb.paper-ivory { background-color: #f6efdc; }
+.folio-thumb.paper-rose { background-color: #f0d9cf; } .folio-thumb.paper-midnight { background-color: #1d2438; }
+.folio-thumb .scene-sky { position: absolute; inset: 0; width: 100%; height: 100%; }
+.folio-thumb-scene { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+.folio-thumb-water { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(96, 140, 196, .92), rgba(32, 62, 124, .96)); box-shadow: 0 -4px 0 rgba(220, 236, 250, .7); }
+.folio-thumb-letter { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff4c8, #e5b451 42%, #9a6b1c 82%); box-shadow: 0 0 0 5px #b3261e; }
+.add-folio { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 18px; border-radius: 12px; font: 600 30px/1 var(--blackletter); color: var(--ink-soft); border: 2px dashed rgba(120, 80, 30, .35); transition: color .15s, border-color .15s, background .15s, transform .18s cubic-bezier(.3, 1.6, .5, 1); }
+.add-folio span { font: 40px/.8 var(--caps); color: var(--vermilion); }
+.add-folio:hover { color: var(--vermilion); border-color: rgba(179, 38, 30, .55); background: rgba(255, 250, 235, .5); transform: translateY(-2px); }
+
+.add-choices { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 12px 44px 10px 14px; border-radius: 12px; border: 2px dashed rgba(179, 38, 30, .45); background: rgba(255, 250, 235, .4); animation: pop-in-plain .2s ease-out; }
+.add-choice { display: flex; flex-direction: column; align-items: center; gap: 8px; font: 600 21px/1.1 var(--blackletter); color: var(--ink); text-align: center; border-radius: 8px; padding: 2px; transition: color .15s; }
+.add-choice:hover { color: var(--vermilion); }
+.add-choice:hover .folio-thumb { transform: rotate(-1.5deg) scale(1.05); }
+.add-choices-close { position: absolute !important; right: 4px; top: 4px; width: 36px; height: 36px; }
+
+/* The folio's weather card */
+.folio-weather { position: relative; z-index: 12; padding-bottom: 12px; }
+.weather-card { position: absolute; right: -8px; top: calc(100% - 4px); width: 430px; padding: 14px 18px 16px; border-radius: 14px; background: var(--vellum-hi); border: 1px solid rgba(90, 60, 30, .35); box-shadow: 0 16px 38px rgba(40, 25, 10, .4); display: flex; flex-direction: column; gap: 8px; animation: pop-in-plain .2s ease-out; }
+.weather-skies { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 4px; }
+.sky-swatch { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 5px 2px 6px; border-radius: 10px; font: 14px/1 var(--caps); letter-spacing: .05em; color: var(--ink-soft); border: 1.5px solid transparent; transition: background .15s, border-color .15s; }
+.sky-swatch > span { width: 60px; height: 40px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(60, 35, 10, .3), 0 2px 5px rgba(40, 25, 10, .2); }
+.sky-swatch:hover { background: rgba(255, 255, 255, .45); }
+.sky-swatch.is-on { color: var(--vermilion); border-color: var(--vermilion); background: rgba(179, 38, 30, .06); }
+.weather-row { display: flex; align-items: center; gap: 16px; min-height: 36px; margin-bottom: 4px; }
+.weather-toggle { padding: 0 14px; font-style: italic; }
+.weather-row .passage-size input { width: 200px; }
+.weather-brief { font: italic 19px/1.35 var(--book); color: var(--ink); background: rgba(255, 255, 255, .45); border: 1px solid rgba(90, 60, 30, .3); border-radius: 8px; padding: 6px 10px; resize: vertical; outline: none; user-select: text; -webkit-user-select: text; }
+.weather-brief:focus { border-color: var(--vermilion); }
+
+/* A quiet word from the scribe */
+.tale-toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; max-width: min(640px, calc(100vw - 32px)); padding: 11px 20px 12px; border-radius: 8px; background: #f8eed4; color: #2b1d14; font: italic 17px/1.35 'IM Fell English', Georgia, serif; text-align: center; box-shadow: 0 0 0 1px rgba(90, 60, 30, .3), 0 8px 22px rgba(0, 0, 0, .45); animation: toast-in .3s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes toast-in { from { transform: translate(-50%, 14px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }

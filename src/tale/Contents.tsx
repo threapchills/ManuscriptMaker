@@ -31,7 +31,7 @@ export default function Contents({ tale, onOpen, onTailor, onScriptorium, onClos
     <div className="spread-stage" style={{ width: W * fit, height: H * fit }}>
       <div className="spread" style={{ transform: `scale(${fit})` }}>
         <div className="spread-page spread-page--left">
-          <div className="vellum" aria-hidden="true" />
+          <div className="vellum-sheet" aria-hidden="true" />
           <span className="rubric">Liber primus</span>
           <h1>The Hare’s Road</h1>
           <Flourish />
@@ -51,7 +51,7 @@ export default function Contents({ tale, onOpen, onTailor, onScriptorium, onClos
         </div>
         <div className="spread-gutter" aria-hidden="true" />
         <div className="spread-page spread-page--right">
-          <div className="vellum" aria-hidden="true" />
+          <div className="vellum-sheet" aria-hidden="true" />
           <SoundToggles className="spread-sound" />
           <span className="rubric">Here be the folios</span>
           <ol className="folio-list">

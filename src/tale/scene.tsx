@@ -6,22 +6,32 @@ import { srcOf } from './levelWorld';
 import { paintSky } from './sky';
 import type { SkyKind } from './sky';
 
+/** Anything drawn on a scene: a set piece, a placed piece, a Scriptorium picture. */
+export interface Drawable {
+  x: number; y: number; width: number; height: number;
+  rotation?: number; flipX?: boolean; flipY?: boolean; opacity?: number;
+  asset?: string; src?: string; filter?: string; clip?: string;
+  anim?: 'drift' | 'sway' | 'bob' | 'turn';
+  fit?: 'contain' | 'fill';
+}
+
 /** A picture on the scene: the same geometry the collision rasteriser uses. */
-export function SceneLayer({ piece, className = '', style, dataId }: { piece: ScenePiece | PlacedPiece; className?: string; style?: CSSProperties; dataId?: string }) {
-  const p = piece as ScenePiece & PlacedPiece;
+export function SceneLayer({ piece, className = '', style, dataId, srcOverride }: { piece: Drawable | ScenePiece | PlacedPiece; className?: string; style?: CSSProperties; dataId?: string; srcOverride?: string }) {
+  const p = piece as Drawable;
+  const src = srcOverride || p.src || srcOf(p.asset ?? '');
   return <div className={`scene-layer ${className}`} data-piece={dataId} style={{ left: p.x, top: p.y, width: p.width, height: p.height, transform: `rotate(${p.rotation ?? 0}deg)`, ...style }}>
     <div className={`scene-anim${p.anim ? ` anim-${p.anim}` : ''}`} style={p.anim ? { animationDelay: `${-((p.x * 7 + p.y * 3) % 900) / 100}s` } : undefined}>
       <div className="scene-flip" style={{ transform: `scale(${p.flipX ? -1 : 1}, ${p.flipY ? -1 : 1})`, opacity: p.opacity ?? 1 }}>
-        <img src={srcOf(p.asset)} alt="" draggable={false} style={{ filter: p.filter, clipPath: p.clip }} />
+        <img src={src} alt="" draggable={false} style={{ filter: p.filter, clipPath: p.clip, objectFit: p.fit ?? 'contain' }} />
       </div>
     </div>
   </div>;
 }
 
 /** The painted sky behind a folio. */
-export function Sky({ kind, seed }: { kind: SkyKind; seed: number }) {
+export function Sky({ kind, seed, width = 1280, height = 720, pixelScale }: { kind: SkyKind; seed: number; width?: number; height?: number; pixelScale?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  useLayoutEffect(() => { if (ref.current) paintSky(ref.current, kind, 1280, 720, seed); }, [kind, seed]);
+  useLayoutEffect(() => { if (ref.current) paintSky(ref.current, kind, width, height, seed, pixelScale); }, [kind, seed, width, height, pixelScale]);
   return <canvas ref={ref} className="scene-sky" aria-hidden="true" />;
 }
 

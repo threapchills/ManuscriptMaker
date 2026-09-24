@@ -6,16 +6,12 @@ import Contents from './Contents';
 import Tailor from './Tailor';
 import LevelScreen from './LevelScreen';
 import type { LevelResult } from './LevelScreen';
+import PageTurn from './PageTurn';
 import { audio } from '../engine/audio';
 import { music } from '../engine/music';
 import './tale.css';
 
 type Screen = { kind: 'contents' } | { kind: 'tailor'; first: boolean } | { kind: 'level'; index: number };
-
-/** A leaf of vellum that lifts and turns over whatever was on screen. */
-function PageTurn({ id, back }: { id: number; back: boolean }) {
-  return <div key={id} className={`page-turn${back ? ' is-back' : ''}`} aria-hidden="true"><div className="page-turn-leaf"><div className="page-turn-front" /><div className="page-turn-back" /></div></div>;
-}
 
 export default function TaleApp({ onScriptorium, onClose }: { onScriptorium: () => void; onClose: () => void }) {
   const [tale, setTale] = useState<TaleSave>(readTale);

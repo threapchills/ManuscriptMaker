@@ -17,6 +17,7 @@ import PlayMode from './PlayMode';
 import { sceneConfig } from './sceneCatalog';
 import TitleScreen from './tale/TitleScreen';
 import TaleApp from './tale/TaleApp';
+import ScriptoriumApp from './scriptorium/ScriptoriumApp';
 import { TALE_KEY } from './tale/save';
 import { installAudioUnlock } from './engine/audio';
 import { music } from './engine/music';
@@ -26,20 +27,21 @@ type Tab = 'library'|'write'|'page';
 function IconButton({title,children,onClick,disabled=false,active=false}:{title:string;children:ReactNode;onClick:()=>void;disabled?:boolean;active?:boolean}){ return <button type="button" className={`icon-button ${active?'active':''}`} title={title} aria-label={title} disabled={disabled} onClick={onClick}>{children}</button>; }
 
 export default function App(){
-  const initial=():View=>{const h=typeof location!=='undefined'?location.hash:'';return h==='#scriptorium'?'scriptorium':h==='#tale'?'tale':'title'};
+  const initial=():View=>{const h=typeof location!=='undefined'?location.hash:'';return h==='#scriptorium'?'scriptorium':h==='#tale'?'tale':h==='#desk'?'desk':'title'};
   const [view,setView]=useState<View>(initial);
   useEffect(()=>installAudioUnlock(()=>music.resume()),[]);
-  useEffect(()=>{if(view==='scriptorium')music.setMood('off');else if(view==='title')music.setMood('title')},[view]);
+  useEffect(()=>{if(view==='desk')music.setMood('off');else if(view==='title')music.setMood('title')},[view]);
   useEffect(()=>{try{history.replaceState(null,'',view==='title'?location.pathname+location.search:`#${view}`)}catch{/* Optional deep link. */}},[view]);
   useEffect(()=>{const onHash=()=>setView(initial());window.addEventListener('hashchange',onHash);return()=>window.removeEventListener('hashchange',onHash)},[]);
   const hasTale=(()=>{try{return !!localStorage.getItem(TALE_KEY)}catch{return false}})();
   if(view==='title')return <TitleScreen hasTale={hasTale} onBegin={()=>setView('tale')} onScriptorium={()=>setView('scriptorium')}/>;
   if(view==='tale')return <TaleApp onScriptorium={()=>setView('scriptorium')} onClose={()=>setView('title')}/>;
-  return <Workshop key="sandbox" variant="sandbox" onSwitchMode={next=>{if(next==='campaign')setView('tale')}} onNewGame={()=>setView('tale')}/>;
+  if(view==='scriptorium')return <ScriptoriumApp onClose={()=>setView('title')} onClassic={()=>setView('desk')}/>;
+  return <Workshop key="sandbox" variant="sandbox" onSwitchMode={next=>{if(next==='campaign')setView('tale')}} onNewGame={()=>setView('tale')} onScriptorium={()=>setView('scriptorium')}/>;
 }
-type View='title'|'tale'|'scriptorium';
+type View='title'|'tale'|'scriptorium'|'desk';
 
-function Workshop({variant,onSwitchMode,onNewGame}:{variant:'sandbox'|'campaign';onSwitchMode:(mode:'sandbox'|'campaign')=>void;onNewGame:()=>void}){
+function Workshop({variant,onSwitchMode,onNewGame,onScriptorium}:{variant:'sandbox'|'campaign';onSwitchMode:(mode:'sandbox'|'campaign')=>void;onNewGame:()=>void;onScriptorium?:()=>void}){
   const isCampaign=variant==='campaign';
   const hasCampaign=(()=>{try{return!!localStorage.getItem(CAMPAIGN_PROJECT_KEY)}catch{return false}})();
   const storageKey=isCampaign?CAMPAIGN_PROJECT_KEY:STORAGE_KEY;
@@ -162,6 +164,7 @@ function Workshop({variant,onSwitchMode,onNewGame}:{variant:'sandbox'|'campaign'
     <div className="command-bar"><div className="command-left">
       <button className="text-button" onClick={()=>isCampaign?onNewGame():setModal('new')}><FilePlus2 size={16}/>{isCampaign?'New game':'New manuscript'}</button>
       <button className="text-button mode-button" onClick={()=>changeMode(isCampaign?'sandbox':'campaign')}><BookOpen size={16}/>{isCampaign?'Manuscript sandbox':'Play the tale'}</button>
+      {onScriptorium&&<button className="text-button" onClick={()=>{try{if(!recovery)localStorage.setItem(storageKey,JSON.stringify(projectRef.current))}catch{/* Autosave status already warns. */}onScriptorium()}}><Feather size={16}/>The scriptorium</button>}
       <span className="divider"/><IconButton title="Undo (Ctrl+Z)" onClick={undo} disabled={!history.current.length||playing}><Undo2 size={17}/></IconButton><IconButton title="Redo (Ctrl+Shift+Z)" onClick={redo} disabled={!future.current.length||playing}><Redo2 size={17}/></IconButton>
     </div><div className="workspace-label"><span className="tiny-star">✦</span> {isCampaign?`Practice page ${pageIndex+1} of ${project.pages.length}`:'A little ink. A little imagination.'}</div><div className="command-right"><button className={`text-button ${playing?'selected play-command':''}`} onClick={()=>{setSelectedId(null);setMobilePanel(null);setPlaying(value=>!value)}}><Play size={15}/>{playing?'Edit scene':isCampaign?'Play page':'Play scene'}</button><button className={`text-button ${guides?'selected':''}`} onClick={()=>setGuides(v=>!v)}><Frame size={15}/>Guides</button><IconButton title="Workshop guide and shortcuts" onClick={()=>setModal('help')}><HelpCircle size={17}/></IconButton></div></div>
     <main className="workspace">

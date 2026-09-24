@@ -1,8 +1,18 @@
 # Manuscript — agent handover
 
-Updated: 2026-09-24. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
+Updated: 2026-09-24 (evening). Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-09-24 — Claude session: solid physics and the illuminated tale (read first)
+## 2026-09-24 (later) Claude session: the Scriptorium on the tale's stage (read first)
+
+- **One stage for both modes.** `src/tale/stage/FolioStage.tsx` is the folio screen used by the tale's `LevelScreen` and by the Scriptorium. Levels pass fixed scene pieces and a limited tray; the Scriptorium passes `free`, which unlocks the whole cabinet (`stage/Library.tsx`: Ground, Dwellings, Nature, Sky, Beasts, Folk, Marks, search), every role chip (Ground, Ledge, Scenery, Peril, Ladder, Goal, Traveller), Behind/In front, Motion for scenery (still, sway, drift, bob, turn), gilded letters with editable glyphs, passages (`stage/PassageEditor.tsx`), a draggable start that snaps to ground, and an editable title. Collision is always built from the painted pixels (`stage/world.ts`).
+- **The Scriptorium** (`#scriptorium`, `src/scriptorium/`): `ScriptoriumApp.tsx` (screens, autosave, page turns, toasts), `BookContents.tsx` (open-book contents with still miniatures from `FolioThumb.tsx`, walk seals, move/copy/tear out, three starting pages from `newFolio`: meadow road, plain ground, empty sky), `FolioSettings.tsx` (sky, stream, brief), `SandboxExplicit.tsx` (colophon). "Play the whole book" autoplays every folio in order. Save key `manuscript-maker:scriptorium-v1`; a damaged save is set aside under `:recovery:<time>`; opening a book file keeps the previous book under `:previous` with a way back; pages from the old desk (`manuscript-maker:v1`) can be brought in. The traveller is shared with the tale.
+- **Format.** Folios are ordinary v2 project pages. `Manuscript.scene` (sky, waterY, brief, spawn, letters) and `ImageLayer.motion` are optional and validated; the old desk ignores them. `convert.ts` round-trips pages and keeps properties the stage does not know (locked, hidden, names).
+- **The classic editor** is now "the old illuminator's desk" at `#desk`, reachable from the Scriptorium contents.
+- **Fixed collisions**: tale.css `.page-turn` and `.vellum` also matched the classic desk (its canvas lost pointer events, which was the `test:play` mobile Restart failure, and the vellum paper swatch broke). They are now `.leaf-turn*` and `.vellum-sheet`. `.tale-screen` and `.scene` use `overflow: clip` so focusing a field can never scroll the desk sideways.
+- **Checks**: `npm test` (166), `npm run test:scriptorium` (new end-to-end build-and-play of the sandbox), `test:tale`, `test:levels`, `test:solidity`, `test:browser`, `test:play` all pass.
+- **Next**: Folios III–VI; compact phone layout for folios; the maker's own uploaded pictures in the cabinet; Klik n Play style behaviours (moving ledges, patrolling beasts, switches and doors) for both modes.
+
+## 2026-09-24 — Claude session: solid physics and the illuminated tale
 
 The campaign prototype has been replaced by **the tale** (`src/tale/`), entered from a new title screen (`#tale`; the sandbox is `#scriptorium`).
 

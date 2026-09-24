@@ -29,8 +29,9 @@ function grainTile(): HTMLCanvasElement {
   return grain;
 }
 
-export function paintSky(canvas: HTMLCanvasElement, kind: SkyKind, width: number, height: number, seed = 7): void {
-  const scale = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+/** Paint at `width` × `height` design units; `pixelScale` shrinks the canvas for miniatures. */
+export function paintSky(canvas: HTMLCanvasElement, kind: SkyKind, width: number, height: number, seed = 7, pixelScale?: number): void {
+  const scale = pixelScale ?? Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
   canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale);
   const c = canvas.getContext('2d');
   if (!c) return;

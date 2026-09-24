@@ -62,7 +62,7 @@ export default function Tailor({ traveller, onDone, onBack }: { traveller: Trave
     <div className="spread-stage" style={{ width: W * fit, height: H * fit }}>
       <div className="spread" style={{ transform: `scale(${fit})` }}>
         <div className="spread-page spread-page--left">
-          <div className="vellum" aria-hidden="true" />
+          <div className="vellum-sheet" aria-hidden="true" />
           <span className="rubric">The tailor’s page</span>
           <h1>Who walks this road?</h1>
           <Flourish />
@@ -81,7 +81,7 @@ export default function Tailor({ traveller, onDone, onBack }: { traveller: Trave
         </div>
         <div className="spread-gutter" aria-hidden="true" />
         <div className="spread-page spread-page--right">
-          <div className="vellum" aria-hidden="true" />
+          <div className="vellum-sheet" aria-hidden="true" />
           <SoundToggles className="spread-sound" />
           <nav className="tailor-tabs" aria-label="Parts">
             {TABS.map(t => <button type="button" key={t.group} className={tab === t.group ? 'is-active' : ''} onClick={() => { setTab(t.group); audio.play('tick'); }}>{t.label}</button>)}

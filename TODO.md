@@ -7,7 +7,10 @@ Last updated: 2026-09-24. This file records the user's requested direction, incl
 - [x] Solid pixel-true physics; fall-through through bridge railings fixed; solidity sweep and engine tests.
 - [x] Bespoke illuminated game shell: title cover, contents spread, tailor, folio level screen, Explicit seals, page turns, music and SFX.
 - [x] Folio I and Folio II playable and verified by automated playthrough.
-- [ ] Folios III–VI; compact phone folio layout; Scriptorium restyle; fix `test:play` mobile Restart wait.
+- [x] Scriptorium rebuilt on the tale's own folio stage: full cabinet, every role, motion, letters, words, sky and stream, templates, book contents with miniatures, play the whole book, file save/open, old desk kept at `#desk`.
+- [x] `test:play` mobile Restart failure fixed (tale CSS class collision with the classic desk).
+- [ ] Folios III–VI; compact phone folio layout.
+- [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).
 
 ## Playable manuscript direction — new top product priority
 
