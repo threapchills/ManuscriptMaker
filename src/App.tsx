@@ -15,42 +15,29 @@ import ProjectSetup from './ProjectSetup';
 import type { ProjectSetupOptions } from './ProjectSetup';
 import PlayMode from './PlayMode';
 import { sceneConfig } from './sceneCatalog';
-import CharacterMaker from './CharacterMaker';
+import TitleScreen from './tale/TitleScreen';
+import TaleApp from './tale/TaleApp';
+import { TALE_KEY } from './tale/save';
+import { installAudioUnlock } from './engine/audio';
+import { music } from './engine/music';
 import { CAMPAIGN_PREVIOUS_KEY, CAMPAIGN_PREVIOUS_PROGRESS_KEY, CAMPAIGN_PROGRESS_KEY, CAMPAIGN_PROJECT_KEY, campaignAssets, newCampaignProject, readCampaignProgress, writeCampaignProgress } from './campaign';
-import type { CharacterDesign } from './campaign';
 
 type Tab = 'library'|'write'|'page';
 function IconButton({title,children,onClick,disabled=false,active=false}:{title:string;children:ReactNode;onClick:()=>void;disabled?:boolean;active?:boolean}){ return <button type="button" className={`icon-button ${active?'active':''}`} title={title} aria-label={title} disabled={disabled} onClick={onClick}>{children}</button>; }
 
 export default function App(){
-  const [mode,setMode]=useState<'sandbox'|'campaign'>(()=>{try{return localStorage.getItem('manuscript-maker:last-mode')==='campaign'&&localStorage.getItem(CAMPAIGN_PROJECT_KEY)?'campaign':'sandbox'}catch{return 'sandbox'}});
-  const [makingCharacter,setMakingCharacter]=useState(false);
-  const [revision,setRevision]=useState(0);
-  const switchMode=(next:'sandbox'|'campaign')=>{
-    if(next==='campaign') { try { if(!localStorage.getItem(CAMPAIGN_PROJECT_KEY)){setMakingCharacter(true);return} } catch { setMakingCharacter(true); return } }
-    setMode(next);try{localStorage.setItem('manuscript-maker:last-mode',next)}catch{/* Optional preference. */}
-  };
-  const startNewGame=(sprite:string,design:CharacterDesign|null)=>{
-    try{
-      const old=localStorage.getItem(CAMPAIGN_PROJECT_KEY),oldProgress=localStorage.getItem(CAMPAIGN_PROGRESS_KEY);
-      if(old){localStorage.setItem(CAMPAIGN_PREVIOUS_KEY,old);if(oldProgress)localStorage.setItem(CAMPAIGN_PREVIOUS_PROGRESS_KEY,oldProgress)}
-      localStorage.setItem(CAMPAIGN_PROJECT_KEY,JSON.stringify(newCampaignProject(sprite)));
-      localStorage.setItem(CAMPAIGN_PROGRESS_KEY,JSON.stringify({version:1,unlockedIndex:0,character:design}));
-      setMakingCharacter(false);setMode('campaign');localStorage.setItem('manuscript-maker:last-mode','campaign');setRevision(value=>value+1);
-    }catch{window.alert('This device could not save the new game. Free some browser storage and try again.');}
-  };
-  const restorePrevious=()=>{try{
-    const previous=localStorage.getItem(CAMPAIGN_PREVIOUS_KEY);if(!previous)return;
-    validateProject(JSON.parse(previous));
-    const current=localStorage.getItem(CAMPAIGN_PROJECT_KEY),currentProgress=localStorage.getItem(CAMPAIGN_PROGRESS_KEY),previousProgress=localStorage.getItem(CAMPAIGN_PREVIOUS_PROGRESS_KEY);
-    localStorage.setItem(CAMPAIGN_PROJECT_KEY,previous);if(current)localStorage.setItem(CAMPAIGN_PREVIOUS_KEY,current);
-    if(previousProgress)localStorage.setItem(CAMPAIGN_PROGRESS_KEY,previousProgress);if(currentProgress)localStorage.setItem(CAMPAIGN_PREVIOUS_PROGRESS_KEY,currentProgress);
-    setMakingCharacter(false);setMode('campaign');localStorage.setItem('manuscript-maker:last-mode','campaign');setRevision(value=>value+1);
-  }catch{window.alert('The previous game could not be restored. Its saved data has been kept.')}};
-  const hasPrevious=(()=>{try{return!!localStorage.getItem(CAMPAIGN_PREVIOUS_KEY)}catch{return false}})();
-  const hasCurrent=(()=>{try{return!!localStorage.getItem(CAMPAIGN_PROJECT_KEY)}catch{return false}})();
-  return <><Workshop key={`${mode}-${revision}`} variant={mode} onSwitchMode={switchMode} onNewGame={()=>setMakingCharacter(true)}/>{makingCharacter&&<CharacterMaker onStart={startNewGame} onClose={()=>setMakingCharacter(false)} onRestorePrevious={hasPrevious?restorePrevious:undefined} hasCurrentGame={hasCurrent}/>}</>;
+  const initial=():View=>{const h=typeof location!=='undefined'?location.hash:'';return h==='#scriptorium'?'scriptorium':h==='#tale'?'tale':'title'};
+  const [view,setView]=useState<View>(initial);
+  useEffect(()=>installAudioUnlock(()=>music.resume()),[]);
+  useEffect(()=>{if(view==='scriptorium')music.setMood('off');else if(view==='title')music.setMood('title')},[view]);
+  useEffect(()=>{try{history.replaceState(null,'',view==='title'?location.pathname+location.search:`#${view}`)}catch{/* Optional deep link. */}},[view]);
+  useEffect(()=>{const onHash=()=>setView(initial());window.addEventListener('hashchange',onHash);return()=>window.removeEventListener('hashchange',onHash)},[]);
+  const hasTale=(()=>{try{return !!localStorage.getItem(TALE_KEY)}catch{return false}})();
+  if(view==='title')return <TitleScreen hasTale={hasTale} onBegin={()=>setView('tale')} onScriptorium={()=>setView('scriptorium')}/>;
+  if(view==='tale')return <TaleApp onScriptorium={()=>setView('scriptorium')} onClose={()=>setView('title')}/>;
+  return <Workshop key="sandbox" variant="sandbox" onSwitchMode={next=>{if(next==='campaign')setView('tale')}} onNewGame={()=>setView('tale')}/>;
 }
+type View='title'|'tale'|'scriptorium';
 
 function Workshop({variant,onSwitchMode,onNewGame}:{variant:'sandbox'|'campaign';onSwitchMode:(mode:'sandbox'|'campaign')=>void;onNewGame:()=>void}){
   const isCampaign=variant==='campaign';
@@ -63,7 +50,7 @@ function Workshop({variant,onSwitchMode,onNewGame}:{variant:'sandbox'|'campaign'
   const [tab,setTab]=useState<Tab>('library');
   const [zoom,setZoom]=useState(.65),[fit,setFit]=useState(true),[guides,setGuides]=useState(false);
   const [toast,setToast]=useState(''),[saveStatus,setSaveStatus]=useState('Saved on this device');
-  const [exportMenu,setExportMenu]=useState(false),[exporting,setExporting]=useState(false),[modal,setModal]=useState<'welcome'|'new'|'help'|null>(isNew&&!isCampaign?'welcome':null);
+  const [exportMenu,setExportMenu]=useState(false),[exporting,setExporting]=useState(false),[modal,setModal]=useState<'welcome'|'new'|'help'|null>(isNew&&!isCampaign?'new':null);
   const [mobilePanel,setMobilePanel]=useState<'library'|'layers'|null>(null);
   const [playing,setPlaying]=useState(false);
   const stageRef=useRef<HTMLDivElement>(null),importRef=useRef<HTMLInputElement>(null),imageRef=useRef<HTMLInputElement>(null);
@@ -174,7 +161,7 @@ function Workshop({variant,onSwitchMode,onNewGame}:{variant:'sandbox'|'campaign'
     </header>
     <div className="command-bar"><div className="command-left">
       <button className="text-button" onClick={()=>isCampaign?onNewGame():setModal('new')}><FilePlus2 size={16}/>{isCampaign?'New game':'New manuscript'}</button>
-      <button className="text-button mode-button" onClick={()=>changeMode(isCampaign?'sandbox':'campaign')}><BookOpen size={16}/>{isCampaign?'Manuscript sandbox':'Campaign game'}</button>
+      <button className="text-button mode-button" onClick={()=>changeMode(isCampaign?'sandbox':'campaign')}><BookOpen size={16}/>{isCampaign?'Manuscript sandbox':'Play the tale'}</button>
       <span className="divider"/><IconButton title="Undo (Ctrl+Z)" onClick={undo} disabled={!history.current.length||playing}><Undo2 size={17}/></IconButton><IconButton title="Redo (Ctrl+Shift+Z)" onClick={redo} disabled={!future.current.length||playing}><Redo2 size={17}/></IconButton>
     </div><div className="workspace-label"><span className="tiny-star">✦</span> {isCampaign?`Practice page ${pageIndex+1} of ${project.pages.length}`:'A little ink. A little imagination.'}</div><div className="command-right"><button className={`text-button ${playing?'selected play-command':''}`} onClick={()=>{setSelectedId(null);setMobilePanel(null);setPlaying(value=>!value)}}><Play size={15}/>{playing?'Edit scene':isCampaign?'Play page':'Play scene'}</button><button className={`text-button ${guides?'selected':''}`} onClick={()=>setGuides(v=>!v)}><Frame size={15}/>Guides</button><IconButton title="Workshop guide and shortcuts" onClick={()=>setModal('help')}><HelpCircle size={17}/></IconButton></div></div>
     <main className="workspace">

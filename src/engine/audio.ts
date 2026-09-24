@@ -132,12 +132,12 @@ class AudioEngine {
     return g;
   }
 
-  noiseBurst(o: { at?: number; gain: number; attack?: number; decay: number; type?: BiquadFilterType; freq: number; q?: number; sweepTo?: number; pan?: number; wet?: number }): void {
+  noiseBurst(o: { at?: number; gain: number; attack?: number; decay: number; type?: BiquadFilterType; freq: number; q?: number; sweepTo?: number; pan?: number; wet?: number; bus?: AudioNode }): void {
     const ctx = this.ctx!, t = (o.at ?? ctx.currentTime);
     const src = ctx.createBufferSource(); src.buffer = this.noise; src.loop = true;
     const filter = ctx.createBiquadFilter(); filter.type = o.type ?? 'bandpass'; filter.frequency.setValueAtTime(o.freq, t); filter.Q.value = o.q ?? 1;
     if (o.sweepTo) filter.frequency.exponentialRampToValueAtTime(Math.max(20, o.sweepTo), t + (o.attack ?? .002) + o.decay);
-    const env = this.out(0, o.pan, o.wet ?? .1);
+    const env = this.out(0, o.pan, o.wet ?? .1, o.bus);
     const a = o.attack ?? .002;
     env.gain.setValueAtTime(0, t);
     env.gain.linearRampToValueAtTime(o.gain, t + a);
@@ -312,8 +312,9 @@ class AudioEngine {
 export const audio = new AudioEngine();
 
 /** Unlock audio on the first touch, click or key anywhere. */
-export function installAudioUnlock(): () => void {
-  const unlock = () => { audio.unlock(); };
+export function installAudioUnlock(onUnlock?: () => void): () => void {
+  let done = false;
+  const unlock = () => { audio.unlock(); if (!done && audio.ctx) { done = true; onUnlock?.(); } };
   const events = ['pointerdown', 'keydown', 'touchstart'] as const;
   events.forEach(e => window.addEventListener(e, unlock, { passive: true }));
   return () => events.forEach(e => window.removeEventListener(e, unlock));

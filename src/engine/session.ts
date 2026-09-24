@@ -1,5 +1,5 @@
 import type { Field } from './field';
-import { groundBelow } from './field';
+import { groundBelow, platformRow, solidIn, solidRow } from './field';
 import type { LoadedImage } from './images';
 import type { Avatar } from './puppet';
 import { drawAvatar } from './puppet';
@@ -23,6 +23,8 @@ export interface SessionSpec {
   collectibles?: Array<Collectible & { glyph?: string }>;
   /** Draw the character slightly into soft ground, so feet sit in grass rather than on it. */
   sink?: number;
+  /** A stream along the bottom of the scene, painted over everything it covers. */
+  water?: { y: number };
 }
 
 export interface SessionCallbacks {
@@ -45,10 +47,41 @@ export class PlaySession {
   private letterImages: HTMLCanvasElement[] = [];
   private collectedAt: number[] = [];
 
+  /** While frozen the world waits at the start (building); time, light and particles still move. */
+  frozen = false;
+
   constructor(spec: SessionSpec, private input: InputController, private callbacks: SessionCallbacks = {}) {
     this.spec = spec;
     this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
-    this.letterImages = (spec.collectibles ?? []).map(item => letterMedallion(item.glyph ?? '✦', item.radius * 2.3));
+    this.paintLetters();
+    // Letters are drawn in blackletter; repaint once the face has arrived.
+    void document.fonts?.load?.('40px "UnifrakturMaguntia"').then(() => this.paintLetters()).catch(() => undefined);
+  }
+
+  private paintLetters(): void {
+    this.letterImages = (this.spec.collectibles ?? []).map(item => letterMedallion(item.glyph ?? '✦', item.radius * 2.3));
+  }
+
+  /** Swap in fresh collision (the player changed the page) and start again. */
+  setField(field: Field): void {
+    this.spec = { ...this.spec, field };
+    this.lensImage = null;
+    this.world = createWorld({ ...this.world.spec, field });
+  }
+
+  /** What lies just ahead of the traveller: used by automated playtests. */
+  probe(ahead = 30): { x: number; grounded: boolean; phase: string; support: boolean; wall: boolean; stuck: boolean } {
+    const b = this.world.body, f = this.spec.field, d = Math.round(ahead / f.cell) * b.facing;
+    return {
+      x: (b.x + b.w / 2) * f.cell, grounded: b.grounded, phase: this.world.phase,
+      support: solidRow(f, b.y + b.h, b.x + d, b.w) || platformRow(f, b.y + b.h, b.x + d, b.w),
+      wall: solidIn(f, b.x + Math.sign(d) * 12, b.y, b.w, b.h - 20),
+      stuck: b.grounded && Math.abs(b.vx) < 60,
+    };
+  }
+
+  emit(kind: Parameters<Particles['emit']>[0], x: number, y: number, count: number, spread = 1): void {
+    this.particles.emit(kind, x, y, count, spread, this.spec.unit);
   }
 
   restart(): void {
@@ -60,10 +93,12 @@ export class PlaySession {
 
   /** Advance by real elapsed seconds. */
   update(seconds: number): void {
-    this.input.poll();
     const unit = this.spec.unit;
     const before = this.world.body.facing;
-    this.alpha = advanceWorld(this.world, () => this.input.read(), seconds, events => this.handle(events));
+    if (!this.frozen) {
+      this.input.poll();
+      this.alpha = advanceWorld(this.world, () => this.input.read(), seconds, events => this.handle(events));
+    } else this.alpha = 1;
     const dt = Math.min(.05, seconds);
     this.time += dt;
     const b = this.world.body;
@@ -213,13 +248,17 @@ export class PlaySession {
     }
 
     // The traveller.
-    let alpha = 1, extraScale = 1;
-    if (world.phase === 'dying') { alpha = Math.max(0, 1 - world.phaseTime / .22); extraScale = 1 + world.phaseTime * .6; }
+    let alpha = 1, extraScale = 1, sinkBy = 0;
+    const drowning = world.phase === 'dying' && !!spec.water && feet.y > spec.water.y - 10;
+    if (world.phase === 'dying') {
+      if (drowning) { sinkBy = world.phaseTime * 140 * unit; alpha = Math.max(0, 1 - world.phaseTime / .45); }
+      else { alpha = Math.max(0, 1 - world.phaseTime / .22); extraScale = 1 + world.phaseTime * .6; }
+    }
     if (world.phase === 'respawning') { const t = Math.min(1, world.phaseTime / .26); alpha = t; extraScale = .6 + .4 * easeOutBack(t); }
     if (alpha > 0) {
       const celebrate = world.phase === 'won' ? world.phaseTime : -1;
       context.save();
-      context.translate(feet.x, feet.y + (spec.sink ?? 3 * unit));
+      context.translate(feet.x, feet.y + (spec.sink ?? 3 * unit) + sinkBy);
       context.scale(extraScale, extraScale);
       drawAvatar(context, spec.avatar, 0, 0, spec.avatarHeight, {
         time: this.time, phase: this.phase, speed: Math.min(1, Math.abs(b.vx) / Math.max(1, world.tuning.runSpeed)),
@@ -229,8 +268,41 @@ export class PlaySession {
       context.restore();
     }
 
+    if (spec.water) drawWater(context, spec.water.y, spec.pageWidth, spec.pageHeight, this.time);
     this.particles.draw(context);
   }
+}
+
+/** A painted stream: layered washes, an inked surface line and drifting glints. */
+export function drawWater(c: CanvasRenderingContext2D, y: number, width: number, height: number, time: number): void {
+  const wave = (x: number, phase: number, amp: number) => y + Math.sin(x * .018 + time * 1.3 + phase) * amp + Math.sin(x * .047 - time * .9 + phase * 2) * amp * .5;
+  const body = c.createLinearGradient(0, y - 6, 0, height);
+  body.addColorStop(0, 'rgba(126, 176, 214, .92)'); body.addColorStop(.35, 'rgba(62, 112, 176, .95)'); body.addColorStop(1, 'rgba(26, 52, 110, .98)');
+  c.save();
+  c.beginPath(); c.moveTo(0, height);
+  for (let x = 0; x <= width; x += 16) c.lineTo(x, wave(x, 0, 2.6));
+  c.lineTo(width, height); c.closePath();
+  c.fillStyle = body; c.fill();
+  // A second, darker current beneath.
+  c.beginPath(); c.moveTo(0, height);
+  for (let x = 0; x <= width; x += 20) c.lineTo(x, wave(x, 2.1, 3.2) + 22);
+  c.lineTo(width, height); c.closePath();
+  c.fillStyle = 'rgba(30, 62, 128, .35)'; c.fill();
+  // The inked edge, as the illuminators drew water.
+  c.beginPath();
+  for (let x = 0; x <= width; x += 12) { const yy = wave(x, 0, 2.6); if (x) c.lineTo(x, yy); else c.moveTo(x, yy); }
+  c.strokeStyle = 'rgba(31, 45, 80, .85)'; c.lineWidth = 1.6; c.stroke();
+  c.strokeStyle = 'rgba(235, 246, 255, .55)'; c.lineWidth = 1; c.translate(0, 3); c.stroke(); c.translate(0, -3);
+  // Glints and little curling waves.
+  c.strokeStyle = 'rgba(240, 248, 255, .55)'; c.lineWidth = 1.3; c.lineCap = 'round';
+  for (let i = 0; i < 26; i++) {
+    const gx = ((i * 97.3 + time * (14 + (i % 5) * 4)) % (width + 60)) - 30;
+    const gy = y + 12 + (i * 37 % Math.max(10, height - y - 18));
+    const len = 8 + (i % 4) * 5;
+    c.globalAlpha = .35 + .35 * Math.sin(time * 2 + i);
+    c.beginPath(); c.moveTo(gx, gy); c.quadraticCurveTo(gx + len / 2, gy - 3, gx + len, gy); c.stroke();
+  }
+  c.restore();
 }
 
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t);

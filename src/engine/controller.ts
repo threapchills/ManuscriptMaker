@@ -26,6 +26,8 @@ export interface Tuning {
   coyoteTime: number;
   bufferTime: number;
   stepUp: number;
+  /** Tallest steep lip walked over without a jump. */
+  lipHeight: number;
   snapDown: number;
   ledgeAssist: number;
   cornerCorrection: number;
@@ -50,6 +52,7 @@ export const TUNING: Tuning = {
   coyoteTime: .1,
   bufferTime: .13,
   stepUp: 7,
+  lipHeight: 18,
   snapDown: 12,
   ledgeAssist: 12,
   cornerCorrection: 7,
@@ -107,7 +110,7 @@ export function scaleTuning(unit: number, cell: number, tuning: Tuning = TUNING)
   const k = unit / cell;
   const scaled = { ...tuning };
   for (const key of ['runSpeed', 'groundAccel', 'groundDecel', 'turnAccel', 'airAccel', 'airDecel', 'jumpSpeed', 'gravityUp', 'gravityDown', 'apexThreshold', 'maxFall', 'climbSpeed'] as const) scaled[key] = tuning[key] * k;
-  for (const key of ['stepUp', 'snapDown', 'ledgeAssist', 'cornerCorrection'] as const) scaled[key] = Math.max(1, Math.round(tuning[key] * k));
+  for (const key of ['stepUp', 'lipHeight', 'snapDown', 'ledgeAssist', 'cornerCorrection'] as const) scaled[key] = Math.max(1, Math.round(tuning[key] * k));
   return scaled;
 }
 
@@ -177,8 +180,9 @@ function moveX(b: Body, f: Field, amount: number, t: Tuning, ev: StepEvents, gro
     let stepped = false;
     for (let k = 1; k <= limit; k++) {
       if (solidIn(f, nx, b.y - k, b.w, b.h)) continue;
-      // A steep face that keeps rising is a wall, not a slope.
-      const steep = groundedAtStart && k > 2 && solidIn(f, nx + s * 3, b.y - k, b.w, b.h);
+      // A steep face is a wall only if it keeps rising past a small lip;
+      // roots and kerbs a hand's height tall are simply stepped over.
+      const steep = groundedAtStart && k > 2 && solidIn(f, nx + s * 3, b.y - k, b.w, b.h) && solidIn(f, nx + s * 3, b.y - t.lipHeight, b.w, b.h);
       if (steep) break;
       b.x = nx; b.y -= k; move -= s; stepped = true;
       if (groundedAtStart) b.stride += 1;

@@ -12,7 +12,7 @@ page.on('pageerror',error=>errors.push(error.message));
 const download=async(name)=>{const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Save project',exact:true}).click();const file=await pending;await file.saveAs(`.local/${name}`);return JSON.parse(await readFile(`.local/${name}`,'utf8'))};
 try{
   await page.goto(base);
-  await page.getByRole('button',{name:'Make a manuscript'}).click();
+  await page.getByRole('button',{name:/The scriptorium/}).click();
   await page.getByRole('button',{name:/Playable crossing/}).click();
   await page.getByRole('button',{name:'Create book',exact:true}).click();
   await expect(page.getByLabel('Current book page')).toContainText('Page 1 of 1');
