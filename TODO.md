@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-24. This file records the user's requested direction, including messages sent during implementation. `docs/GAME_VISION.md` is the full playable-manuscript brief; `docs/HANDOVER.md` records the concrete implementation state.
 
+## 2026-09-24 Claude session (see HANDOVER)
+
+- [x] Solid pixel-true physics; fall-through through bridge railings fixed; solidity sweep and engine tests.
+- [x] Bespoke illuminated game shell: title cover, contents spread, tailor, folio level screen, Explicit seals, page turns, music and SFX.
+- [x] Folio I and Folio II playable and verified by automated playthrough.
+- [ ] Folios III–VI; compact phone folio layout; Scriptorium restyle; fix `test:play` mobile Restart wait.
+
 ## Playable manuscript direction — new top product priority
 
 The product has two separate experiences: **Manuscript sandbox mode** for free book/map creation, and the **main Game campaign mode**. A campaign player builds a traversable scene and then plays it. Placed objects can be characters, active objects, obstacles, walkable terrain, platforms, or decoration. Curated challenges start with a **fixed scene and a chosen set of pieces**, but allow **multiple workable solutions and meaningful freedom** instead of one exact arrangement. **In the campaign, each page is a playable level; reaching its checkpoint unlocks the next page.** Sandbox pages remain free-form. Every level has all editing tools; early tutorials restrict the built-in asset tray. For v0.1, walking, jumping and checkpoint traversal are enough; enemies, archery and flying are later. The user's examples are repairing a broken bridge in creation before crossing it in play, then later solving a moat around a castle. A finished Level One is months away; build and verify foundations first.
