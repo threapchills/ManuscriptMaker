@@ -11,7 +11,8 @@
     "test:browser": "node scripts/check-workshop.mjs",
     "test:play": "node scripts/check-play.mjs",
     "test:campaign": "node scripts/check-campaign.mjs",
-    "art:slice": "python scripts/slice_art_sheets.py"
+    "art:slice": "python scripts/slice_art_sheets.py",
+    "test:solidity": "node scripts/check-solidity.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

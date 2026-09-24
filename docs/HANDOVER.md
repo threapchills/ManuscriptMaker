@@ -31,6 +31,7 @@ Latest additions are recorded in `TODO.md`: Book/Map setup, initial dimensions, 
 - `npm test`: 136 tests pass on 2026-09-24, including movement/collision, a beatable campaign bridge route, save-role validation, spelling rules, asset catalog validation, v1 migration, project validation and multi-page round trips.
 - `npm run build`: successful on 2026-09-24 after the v0.1 campaign, art and character-maker changes.
 - `npm run test:campaign`: passed on 2026-09-24. In an isolated browser it tests the new first screen, custom character composition, separate campaign project/progress, curated art, a bridge built with editor controls, checkpoint win, gated page turn, sandbox/game switching, reload resume, previous-game restore, mobile fit and no runtime errors. First-screen, character-choice, character-maker, build and win screenshots were inspected in `.local/`.
+- The same `npm run test:campaign` check passed against the deployed public URL on 2026-09-24.
 - `npm run test:play`: passed on 2026-09-24. Verifies crossing setup, role inspector, keyboard and touch movement, restart, save unchanged during play, Edit return, mobile fit, and no runtime errors. Desktop and mobile editor/play screenshots in ignored `.local/` were visually checked; controls now sit below the scene.
 - The same isolated `npm run test:play` check passed against the deployed public URL on 2026-09-24.
 - `npm run test:browser`: passed again on 2026-09-24. Verifies book/map setup, custom dimensions, page duplication/reordering/removal/undo, glyph toggles and typography, locking, complete-project download/reopen/autosave reload, one-file-per-page book PNG export, multi-page PDF export and page count, layer drag order/undo, PNG dimensions, mobile fit/drawers/canvas, and absence of runtime errors. Desktop result visually inspected. The earlier generated test PDF was rendered with Poppler and visually inspected. This script uses an isolated Playwright browser profile.
@@ -48,6 +49,7 @@ Temporary `.local/` contains test scripts/output and a credential-safe Pages API
 - First working checkpoint **b392de1** deployed successfully through Actions run **34782429132**. The published app was opened and visually confirmed at https://threapchills.github.io/ManuscriptMaker/.
 - Castle-parts and whole-book image-export checkpoint **ac7b0ea** is on `main` and deployed successfully through Actions run **35377479558**. The public site returned HTTP 200 and served the new bundle during the 2026-09-18 verification.
 - Playable scene foundation **5183f12** is on `main` and deployed successfully through Actions run **36018530266**. The public site returned HTTP 200, served bundle `index-DjVTfiSl.js`, and passed the public play browser check on 2026-09-24.
+- v0.1 campaign and character-maker checkpoint **5d53f21** is on `main` and deployed successfully through Actions run **36022890028**. The public site passed the full campaign browser check on 2026-09-24.
 - Local branch began as `codex/manuscript-studio` based on the existing remote main. Initial repository contained only a placeholder index.
 
 ## Next engineering decisions

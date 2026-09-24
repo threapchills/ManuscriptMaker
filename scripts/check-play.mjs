@@ -4,7 +4,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 
 const base=process.env.BASE_URL || 'http://localhost:5173/ManuscriptMaker/';
 await mkdir('.local',{recursive:true});
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME||undefined});
 const context=await browser.newContext({viewport:{width:1360,height:900},acceptDownloads:true});
 const page=await context.newPage();
 const errors=[];
@@ -25,15 +25,20 @@ try{
   assert.ok(original.pages[0].layers.some(layer=>layer.gameRole==='platform'));
   await page.getByRole('button',{name:'Play scene',exact:true}).click();
   await expect(page.getByLabel(/playable scene/)).toBeVisible();
-  const avatar=page.locator(`[data-play-layer-id="${player.id}"]`);
-  await expect(avatar).toHaveCSS('left',`${player.x}px`);
+  // The character is drawn on the play canvas; read its feet from the running session.
+  const feetX=()=>page.evaluate(()=>{const s=window.__playSession;return s?(s.world.body.x+s.world.body.w/2)*s.spec.field.cell:null});
+  await page.waitForFunction(()=>!!window.__playSession);
+  await page.waitForTimeout(300);
+  const start=await feetX();
+  assert.ok(Math.abs(start-(player.x+player.width/2))<player.width/2,`Character should start at its layer, got ${start}`);
   await page.keyboard.down('ArrowRight');
   await page.waitForTimeout(350);
   await page.keyboard.up('ArrowRight');
-  const moved=await avatar.evaluate(element=>parseFloat(element.style.left));
-  assert.ok(moved>player.x+15,`Expected movement, got ${moved}`);
+  const moved=await feetX();
+  assert.ok(moved>start+15,`Expected movement, got ${moved} from ${start}`);
   await page.getByRole('button',{name:'Restart playtest'}).click();
-  await expect(avatar).toHaveCSS('left',`${player.x}px`);
+  await page.waitForTimeout(100);
+  assert.ok(Math.abs(await feetX()-start)<2,'Restart returns the character to the start');
   const after=await download('play-after.json');
   assert.deepEqual(after.pages,original.pages,'Play must not change saved manuscript content');
   await page.getByRole('button',{name:'Return to editor'}).click();
@@ -49,7 +54,7 @@ try{
   assert.ok(bounds);
   await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
   await page.mouse.down();await page.waitForTimeout(300);await page.mouse.up();
-  assert.ok(await avatar.evaluate(element=>parseFloat(element.style.left))>player.x+10);
+  assert.ok(await feetX()>start+10,'Touch controls move the character');
   assert.ok(await page.evaluate(()=>document.body.scrollWidth)<=390);
   await page.screenshot({path:'.local/play-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);

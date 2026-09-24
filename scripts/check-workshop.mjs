@@ -6,7 +6,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 // This creates an isolated browser profile, never uses the user's browser storage.
 const base=process.env.BASE_URL || 'http://localhost:5173/ManuscriptMaker/';
 await mkdir('.local',{recursive:true});
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME||undefined});
 const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
 const page=await context.newPage();const errors=[];
 page.on('pageerror',error=>errors.push(error.message));

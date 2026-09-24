@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 
 const base = process.env.BASE_URL || 'http://localhost:5173/ManuscriptMaker/';
 await mkdir('.local', { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME || undefined });
 const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
 const page = await context.newPage();
 const errors = [];
@@ -50,16 +50,21 @@ try {
   await expect(page.getByTitle(/Add Stone cottage/)).toHaveCount(0);
   await page.screenshot({ path: '.local/campaign-custom.png', fullPage: true });
 
+  // Collision follows the painted pixels, so pieces must meet where they visibly meet.
   await page.getByTitle(/Add Short meadow ground/).click();
-  await setSelected('X position', 430);
+  await setSelected('X position', 380);
   await setSelected('Y position', 590);
   await setSelected('Width', 170);
   await page.getByTitle(/Add Wooden bridge/).click();
-  await setSelected('X position', 595);
-  await setSelected('Y position', 590);
-  await setSelected('Width', 245);
+  await setSelected('X position', 530);
+  await setSelected('Y position', 530); // deck level with the grass, railings above it
+  await setSelected('Width', 270);
   await page.getByRole('button', { name: 'Play page' }).click();
+  await page.waitForFunction(() => !!window.__playSession);
   await page.keyboard.down('ArrowRight');
+  // Leap the last gap from the end of the bridge.
+  await page.waitForFunction(() => { const s = window.__playSession; return s && (s.world.body.x + s.world.body.w / 2) * s.spec.field.cell > 770; }, null, { timeout: 9000 });
+  await page.keyboard.down('Space'); await page.waitForTimeout(260); await page.keyboard.up('Space');
   await expect(page.getByText('Page complete')).toBeVisible({ timeout: 9000 });
   await page.keyboard.up('ArrowRight');
   await page.screenshot({ path: '.local/campaign-win.png', fullPage: true });

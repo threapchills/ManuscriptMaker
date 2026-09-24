@@ -29,6 +29,7 @@ The product has two separate experiences: **Manuscript sandbox mode** for free b
 - [x] Save/load editable single-page projects and autosave the current manuscript locally.
 - [x] Export PNG/SVG with artwork and fonts included.
 - [x] Publish the latest verified working version to GitHub Pages and verify the live app (first checkpoint b392de1).
+- [x] Publish and verify the playable v0.1 campaign, character maker, and original scene/character art checkpoint `5d53f21` on GitHub Pages (Actions run `36022890028`).
 
 ## Project foundations — user priority
 
