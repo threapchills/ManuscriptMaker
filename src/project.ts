@@ -61,14 +61,14 @@ function blankPageLike(source: Manuscript, title: string): Manuscript {
 
 export function newProject(options: NewProjectOptions = { mode: 'book' }): Project {
   if (!options || !['book', 'map'].includes(options.mode)) throw new Error('Choose a book or a map.');
-  const width = options.width ?? (options.mode === 'map' ? 960 : 720);
-  const height = options.height ?? (options.mode === 'map' ? 720 : 960);
+  const width = options.width ?? (options.mode === 'map' ? 960 : options.template === 'crossing' ? 1280 : 720);
+  const height = options.height ?? (options.mode === 'map' || options.template === 'crossing' ? 720 : 960);
   if (!validDimension(width) || !validDimension(height)) throw new Error('Page width and height must be between 100 and 3000 pixels.');
-  const count = options.pageCount ?? (options.mode === 'map' ? 1 : 3);
+  const count = options.pageCount ?? (options.mode === 'map' || options.template === 'crossing' ? 1 : 3);
   if (!Number.isInteger(count) || count < 1 || count > MAX_PAGES) throw new Error('A book must contain between 1 and 100 pages.');
   if (options.mode === 'map' && count !== 1) throw new Error('A map contains one canvas.');
   const template = options.mode === 'map' ? 'blank' : options.template ?? 'bestiary';
-  if (!['blank', 'bestiary', 'botanical'].includes(template)) throw new Error('Choose an available manuscript template.');
+  if (!['blank', 'bestiary', 'botanical', 'crossing'].includes(template)) throw new Error('Choose an available manuscript template.');
   const first = fitTemplate(newManuscript(template), width, height);
   if (options.mode === 'map') first.title = 'Untitled map';
   const pages = [first, ...Array.from({ length: count - 1 }, (_, index) => blankPageLike(first, `Page ${index + 2}`))];

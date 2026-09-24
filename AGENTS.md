@@ -13,6 +13,7 @@ This is a long-term, multi-agent project. Read `docs/HANDOVER.md` and `TODO.md` 
 - Generated art is original content, not copied game assets. The user wants economical modular sheets: invisible **8 columns × 4 rows** on **16:9 4K** transparent images, 32 isolated elements per call. Programmatic Python cutting/trimming is explicitly authorized. See `docs/ART_PIPELINE.md`.
 - Maintain a warm, dark workshop with parchment as the main working surface. Avoid a marketing landing page. Keep controls functional and usable on small screens.
 - Main long-term product direction: choose **book or map**, set size before creating, flip between book pages, arrange/reorder layers, and save/load complete projects.
+- Manuscripts are also becoming playable click-and-play levels. Read `docs/GAME_VISION.md` before gameplay work. Keep Edit and Play connected, preserve old project data, and distinguish prototypes from finished levels.
 
 ## Boundaries
 

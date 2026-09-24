@@ -1,6 +1,6 @@
 # Manuscript
 
-An illuminated manuscript workshop, made for the pleasure of arranging strange creatures, flowering margins, and words worth keeping.
+An illuminated manuscript workshop growing into a simple create-and-play game. Arrange medieval art and words, give objects a role, then step inside the scene to test the path you made.
 
 **[Open the workshop](https://threapchills.github.io/ManuscriptMaker/)**
 
@@ -18,6 +18,12 @@ The workshop has no account or server storage. Autosave belongs to this browser 
 
 Letter substitution is creative spelling, not translation into historical Old English. The voiced/unvoiced rules and exception dictionaries derive from the supplied Olde Scribe prototype; they remain approximate.
 
+## Playtest a scene
+
+Choose the **Playable crossing** starter when creating a book, or give illustrations a **Play role** in the inspector. Scenery can be walked through; a Character can move and jump; Solid objects block movement; Platforms can be landed on from above; a Goal finishes the scene. Select **Play scene** to test it, then return to Edit. Play does not change the saved artwork. Arrow keys or A/D move, and Up, W, or Space jumps; touch buttons are available too.
+
+This is an early movement prototype, not a finished Level One. Guided challenge levels will start with fixed scenes and chosen pieces, and levels will be organized separately from book pages. The full product brief and remaining decisions are in `docs/GAME_VISION.md`.
+
 ## Development
 
 React, TypeScript, Vite, and native pointer events. All artwork and typefaces are served with the app. No image-generation API or secret is needed to use the published workshop.
@@ -27,6 +33,7 @@ npm ci --legacy-peer-deps
 npm run dev
 npm test
 npm run build
+npm run test:play
 ```
 
 The Vite base is `/ManuscriptMaker/`. Pushing `main` tests, builds, and deploys through GitHub Actions. In repository settings, Pages uses **GitHub Actions** as its source.
@@ -35,6 +42,7 @@ The Vite base is `/ManuscriptMaker/`. Pushing `main` tests, builds, and deploys 
 
 - `src/App.tsx`: workshop UI, document history, local save, import, and library controls.
 - `src/ManuscriptCanvas.tsx`: layer rendering, pointer gestures, and selection overlay.
+- `src/game.ts` and `src/PlayMode.tsx`: pure movement/collision rules and read-only scene playtest.
 - `src/TextEditor.tsx` and `src/text.ts`: typography controls and independently enabled substitutions.
 - `src/document.ts`: starter folios, schema validation, and project files.
 - `src/assets.ts` and `public/assets/`: illustration catalog and original generated cutouts.

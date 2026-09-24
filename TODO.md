@@ -1,6 +1,22 @@
 # Manuscript project ToDos
 
-Last updated: 2026-09-18. This file records the user's requested direction, including messages sent during implementation. `docs/HANDOVER.md` records the concrete implementation state.
+Last updated: 2026-09-24. This file records the user's requested direction, including messages sent during implementation. `docs/GAME_VISION.md` is the full playable-manuscript brief; `docs/HANDOVER.md` records the concrete implementation state.
+
+## Playable manuscript direction — new top product priority
+
+The workshop is also a simple, welcoming, medieval manuscript click-and-play game. A player builds a traversable scene and then plays it. Placed objects can be characters, active objects, obstacles, walkable terrain, platforms, or decoration. Guided challenges start with a **fixed scene and a chosen set of pieces** (user clarification, 2026-09-24). **Levels are separate from book pages**; page turning must not be used as campaign progression (user clarification, 2026-09-24). The user's examples are repairing a broken bridge in creation before crossing it in play, then later solving a moat around a castle. A finished Level One is months away; build and verify foundations first.
+
+- [x] Preserve old projects while adding optional saved play roles to illustration layers: scenery, character, solid, one-way platform, goal.
+- [x] Add a read-only Play scene loop with walking, jumping, gravity, collision, fall restart, goal detection, keyboard and touch buttons.
+- [x] Add a small playable crossing **prototype** using existing original medieval art; do not present it as Level One or a solved campaign puzzle.
+- [x] Expose play roles in the selected illustration's inspector and provide one-click Edit/Play switching.
+- [ ] Make play roles obvious directly on the canvas/layer list and offer a guided first-use explanation without adding programming language to the UI.
+- [ ] Build a separate level/challenge model with authored fixed scenes, a chosen piece tray, construction rules, validation, and completion state. Do not equate a level with a page.
+- [ ] Implement the construction puzzle loop: place or move a selected piece to make a route, playtest, revise, and complete. Begin with a deliberately designed bridge challenge; a moat can follow later.
+- [ ] Define reusable active-object behaviors (doors, switches, moving pieces, hazards or other needs), richer collision bounds, and clear editor controls for them.
+- [ ] Expand characters and background/terrain art for playable scenes, using the economical original-art pipeline below.
+- [ ] Add progression, reset/retry, accessibility, touch usability and performance checks before calling any guided level complete.
+- [ ] Ask the user which interactions should come first after movement, and what counts as a valid construction solution. See open decisions in `docs/GAME_VISION.md`.
 
 ## Release checkpoint — highest priority
 
