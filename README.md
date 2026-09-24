@@ -1,6 +1,6 @@
 # Manuscript
 
-An illuminated manuscript workshop growing into a simple create-and-play game. Arrange medieval art and words, give objects a role, then step inside the scene to test the path you made.
+Manuscript Maker is growing into two connected experiences: a free-form manuscript sandbox and a curated create-and-play game campaign. The current public app is the manuscript sandbox with an early scene playtest.
 
 **[Open the workshop](https://threapchills.github.io/ManuscriptMaker/)**
 
@@ -22,7 +22,7 @@ Letter substitution is creative spelling, not translation into historical Old En
 
 Choose the **Playable crossing** starter when creating a book, or give illustrations a **Play role** in the inspector. Scenery can be walked through; a Character can move and jump; Solid objects block movement; Platforms can be landed on from above; a Goal finishes the scene. Select **Play scene** to test it, then return to Edit. Play does not change the saved artwork. Arrow keys or A/D move, and Up, W, or Space jumps; touch buttons are available too.
 
-This is an early movement prototype, not a finished Level One. Guided challenge levels will start with fixed scenes and chosen pieces, and levels will be organized separately from book pages. The full product brief and remaining decisions are in `docs/GAME_VISION.md`.
+This is an early movement prototype inside the Manuscript sandbox, not a finished Level One or the campaign mode. The future main Game campaign will have curated levels with fixed starting scenes and chosen pieces, while allowing more than one workable solution. Campaign levels and progress will be separate from sandbox book pages. The full product brief and remaining decisions are in `docs/GAME_VISION.md`.
 
 ## Development
 
