@@ -1,6 +1,6 @@
 # Manuscript
 
-Manuscript Maker is growing into two connected experiences: a free-form manuscript sandbox and a curated create-and-play game campaign. The current public app is the manuscript sandbox with an early scene playtest.
+Manuscript Maker has two connected experiences: a free-form manuscript sandbox and a curated create-and-play game campaign.
 
 **[Open the workshop](https://threapchills.github.io/ManuscriptMaker/)**
 
@@ -18,11 +18,15 @@ The workshop has no account or server storage. Autosave belongs to this browser 
 
 Letter substitution is creative spelling, not translation into historical Old English. The voiced/unvoiced rules and exception dictionaries derive from the supplied Olde Scribe prototype; they remain approximate.
 
-## Playtest a scene
+## Start a playable game
+
+From the first screen, choose **Start a playable game**. Make a traveller by combining original manuscript heads, clothing, limbs and extras on a small page, or pick a ready-made character. Each campaign page is a level: arrange the selected scene pieces, press **Play page**, walk and jump to the signpost checkpoint, and turn to the next page. The first two pages are practice prototypes. They share the editor's writing, page appearance, layer and transform tools, while offering a focused set of built-in art. A separate save keeps the campaign apart from the free manuscript sandbox. Starting another game keeps the current run as a restorable previous game.
+
+## Playtest a sandbox scene
 
 Choose the **Playable crossing** starter when creating a book, or give illustrations a **Play role** in the inspector. Scenery can be walked through; a Character can move and jump; Solid objects block movement; Platforms can be landed on from above; a Goal finishes the scene. Select **Play scene** to test it, then return to Edit. Play does not change the saved artwork. Arrow keys or A/D move, and Up, W, or Space jumps; touch buttons are available too.
 
-This is an early movement prototype inside the Manuscript sandbox, not a finished Level One or the campaign mode. The future main Game campaign will have curated levels with fixed starting scenes and chosen pieces, while allowing more than one workable solution. Campaign levels and progress will be separate from sandbox book pages. The full product brief and remaining decisions are in `docs/GAME_VISION.md`.
+Sandbox **Play scene** is an optional playtest and has no checkpoints or unlocks. The campaign's practice pages have fixed starting scenes and selected pieces but can be solved by different routes. Neither practice page is a finished Level One. The full product brief and remaining decisions are in `docs/GAME_VISION.md`.
 
 ## Development
 
@@ -34,6 +38,7 @@ npm run dev
 npm test
 npm run build
 npm run test:play
+npm run test:campaign
 ```
 
 The Vite base is `/ManuscriptMaker/`. Pushing `main` tests, builds, and deploys through GitHub Actions. In repository settings, Pages uses **GitHub Actions** as its source.
@@ -42,7 +47,8 @@ The Vite base is `/ManuscriptMaker/`. Pushing `main` tests, builds, and deploys 
 
 - `src/App.tsx`: workshop UI, document history, local save, import, and library controls.
 - `src/ManuscriptCanvas.tsx`: layer rendering, pointer gestures, and selection overlay.
-- `src/game.ts` and `src/PlayMode.tsx`: pure movement/collision rules and read-only scene playtest.
+- `src/game.ts` and `src/PlayMode.tsx`: pure movement/collision rules and read-only play.
+- `src/campaign.ts` and `src/CharacterMaker.tsx`: separate campaign pages/progress and new-game character composition.
 - `src/TextEditor.tsx` and `src/text.ts`: typography controls and independently enabled substitutions.
 - `src/document.ts`: starter folios, schema validation, and project files.
 - `src/assets.ts` and `public/assets/`: illustration catalog and original generated cutouts.

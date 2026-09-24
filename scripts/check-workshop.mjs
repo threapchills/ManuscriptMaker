@@ -13,7 +13,7 @@ page.on('pageerror',error=>errors.push(error.message));
 const pass=message=>console.log(`PASS ${message}`);
 const download=async()=>{const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Save project',exact:true}).click();const file=await pending;await file.saveAs('.local/verified-project.json');return JSON.parse(await readFile('.local/verified-project.json','utf8'))};
 try{
-  await page.goto(base);await expect(page.getByRole('dialog')).toBeVisible();
+  await page.goto(base);await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Make a manuscript'}).click();
   await page.getByLabel('Starting canvas width').fill('800');await page.getByLabel('Starting canvas height').fill('1040');await page.getByLabel('Starting page count').fill('3');
   await page.getByRole('button',{name:'Create book',exact:true}).click();
   await expect(page.getByRole('dialog')).toBeHidden();await expect(page.getByLabel('Current book page')).toContainText('Page 1 of 3');

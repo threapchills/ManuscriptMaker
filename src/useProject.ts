@@ -4,14 +4,14 @@ import type { Project } from './project';
 import { activePage, loadProject, newProject, withActivePage } from './project';
 import { STORAGE_KEY } from './document';
 
-function initialProject(){
-  try { const project=loadProject();let isNew=true;try{isNew=!localStorage.getItem(STORAGE_KEY)}catch{/* Browser may disallow storage. */}return {project,recovery:'',isNew}; }
-  catch(error){ return {project:newProject({mode:'book',pageCount:1}),recovery:error instanceof Error?error.message:'Saved project could not be opened.',isNew:false}; }
+function initialProject(storageKey: string, fallback: () => Project){
+  try { const project=loadProject(storageKey);let isNew=true;try{isNew=!localStorage.getItem(storageKey)}catch{/* Browser may disallow storage. */}return {project: isNew ? fallback() : project,recovery:'',isNew}; }
+  catch(error){ return {project:fallback(),recovery:error instanceof Error?error.message:'Saved project could not be opened.',isNew:false}; }
 }
 
 /** History owns whole projects. The canvas receives only the active page. */
-export function useProject(){
-  const [initial]=useState(initialProject);
+export function useProject(storageKey = STORAGE_KEY, fallback: () => Project = () => newProject({mode:'book',pageCount:1})){
+  const [initial]=useState(() => initialProject(storageKey, fallback));
   const [project,setProject]=useState(initial.project);
   const [recovery,setRecovery]=useState(initial.recovery);
   const projectRef=useRef(project);projectRef.current=project;
@@ -31,9 +31,9 @@ export function useProject(){
   const switchPage=useCallback((id:string)=>{if(!projectRef.current.pages.some(p=>p.id===id))return;apply({...projectRef.current,activePageId:id})},[apply]);
   const recover=useCallback(()=>{
     // Backup must succeed before overwriting a saved file that could not load.
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(raw)localStorage.setItem(`${STORAGE_KEY}:recovery:${Date.now()}`,raw);
+    const raw=localStorage.getItem(storageKey);
+    if(raw)localStorage.setItem(`${storageKey}:recovery:${Date.now()}`,raw);
     setRecovery('');
-  },[]);
+  },[storageKey]);
   return {project,projectRef,doc,docRef,history,future,transient,commitProject,commit,changeTransient,undo,redo,switchPage,recovery,recover,isNew:initial.isNew};
 }

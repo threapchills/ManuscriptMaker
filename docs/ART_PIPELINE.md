@@ -29,3 +29,7 @@ The user mentioned “images2.5”. The current built-in image-generation tool d
 - Inspect each resulting sheet/contact sheet. A script can check geometry and alpha, but cannot verify that an image is the intended subject.
 
 Built-in generation stores originals under the Codex generated-images directory. Copy chosen project assets into this repo. Exact prompts and source paths belong in versioned provenance notes, but never include credentials.
+
+## Current published batches
+
+The beast, castle, environment, and character sheets each have 32 original cutouts. The environment batch includes skies, forests, meadow/earth/stone/wooden walking surfaces, houses, a bridge, and details. The character batch includes combinable heads, torsos, arms, legs, and extras. Both new batches were requested at 4K but returned at **1672×941**; they were kept at native resolution. Fixed-grid slicing detected drift, so `--components` recovered isolated cutouts. Both contact sheets were visually reviewed and validation reported no errors before publishing. See `art-source/environment-parts.json` and `art-source/character-parts.json` for exact prompts, source names, and row-major labels. The images are original generated art, not copies from the cited inspiration games.

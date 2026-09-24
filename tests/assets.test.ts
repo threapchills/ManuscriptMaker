@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ASSETS } from '../src/assets';
 import { assetLayer, newManuscript, validateManuscript } from '../src/document';
+import { sceneConfig } from '../src/sceneCatalog';
 
 describe('published artwork catalog', () => {
   it('has unique stable ids and real PNG files for every library entry', () => {
@@ -19,10 +20,11 @@ describe('published artwork catalog', () => {
     }
   });
 
-  it('places every small part at a useful size while preserving its natural proportions', () => {
+  it('places modular parts and scene pieces at useful sizes while preserving their proportions', () => {
     for (const asset of ASSETS.filter(item => item.kind === 'part')) {
       const layer = assetLayer(asset);
-      expect(Math.max(layer.width, layer.height)).toBeLessThanOrEqual(125.001);
+      expect(layer.width).toBeLessThanOrEqual(sceneConfig(asset.id)?.width ?? 125.001);
+      if (!sceneConfig(asset.id)) expect(Math.max(layer.width, layer.height)).toBeLessThanOrEqual(125.001);
       expect(layer.width / layer.height).toBeCloseTo(asset.width / asset.height, 5);
       expect(() => validateManuscript({ ...newManuscript('blank'), layers: [layer] })).not.toThrow();
     }

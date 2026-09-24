@@ -180,7 +180,7 @@ export default function ManuscriptCanvas({
           >
             <div className="manuscript-layer-content" style={{ opacity: layer.opacity, transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})` }}>
               {layer.type === 'image' ? (
-                <img src={layer.src} alt={layer.name} draggable={false} decoding="async" />
+                <img src={layer.src} alt={layer.name} draggable={false} decoding="async" style={{objectFit:layer.imageFit||'contain'}} />
               ) : (
                 <div className="manuscript-text" style={{
                   fontFamily: layer.fontFamily, fontSize: layer.fontSize, color: layer.color,

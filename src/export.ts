@@ -75,6 +75,7 @@ function makeExportPage(manuscript: Manuscript): HTMLElement {
       image.src = layer.src;
       image.alt = layer.name;
       image.draggable = false;
+      image.style.objectFit = layer.imageFit || 'contain';
       content.appendChild(image);
     } else {
       const text = document.createElement('div');

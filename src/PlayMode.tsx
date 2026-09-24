@@ -7,12 +7,14 @@ import { playSetup, startGame, stepGame } from './game';
 import type { GameInput, GameState } from './game';
 import './play.css';
 
-export default function PlayMode({page,zoom,onExit}:{page:Manuscript;zoom:number;onExit:()=>void}) {
+export default function PlayMode({page,zoom,onExit,onWin,onNext}:{page:Manuscript;zoom:number;onExit:()=>void;onWin?:()=>void;onNext?:()=>void}) {
   const setup = playSetup(page);
   const [state,setState] = useState<GameState|null>(() => startGame(page));
   const stateRef = useRef(state);
   const input = useRef<GameInput>({left:false,right:false,jump:false});
+  const reportedWin = useRef(false);
   const reset = () => { const initial=startGame(page);stateRef.current=initial;setState(initial);input.current={left:false,right:false,jump:false}; };
+  useEffect(()=>{if(state?.won&&!reportedWin.current){reportedWin.current=true;onWin?.()}},[state?.won,onWin]);
 
   useEffect(() => {
     const down=(event:KeyboardEvent)=>{
@@ -59,11 +61,11 @@ export default function PlayMode({page,zoom,onExit}:{page:Manuscript;zoom:number
           const moving=layer.type==='image'&&layer.id===setup.player?.id&&state;
           return <div key={layer.id} data-play-layer-id={layer.id} className="manuscript-layer" style={{left:moving?state.x:layer.x,top:moving?state.y:layer.y,width:layer.width,height:layer.height,transform:`rotate(${layer.rotation}deg)`}}>
             <div className="manuscript-layer-content" style={{opacity:layer.opacity,transform:`scale(${layer.flipX?-1:1},${layer.flipY?-1:1})`}}>
-              {layer.type==='image'?<img src={layer.src} alt="" draggable={false}/>:<div className="manuscript-text" style={{fontFamily:layer.fontFamily,fontSize:layer.fontSize,color:layer.color,fontWeight:layer.bold?700:400,fontStyle:layer.italic?'italic':'normal',textAlign:layer.align,lineHeight:layer.lineHeight,letterSpacing:layer.letterSpacing}}>{transformText(layer.text,layer.glyphs)}</div>}
+              {layer.type==='image'?<img src={layer.src} alt="" draggable={false} style={{objectFit:layer.imageFit||'contain'}}/>:<div className="manuscript-text" style={{fontFamily:layer.fontFamily,fontSize:layer.fontSize,color:layer.color,fontWeight:layer.bold?700:400,fontStyle:layer.italic?'italic':'normal',textAlign:layer.align,lineHeight:layer.lineHeight,letterSpacing:layer.letterSpacing}}>{transformText(layer.text,layer.glyphs)}</div>}
             </div>
           </div>;
         })}
-        {state?.won&&<div className="play-victory" role="status"><span>✧</span><strong>Page complete</strong><small>Your path works. Return to edit and keep creating.</small></div>}
+        {state?.won&&<div className="play-victory" role="status"><span>✧</span><strong>Page complete</strong><small>{onNext?'The next page is open.':'Your path works. Return to edit and keep creating.'}</small>{onNext&&<button className="button primary" onClick={onNext}>Turn the page →</button>}</div>}
       </div>
     </div>
     <div className="play-controls"><span>{state?.falls?`${state.falls} ${state.falls===1?'fall':'falls'} · returned to start`:'← → or A D to move · ↑, W, or Space to jump'}</span><div><button aria-label="Move left" onPointerDown={hold('left')} onPointerUp={release('left')} onPointerCancel={release('left')}><ArrowLeft size={22}/></button><button aria-label="Jump" onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);input.current.jump=true}}>Jump</button><button aria-label="Move right" onPointerDown={hold('right')} onPointerUp={release('right')} onPointerCancel={release('right')}><ArrowRight size={22}/></button></div></div>

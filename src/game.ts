@@ -8,9 +8,9 @@ const overlap = (a: Box, b: Box) => a.x < b.x + b.width && a.x + a.width > b.x &
 const active = (page: Manuscript, role: ImageLayer['gameRole']) => page.layers.filter((layer): layer is ImageLayer => layer.type === 'image' && !layer.hidden && layer.gameRole === role);
 
 export function playSetup(page: Manuscript): { player?: ImageLayer; goals: ImageLayer[]; message?: string } {
-  const player = active(page, 'player')[0];
+  const player = active(page, 'player').at(-1);
   const goals = active(page, 'goal');
-  return { player, goals, message: !player ? 'Choose an illustration and set its play role to Character.' : !goals.length ? 'Choose an illustration and set its play role to Goal.' : undefined };
+  return { player, goals, message: !player ? 'Add a character from Build a scene, or set an illustration’s play role to Character.' : !goals.length ? 'Explore freely. Add a Goal piece if you want to finish the scene.' : undefined };
 }
 
 export function startGame(page: Manuscript): GameState | null {

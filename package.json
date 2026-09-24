@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:browser": "node scripts/check-workshop.mjs",
     "test:play": "node scripts/check-play.mjs",
+    "test:campaign": "node scripts/check-campaign.mjs",
     "art:slice": "python scripts/slice_art_sheets.py"
   },
   "dependencies": {

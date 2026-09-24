@@ -112,9 +112,9 @@ export function validateProject(value: unknown): Project {
 }
 
 /** Existing invalid saves are never overwritten or silently replaced here. */
-export function loadProject(): Project {
+export function loadProject(storageKey = STORAGE_KEY): Project {
   let saved: string | null;
-  try { saved = localStorage.getItem(STORAGE_KEY); }
+  try { saved = localStorage.getItem(storageKey); }
   catch { return newProject({ mode: 'book', pageCount: 1 }); }
   if (!saved) return newProject({ mode: 'book', pageCount: 1 });
   try { return validateProject(JSON.parse(saved)); }

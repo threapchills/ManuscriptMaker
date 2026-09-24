@@ -806,5 +806,835 @@
     ],
     "width": 174,
     "height": 105
+  },
+  {
+    "id": "sky-day",
+    "name": "Daytime sky",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/sky-day.png",
+    "tags": [
+      "sky",
+      "day",
+      "blue",
+      "background"
+    ],
+    "width": 188,
+    "height": 135
+  },
+  {
+    "id": "sky-dawn",
+    "name": "Rosy dawn sky",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/sky-dawn.png",
+    "tags": [
+      "sky",
+      "dawn",
+      "sunset",
+      "background"
+    ],
+    "width": 190,
+    "height": 135
+  },
+  {
+    "id": "cloud-bank",
+    "name": "Cloud bank",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/cloud-bank.png",
+    "tags": [
+      "cloud",
+      "sky",
+      "weather"
+    ],
+    "width": 239,
+    "height": 89
+  },
+  {
+    "id": "cloud-curl",
+    "name": "Curling cloud",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/cloud-curl.png",
+    "tags": [
+      "cloud",
+      "sky",
+      "weather"
+    ],
+    "width": 146,
+    "height": 93
+  },
+  {
+    "id": "sun-gold",
+    "name": "Golden sun",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/sun-gold.png",
+    "tags": [
+      "sun",
+      "sky",
+      "day"
+    ],
+    "width": 154,
+    "height": 155
+  },
+  {
+    "id": "moon-silver",
+    "name": "Silver moon",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/moon-silver.png",
+    "tags": [
+      "moon",
+      "sky",
+      "night"
+    ],
+    "width": 113,
+    "height": 126
+  },
+  {
+    "id": "stars-three",
+    "name": "Three stars",
+    "category": "Scene skies",
+    "src": "/ManuscriptMaker/assets/stars-three.png",
+    "tags": [
+      "stars",
+      "sky",
+      "night"
+    ],
+    "width": 123,
+    "height": 130
+  },
+  {
+    "id": "hills-blue",
+    "name": "Distant blue hills",
+    "category": "Scene landscape",
+    "src": "/ManuscriptMaker/assets/hills-blue.png",
+    "tags": [
+      "hills",
+      "landscape",
+      "background"
+    ],
+    "width": 202,
+    "height": 84
+  },
+  {
+    "id": "forest-line",
+    "name": "Forest tree line",
+    "category": "Scene landscape",
+    "src": "/ManuscriptMaker/assets/forest-line.png",
+    "tags": [
+      "forest",
+      "trees",
+      "background"
+    ],
+    "width": 213,
+    "height": 104
+  },
+  {
+    "id": "pine-grove",
+    "name": "Pine grove",
+    "category": "Scene landscape",
+    "src": "/ManuscriptMaker/assets/pine-grove.png",
+    "tags": [
+      "forest",
+      "pine",
+      "trees"
+    ],
+    "width": 195,
+    "height": 165
+  },
+  {
+    "id": "leafy-grove",
+    "name": "Leafy grove",
+    "category": "Scene landscape",
+    "src": "/ManuscriptMaker/assets/leafy-grove.png",
+    "tags": [
+      "forest",
+      "trees",
+      "woodland"
+    ],
+    "width": 206,
+    "height": 154
+  },
+  {
+    "id": "pine-single",
+    "name": "Tall pine",
+    "category": "Scene landscape",
+    "src": "/ManuscriptMaker/assets/pine-single.png",
+    "tags": [
+      "pine",
+      "tree",
+      "forest"
+    ],
+    "width": 120,
+    "height": 201
+  },
+  {
+    "id": "meadow-wide",
+    "name": "Wide meadow ground",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/meadow-wide.png",
+    "tags": [
+      "meadow",
+      "grass",
+      "ground",
+      "walkable",
+      "platform"
+    ],
+    "width": 242,
+    "height": 87
+  },
+  {
+    "id": "meadow-short",
+    "name": "Short meadow ground",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/meadow-short.png",
+    "tags": [
+      "meadow",
+      "grass",
+      "ground",
+      "walkable",
+      "platform"
+    ],
+    "width": 167,
+    "height": 82
+  },
+  {
+    "id": "grass-tuft",
+    "name": "Grass tuft",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/grass-tuft.png",
+    "tags": [
+      "grass",
+      "meadow",
+      "detail"
+    ],
+    "width": 105,
+    "height": 74
+  },
+  {
+    "id": "wildflowers",
+    "name": "Wildflower patch",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/wildflowers.png",
+    "tags": [
+      "flowers",
+      "meadow",
+      "flora"
+    ],
+    "width": 178,
+    "height": 118
+  },
+  {
+    "id": "cottage-timber",
+    "name": "Timber cottage",
+    "category": "Scene homes",
+    "src": "/ManuscriptMaker/assets/cottage-timber.png",
+    "tags": [
+      "house",
+      "home",
+      "cottage",
+      "walkable"
+    ],
+    "width": 204,
+    "height": 214
+  },
+  {
+    "id": "cottage-stone",
+    "name": "Stone cottage",
+    "category": "Scene homes",
+    "src": "/ManuscriptMaker/assets/cottage-stone.png",
+    "tags": [
+      "house",
+      "home",
+      "cottage",
+      "walkable"
+    ],
+    "width": 190,
+    "height": 187
+  },
+  {
+    "id": "farmhouse-thatch",
+    "name": "Thatched farmhouse",
+    "category": "Scene homes",
+    "src": "/ManuscriptMaker/assets/farmhouse-thatch.png",
+    "tags": [
+      "house",
+      "home",
+      "farmhouse",
+      "walkable"
+    ],
+    "width": 202,
+    "height": 189
+  },
+  {
+    "id": "fence-wood",
+    "name": "Wooden fence",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/fence-wood.png",
+    "tags": [
+      "fence",
+      "wood",
+      "obstacle"
+    ],
+    "width": 178,
+    "height": 99
+  },
+  {
+    "id": "hedge-low",
+    "name": "Low hedge",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/hedge-low.png",
+    "tags": [
+      "hedge",
+      "bush",
+      "obstacle"
+    ],
+    "width": 198,
+    "height": 96
+  },
+  {
+    "id": "boulder",
+    "name": "Boulder",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/boulder.png",
+    "tags": [
+      "rock",
+      "stone",
+      "obstacle"
+    ],
+    "width": 178,
+    "height": 121
+  },
+  {
+    "id": "stump-old",
+    "name": "Old tree stump",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/stump-old.png",
+    "tags": [
+      "tree",
+      "stump",
+      "walkable",
+      "platform"
+    ],
+    "width": 189,
+    "height": 107
+  },
+  {
+    "id": "pond-reeds",
+    "name": "Pond with reeds",
+    "category": "Scene landscape",
+    "src": "/ManuscriptMaker/assets/pond-reeds.png",
+    "tags": [
+      "pond",
+      "water",
+      "reeds",
+      "background"
+    ],
+    "width": 212,
+    "height": 152
+  },
+  {
+    "id": "earth-ledge-long",
+    "name": "Long grassy ledge",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/earth-ledge-long.png",
+    "tags": [
+      "earth",
+      "grass",
+      "ground",
+      "walkable",
+      "platform"
+    ],
+    "width": 236,
+    "height": 103
+  },
+  {
+    "id": "earth-ledge-short",
+    "name": "Short grassy ledge",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/earth-ledge-short.png",
+    "tags": [
+      "earth",
+      "grass",
+      "ground",
+      "walkable",
+      "platform"
+    ],
+    "width": 140,
+    "height": 97
+  },
+  {
+    "id": "stone-walkway",
+    "name": "Stone walkway",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/stone-walkway.png",
+    "tags": [
+      "stone",
+      "path",
+      "walkable",
+      "platform"
+    ],
+    "width": 194,
+    "height": 55
+  },
+  {
+    "id": "plank-walkway",
+    "name": "Wooden walkway",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/plank-walkway.png",
+    "tags": [
+      "wood",
+      "planks",
+      "walkable",
+      "platform"
+    ],
+    "width": 197,
+    "height": 75
+  },
+  {
+    "id": "crate-wood",
+    "name": "Wooden crate",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/crate-wood.png",
+    "tags": [
+      "crate",
+      "box",
+      "obstacle"
+    ],
+    "width": 123,
+    "height": 121
+  },
+  {
+    "id": "hay-bale",
+    "name": "Hay bale",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/hay-bale.png",
+    "tags": [
+      "hay",
+      "farm",
+      "obstacle"
+    ],
+    "width": 173,
+    "height": 95
+  },
+  {
+    "id": "bridge-wooden",
+    "name": "Wooden bridge",
+    "category": "Scene terrain",
+    "src": "/ManuscriptMaker/assets/bridge-wooden.png",
+    "tags": [
+      "bridge",
+      "wood",
+      "walkable",
+      "platform"
+    ],
+    "width": 263,
+    "height": 115
+  },
+  {
+    "id": "signpost-blank",
+    "name": "Blank signpost",
+    "category": "Scene details",
+    "src": "/ManuscriptMaker/assets/signpost-blank.png",
+    "tags": [
+      "signpost",
+      "goal",
+      "destination"
+    ],
+    "width": 123,
+    "height": 154
+  },
+  {
+    "id": "char-head-hare",
+    "name": "Hare head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-hare.png",
+    "tags": [
+      "head",
+      "hare",
+      "animal"
+    ],
+    "width": 166,
+    "height": 269
+  },
+  {
+    "id": "char-head-fox",
+    "name": "Fox head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-fox.png",
+    "tags": [
+      "head",
+      "fox",
+      "animal"
+    ],
+    "width": 180,
+    "height": 215
+  },
+  {
+    "id": "char-head-human-brown",
+    "name": "Brown-haired head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-human-brown.png",
+    "tags": [
+      "head",
+      "human"
+    ],
+    "width": 191,
+    "height": 206
+  },
+  {
+    "id": "char-head-human-dark",
+    "name": "Dark-haired head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-human-dark.png",
+    "tags": [
+      "head",
+      "human"
+    ],
+    "width": 190,
+    "height": 207
+  },
+  {
+    "id": "char-head-owl",
+    "name": "Owl head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-owl.png",
+    "tags": [
+      "head",
+      "owl",
+      "animal"
+    ],
+    "width": 183,
+    "height": 195
+  },
+  {
+    "id": "char-head-dragon",
+    "name": "Dragon head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-dragon.png",
+    "tags": [
+      "head",
+      "dragon"
+    ],
+    "width": 225,
+    "height": 236
+  },
+  {
+    "id": "char-head-cat",
+    "name": "Cat head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-cat.png",
+    "tags": [
+      "head",
+      "cat",
+      "animal"
+    ],
+    "width": 173,
+    "height": 173
+  },
+  {
+    "id": "char-head-blank",
+    "name": "Blank head",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-head-blank.png",
+    "tags": [
+      "head",
+      "face"
+    ],
+    "width": 145,
+    "height": 178
+  },
+  {
+    "id": "char-body-blue",
+    "name": "Blue tunic",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-blue.png",
+    "tags": [
+      "body",
+      "tunic",
+      "blue"
+    ],
+    "width": 208,
+    "height": 212
+  },
+  {
+    "id": "char-body-red",
+    "name": "Red tunic",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-red.png",
+    "tags": [
+      "body",
+      "tunic",
+      "red"
+    ],
+    "width": 206,
+    "height": 214
+  },
+  {
+    "id": "char-body-green",
+    "name": "Green tunic",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-green.png",
+    "tags": [
+      "body",
+      "tunic",
+      "green"
+    ],
+    "width": 207,
+    "height": 213
+  },
+  {
+    "id": "char-body-brown",
+    "name": "Brown jerkin",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-brown.png",
+    "tags": [
+      "body",
+      "jerkin"
+    ],
+    "width": 215,
+    "height": 215
+  },
+  {
+    "id": "char-body-cream",
+    "name": "Cream robe",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-cream.png",
+    "tags": [
+      "body",
+      "robe"
+    ],
+    "width": 219,
+    "height": 245
+  },
+  {
+    "id": "char-body-fox",
+    "name": "Fox body",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-fox.png",
+    "tags": [
+      "body",
+      "fox",
+      "animal"
+    ],
+    "width": 175,
+    "height": 208
+  },
+  {
+    "id": "char-body-hare",
+    "name": "Hare body",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-hare.png",
+    "tags": [
+      "body",
+      "hare",
+      "animal"
+    ],
+    "width": 175,
+    "height": 218
+  },
+  {
+    "id": "char-body-cloak",
+    "name": "Dark cloak",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-body-cloak.png",
+    "tags": [
+      "body",
+      "cloak"
+    ],
+    "width": 220,
+    "height": 225
+  },
+  {
+    "id": "char-arms-blue",
+    "name": "Blue sleeves",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-blue.png",
+    "tags": [
+      "arms",
+      "blue"
+    ],
+    "width": 183,
+    "height": 173
+  },
+  {
+    "id": "char-arms-red",
+    "name": "Red sleeves",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-red.png",
+    "tags": [
+      "arms",
+      "red"
+    ],
+    "width": 178,
+    "height": 171
+  },
+  {
+    "id": "char-arms-green",
+    "name": "Green sleeves",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-green.png",
+    "tags": [
+      "arms",
+      "green"
+    ],
+    "width": 262,
+    "height": 170
+  },
+  {
+    "id": "char-arms-brown",
+    "name": "Brown sleeves",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-brown.png",
+    "tags": [
+      "arms",
+      "brown"
+    ],
+    "width": 171,
+    "height": 171
+  },
+  {
+    "id": "char-arms-cream",
+    "name": "Cream sleeves",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-cream.png",
+    "tags": [
+      "arms",
+      "cream"
+    ],
+    "width": 179,
+    "height": 172
+  },
+  {
+    "id": "char-arms-fox",
+    "name": "Fox paws",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-fox.png",
+    "tags": [
+      "arms",
+      "fox",
+      "animal"
+    ],
+    "width": 232,
+    "height": 162
+  },
+  {
+    "id": "char-legs-boots",
+    "name": "Leather boots",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-legs-boots.png",
+    "tags": [
+      "legs",
+      "boots"
+    ],
+    "width": 186,
+    "height": 186
+  },
+  {
+    "id": "char-legs-animal",
+    "name": "Animal legs",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-legs-animal.png",
+    "tags": [
+      "legs",
+      "animal"
+    ],
+    "width": 186,
+    "height": 181
+  },
+  {
+    "id": "char-legs-green",
+    "name": "Green trousers",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-legs-green.png",
+    "tags": [
+      "legs",
+      "green"
+    ],
+    "width": 176,
+    "height": 232
+  },
+  {
+    "id": "char-legs-blue",
+    "name": "Blue trousers",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-legs-blue.png",
+    "tags": [
+      "legs",
+      "blue"
+    ],
+    "width": 167,
+    "height": 227
+  },
+  {
+    "id": "char-legs-red",
+    "name": "Red trousers",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-legs-red.png",
+    "tags": [
+      "legs",
+      "red"
+    ],
+    "width": 175,
+    "height": 227
+  },
+  {
+    "id": "char-tail-fox",
+    "name": "Fox tail",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-tail-fox.png",
+    "tags": [
+      "accessory",
+      "tail",
+      "fox"
+    ],
+    "width": 186,
+    "height": 226
+  },
+  {
+    "id": "char-tail-dragon",
+    "name": "Dragon tail",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-tail-dragon.png",
+    "tags": [
+      "accessory",
+      "tail",
+      "dragon"
+    ],
+    "width": 323,
+    "height": 229
+  },
+  {
+    "id": "char-wings",
+    "name": "Feathered wings",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-wings.png",
+    "tags": [
+      "accessory",
+      "wings"
+    ],
+    "width": 136,
+    "height": 229
+  },
+  {
+    "id": "char-hood",
+    "name": "Travelling hood",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-hood.png",
+    "tags": [
+      "accessory",
+      "hood"
+    ],
+    "width": 192,
+    "height": 220
+  },
+  {
+    "id": "char-crown",
+    "name": "Gold crown",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-crown.png",
+    "tags": [
+      "accessory",
+      "crown"
+    ],
+    "width": 166,
+    "height": 129
   }
 ]

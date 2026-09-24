@@ -1,16 +1,18 @@
 import type { Manuscript, Layer, TextLayer, ArtAsset, ImageLayer } from './types';
 import { DEFAULT_GLYPHS } from './types';
 import { FONT_OPTIONS } from './text';
+import { sceneConfig } from './sceneCatalog';
 
 export const uid = () => crypto.randomUUID();
 export const baseLayer = (name: string) => ({ id: uid(), name, x: 120, y: 150, width: 260, height: 260, rotation: 0, opacity: 1, locked: false, hidden: false, flipX: false, flipY: false });
 export function makeText(text = 'Here begins your story…'): TextLayer {
   return { ...baseLayer('A new passage'), type:'text', text, width:400,height:180,fontFamily:FONT_OPTIONS[1].family,fontSize:27,color:'#3d3025',bold:false,italic:false,align:'left',lineHeight:1.5,letterSpacing:0,glyphs:{...DEFAULT_GLYPHS} };
 }
-export function assetLayer(asset: ArtAsset, x = 230, y = 330): Layer {
+export function assetLayer(asset: ArtAsset, x = 230, y = 330): ImageLayer {
+  const scene = sceneConfig(asset.id);
   const size = asset.category === 'Symbols' ? 90 : asset.kind === 'part' ? 125 : ['Botanicals','Flora','Armor','Textiles','Household'].includes(asset.category) ? 160 : 250;
-  const width = asset.kind === 'part' ? size * asset.width / Math.max(asset.width, asset.height) : size;
-  return { ...baseLayer(asset.name), type:'image',src:asset.src,assetId:asset.id,x,y,width,height:width * asset.height / asset.width };
+  const width = scene?.width ?? (asset.kind === 'part' ? size * asset.width / Math.max(asset.width, asset.height) : size);
+  return { ...baseLayer(asset.name), type:'image',src:asset.src,assetId:asset.id,x,y,width,height:width * asset.height / asset.width,...(scene ? {gameRole:scene.role,imageFit:scene.fill?'fill' as const:'contain' as const} : {}) };
 }
 export function newManuscript(template = 'bestiary'): Manuscript {
   const manuscript: Manuscript = { version:1,id:uid(),title:template==='blank'?'Untitled manuscript':template==='botanical'?'The secret garden':'A book of curious beasts',width:720,height:960,paper:'vellum',border:'illuminated',layers:[],updatedAt:new Date().toISOString() };
@@ -58,6 +60,7 @@ export function validateManuscript(value: unknown): Manuscript {
     ids.add(l.id);
     if(l.type==='image' && !(typeof l.src==='string' && (/^\/ManuscriptMaker\/assets\/[a-z0-9-]+\.png$/.test(l.src) || /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(l.src)))) throw new Error('This file contains an unsupported image source.');
     if(l.type==='image' && l.gameRole !== undefined && !['scenery','player','solid','platform','goal'].includes(l.gameRole)) throw new Error('This file contains an unsupported play role.');
+    if(l.type==='image' && l.imageFit !== undefined && !['contain','fill'].includes(l.imageFit)) throw new Error('This file contains an unsupported image fit.');
     if(l.type==='text' && (typeof l.text!=='string' || l.text.length>50000 || !numeric(l.fontSize,8,240) || !numeric(l.lineHeight,.7,3) || !numeric(l.letterSpacing,-5,30) || typeof l.fontFamily!=='string' || l.fontFamily.length>400 || typeof l.color!=='string' || !/^#[0-9a-f]{6}$/i.test(l.color) || !['left','center','right','justify'].includes(l.align) || typeof l.bold!=='boolean' || typeof l.italic!=='boolean' || !l.glyphs || Object.keys(DEFAULT_GLYPHS).some(k=>typeof l.glyphs[k as keyof typeof DEFAULT_GLYPHS]!=='boolean'))) throw new Error('This file contains unsupported text settings.');
   }
   return d;
