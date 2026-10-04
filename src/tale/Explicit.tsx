@@ -1,17 +1,19 @@
 import { useEffect } from 'react';
 import type { LevelDef } from './levels';
-import { COMING } from './levels';
 import type { FolioRecord } from './save';
 import type { LevelResult } from './LevelScreen';
 import { Flourish, WaxSeal, toRoman } from './ornaments';
 import { audio } from '../engine/audio';
 
-const ORDINAL = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+const ORDINAL = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth'];
 
 /** "Here endeth the folio": the colophon card, with its seals pressed one by one. */
-export default function Explicit({ level, result, record, onNext, nextTitle, onAgain, onBuild, onContents }: {
+export default function Explicit({ level, result, record, onNext, nextTitle, endNote, onAgain, onBuild, onContents }: {
   level: LevelDef; result: LevelResult; record: FolioRecord;
-  onNext?: () => void; nextTitle?: string; onAgain: () => void; onBuild: () => void; onContents: () => void; onRetire?: () => void;
+  onNext?: () => void; nextTitle?: string;
+  /** Said beneath "To the contents" when there is no next folio in this book. */
+  endNote?: string;
+  onAgain: () => void; onBuild: () => void; onContents: () => void; onRetire?: () => void;
 }) {
   const letters = result.letters.filter(Boolean).length;
   const allLetters = letters === 3 || record.letters.every(Boolean);
@@ -46,7 +48,7 @@ export default function Explicit({ level, result, record, onNext, nextTitle, onA
       <div className="explicit-actions">
         {onNext
           ? <button type="button" className="seal-button seal-button--inline" onClick={() => { audio.play('page'); onNext(); }}><WaxSeal glyph="turn" size={78} seed={3} /><span>Turn the page{nextTitle ? <small>{nextTitle}</small> : null}</span></button>
-          : <button type="button" className="seal-button seal-button--inline" onClick={() => { audio.play('page'); onContents(); }}><WaxSeal glyph="book" size={78} seed={3} /><span>To the contents<small>{COMING.length ? 'More folios are being written' : 'Here endeth the first book'}</small></span></button>}
+          : <button type="button" className="seal-button seal-button--inline" onClick={() => { audio.play('page'); onContents(); }}><WaxSeal glyph="book" size={78} seed={3} /><span>To the contents{endNote ? <small>{endNote}</small> : null}</span></button>}
         <div className="explicit-secondary">
           <button type="button" className="text-link" onClick={onAgain}>Walk it again</button>
           <button type="button" className="text-link" onClick={onBuild}>Keep building</button>

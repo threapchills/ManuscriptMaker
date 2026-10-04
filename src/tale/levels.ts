@@ -44,8 +44,6 @@ export interface LevelDef {
   quiver?: number;
 }
 
-/** The motto gathered letter by letter across the chapter. */
-export const MOTTO = 'ARS LONGA VITA BREVIS';
 
 const natural = (id: string) => {
   const a = ASSETS.find(item => item.id === id);
@@ -360,13 +358,114 @@ const folio6: LevelDef = {
   ],
 };
 
-export const LEVELS: LevelDef[] = [folio1, folio2, folio3, folio4, folio5, folio6];
+// ——— Liber secundus · Folio VII: the barred gate ———
+// The first arrow. A timber gatehouse, two panels high (about 222), bars the
+// road: past any leap, but one level arrow in its face anywhere between about
+// 65 and 150 above the road makes a step to the top. Three arrows in the
+// quiver, par one.
+const f7Panel = 140;
+/** Two timber panels, one on the other. */
+const f7Rows = (cx: number) => { const low = standing('wall-timber', cx, 562, f7Panel, { role: 'solid', layer: 'ground' }); return [low, standing('wall-timber', cx, topOf(low), f7Panel, { role: 'solid', layer: 'ground' })]; };
+const f7Gate = [...f7Rows(640), ...f7Rows(760)];
+const f7Top = topOf(f7Gate[1]);
+const folio7: LevelDef = {
+  id: 'folio-7', numeral: 7, title: 'The Barred Gate',
+  brief: 'The forest gate is barred from within, and its timbers stand too high to leap. Rest the pointer on the wood: where the ring shines gold, an arrow will bear your weight. Click to loose it, leap onto the shaft, and climb over.',
+  sky: 'dawn',
+  scene: [
+    piece('cloud-bank', 200, 70, 300, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('cloud-curl', 900, 110, 170, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('castle', 30, 262, 150, { layer: 'far', opacity: .45, filter: 'saturate(.5) blur(.5px)' }),
+    piece('hills-blue', -60, 330, 780, { layer: 'far', opacity: .85, filter: 'saturate(.75)' }),
+    piece('hills-blue', 600, 344, 760, { layer: 'far', opacity: .8, flipX: true, filter: 'saturate(.75)' }),
+    piece('pine-grove', 760, 300, 330, { layer: 'far', filter: 'saturate(.85)' }),
+    piece('forest-line', -20, 404, 600, { layer: 'far' }),
+    piece('forest-line', 640, 396, 680, { layer: 'far', flipX: true }),
+    standing('pine-single', 50, 565, 86, { layer: 'mid' }),
+    standing('cottage-timber', 1010, 566, 230, { layer: 'mid' }),
+    standing('leafy-grove', 1230, 566, 200, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    ...f7Gate,
+    standing('door-double', 700, 562, 96, { layer: 'ground' }),
+    standing('wildflowers', 250, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 470, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 900, 570, 76, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 1110, 574, 96, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('signpost-blank', 1186, 566, 92, { role: 'goal', layer: 'ground' }),
+  letters: [{ x: 330, y: 400, glyph: 'F' }, { x: 700, y: f7Top - 80, glyph: 'O' }, { x: 960, y: 330, glyph: 'R' }],
+  tray: [],
+  quiver: 3,
+  par: 1,
+  hints: [
+    { x: 700, y: f7Top - 30, text: 'too high to leap', mode: 'build', point: 'down' },
+    { x: 470, y: 440, text: 'aim at the timber', mode: 'play', point: 'right' },
+  ],
+};
 
-/** Folios still being written, shown in the contents so the road ahead is visible. */
-export const COMING: Array<{ numeral: number; title: string }> = [
+/** A book of the tale: its own contents, motto and folios. */
+export interface BookDef {
+  id: string;
+  /** Its name in the rubric: "Liber primus". */
+  rubric: string;
+  title: string;
+  /** The opening words on its contents page; the first letter becomes the initial. */
+  intro: string;
+  /** Gathered letter by letter, three to a folio. */
+  motto: string;
+  /** Written in the contents once every folio is walked. */
+  explicit: { rubric: string; line: string };
+  levels: LevelDef[];
+  /** Folios still being written, shown so the road ahead is visible. */
+  coming: Array<{ numeral: number; title: string }>;
+}
+
+export const BOOKS: BookDef[] = [
+  {
+    id: 'liber-primus', rubric: 'Liber primus', title: 'The Hare’s Road',
+    intro: 'In the margins of an old book a small traveller sets out for the keep beyond the hills. Where the road is broken you shall mend it with pieces from the margin, and walk what you have made.',
+    motto: 'ARS LONGA VITA BREVIS',
+    explicit: { rubric: 'Explicit liber primus', line: 'The first book is ended. Ars longa, vita brevis.' },
+    levels: [folio1, folio2, folio3, folio4, folio5, folio6],
+    coming: [],
+  },
+  {
+    id: 'liber-secundus', rubric: 'Liber secundus', title: 'The Greenwood',
+    intro: 'From the armoury of the keep the traveller takes a short bow and a quiver, and turns toward the greenwood. Where the way climbs past any leap, loose an arrow into timber or earth and stand upon its shaft.',
+    motto: 'FORTES FORTUNA IUVAT',
+    explicit: { rubric: 'Explicit liber secundus', line: 'The second book is ended. Fortes fortuna iuvat.' },
+    levels: [folio7],
+    coming: [
+      { numeral: 8, title: 'The Holloway' },
+      { numeral: 9, title: 'The Watchtower' },
+      { numeral: 10, title: 'The Bell in the Oak' },
+      { numeral: 11, title: 'The Drawbridge' },
+      { numeral: 12, title: 'The Grey Wolf' },
+    ],
+  },
 ];
 
+/** Every folio in reading order, across the books. */
+export const LEVELS: LevelDef[] = BOOKS.flatMap(book => book.levels);
+/** The first book's motto. */
+export const MOTTO = BOOKS[0].motto;
+
 export const levelIndex = (id: string) => LEVELS.findIndex(level => level.id === id);
+/** The book a folio belongs to (by its index in LEVELS), and where it falls in that book. */
+export function bookOf(index: number): { book: BookDef; bookIndex: number; first: number; last: boolean } {
+  let first = 0;
+  for (let b = 0; b < BOOKS.length; b++) {
+    const book = BOOKS[b];
+    if (index < first + book.levels.length) return { book, bookIndex: b, first, last: index === first + book.levels.length - 1 };
+    first += book.levels.length;
+  }
+  return { book: BOOKS[BOOKS.length - 1], bookIndex: BOOKS.length - 1, first: first - BOOKS[BOOKS.length - 1].levels.length, last: true };
+}
 
 /** Default size for a tray piece when it first lands on the page. */
 export const TRAY_WIDTH: Record<string, number> = { 'boulder': 130, 'bridge-wooden': 250, 'plank-walkway': 180, 'crate-wood': 96, 'hay-bale': 128, 'stone-walkway': 170, 'stairs-ladder': 70, 'earth-ledge-short': 150, 'stairs-stone': 170, 'bridge-arch': 230 };

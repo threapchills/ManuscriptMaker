@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ASSETS } from '../src/assets';
-import { LEVELS, MOTTO, SCENE_H, SCENE_W } from '../src/tale/levels';
+import { BOOKS, LEVELS, MOTTO, SCENE_H, SCENE_W, bookOf } from '../src/tale/levels';
 import { readTale, recordFor, sealsOf, TALE_KEY, totalSeals, writeTale } from '../src/tale/save';
 import { CAMPAIGN_PROGRESS_KEY } from '../src/campaign';
 import { ASSET_PHYSICS } from '../src/engine/assetPhysics';
@@ -34,6 +34,18 @@ describe('the tale save', () => {
     expect(totalSeals(back)).toBe(2);
   });
 
+  it('opens the folio after any one walked, even one written later', () => {
+    const tale = readTale();
+    tale.traveller = { name: 'Hob', design: { parts: { Head: 'char-head-hare', Body: 'char-body-blue', Legs: 'char-legs-boots' }, offsets: {} } };
+    // A first book finished before the second was written: it was saved with
+    // the sixth folio as the furthest open.
+    tale.unlocked = 5;
+    for (let n = 1; n <= 6; n++) tale.folios[`folio-${n}`] = { pieces: [], done: true, letters: [true, true, true], frugal: true, plays: 1 };
+    writeTale(tale);
+    expect(readTale().unlocked).toBe(6);
+    expect(LEVELS[6].id).toBe('folio-7');
+  });
+
   it('survives garbage in storage', () => {
     localStorage.setItem(TALE_KEY, '{not json');
     expect(readTale().version).toBe(1);
@@ -47,15 +59,29 @@ describe('chapter one', () => {
       for (const p of [...level.scene, level.goal]) expect(ids.has(p.asset), `${level.id}: ${p.asset}`).toBe(true);
       for (const t of level.tray) { expect(ids.has(t.asset)).toBe(true); expect(t.count).toBeGreaterThan(0); }
       expect(level.letters).toHaveLength(3);
-      expect(level.par).toBeLessThanOrEqual(level.tray.reduce((n, t) => n + t.count, 0));
+      expect(level.par).toBeLessThanOrEqual(level.tray.reduce((n, t) => n + t.count, 0) + (level.quiver ?? 0));
       expect(level.spawn.x).toBeGreaterThan(0); expect(level.spawn.x).toBeLessThan(SCENE_W);
       expect(level.spawn.y).toBeLessThan(level.waterY ?? SCENE_H);
       for (const l of level.letters) { expect(l.x).toBeGreaterThan(0); expect(l.x).toBeLessThan(SCENE_W); expect(l.y).toBeGreaterThan(0); expect(l.y).toBeLessThan(SCENE_H); }
     }
   });
-  it('spells the motto across the chapter as folios are added', () => {
-    const letters = LEVELS.flatMap(l => l.letters.map(x => x.glyph)).join('');
-    expect(MOTTO.replace(/ /g, '').startsWith(letters)).toBe(true);
+  it('spells each book\'s motto across its folios as they are added', () => {
+    expect(MOTTO).toBe(BOOKS[0].motto);
+    for (const book of BOOKS) {
+      const letters = book.levels.flatMap(l => l.letters.map(x => x.glyph)).join('');
+      const motto = book.motto.replace(/ /g, '');
+      expect(motto.startsWith(letters), book.id).toBe(true);
+      // Written and promised folios together hold the whole motto, three letters each.
+      expect((book.levels.length + book.coming.length) * 3, book.id).toBe(motto.length);
+    }
+  });
+  it('numbers the folios on through the books, and knows each one\'s book', () => {
+    const numerals = BOOKS.flatMap(b => [...b.levels.map(l => l.numeral), ...b.coming.map(c => c.numeral)]);
+    expect(numerals).toEqual(numerals.map((_, i) => i + 1));
+    expect(new Set(LEVELS.map(l => l.id)).size).toBe(LEVELS.length);
+    expect(bookOf(0)).toMatchObject({ bookIndex: 0, first: 0, last: false });
+    expect(bookOf(5)).toMatchObject({ bookIndex: 0, last: true });
+    expect(bookOf(6)).toMatchObject({ bookIndex: 1, first: 6 });
   });
   it('gives every walkable tray piece a physical description', () => {
     for (const level of LEVELS) for (const t of level.tray) expect(ASSET_PHYSICS[t.asset]?.material, t.asset).toBeTruthy();

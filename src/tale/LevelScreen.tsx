@@ -20,7 +20,7 @@ const fromScene = (p: ScenePiece): StagePiece => ({
 const toPlaced = (s: StagePiece): PlacedPiece => ({ id: s.id, asset: s.asset ?? '', x: s.x, y: s.y, width: s.width, height: s.height, rotation: s.rotation, flipX: s.flipX, flipY: s.flipY });
 
 /** A folio of the tale: a set miniature, a limited margin, and the Explicit card. */
-export default function LevelScreen({ level, record, traveller, onPieces, onComplete, onContents, onNext, nextTitle }: {
+export default function LevelScreen({ level, record, traveller, onPieces, onComplete, onContents, onNext, nextTitle, endNote }: {
   level: LevelDef;
   record: FolioRecord;
   traveller: Traveller;
@@ -29,6 +29,8 @@ export default function LevelScreen({ level, record, traveller, onPieces, onComp
   onContents: () => void;
   onNext?: () => void;
   nextTitle?: string;
+  /** Said on the Explicit card when this is the last folio of its book so far. */
+  endNote?: string;
   onRetire?: () => void;
 }) {
   const recordRef = useRef(record); recordRef.current = record;
@@ -57,7 +59,7 @@ export default function LevelScreen({ level, record, traveller, onPieces, onComp
     lettersKept={record.letters}
     onWin={onWin}
     card={(result, controls) => <Explicit level={level} result={{ letters: result.letters, pieces: result.pieces, arrows: result.arrows ?? 0, time: result.time, deaths: result.deaths }} record={recordBefore}
-      onNext={onNext} nextTitle={nextTitle} onAgain={controls.again} onBuild={controls.build} onContents={onContents} />}
+      onNext={onNext} nextTitle={nextTitle} endNote={endNote} onAgain={controls.again} onBuild={controls.build} onContents={onContents} />}
     onContents={onContents}
   />;
 }

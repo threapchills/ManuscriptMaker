@@ -31,6 +31,8 @@ export interface Arrow {
   age: number;
   /** Where it struck, and the direction it was flying (unit vector). */
   hit?: { x: number; y: number; dx: number; dy: number; material?: Material; foothold: boolean };
+  /** Flight time not yet stepped. */
+  acc?: number;
 }
 export type ArrowEvent =
   | { type: 'stick'; x: number; y: number; material?: Material; foothold: boolean }
@@ -59,6 +61,11 @@ export function loose(from: { x: number; y: number }, to: { x: number; y: number
   return { x: from.x, y: from.y, ...aim(from, to, unit), state: 'flying', age: 0 };
 }
 
+/** Where arrows leave the bow: chest height, a little ahead of the traveller's feet in the way they face. */
+export function bowPoint(feet: { x: number; y: number }, avatarHeight: number, facing: number, unit = 1): { x: number; y: number } {
+  return { x: feet.x + facing * 16 * unit, y: feet.y - avatarHeight * .58 };
+}
+
 const strikeAt = (f: Field, x: number, y: number) => {
   const cx = Math.floor(x / f.cell), cy = Math.floor(y / f.cell);
   if (cx < 0 || cy < 0 || cx >= f.width || cy >= f.height) return { wall: false } as const;
@@ -68,9 +75,14 @@ const strikeAt = (f: Field, x: number, y: number) => {
 };
 
 /**
- * Fly an arrow for `dt` seconds in short steps, so it can never pass through
- * a thin plank. Returns what happened, if anything did.
+ * Seconds per flight step: well under a cell even when an arrow falls fast, so
+ * it can never pass through a thin plank. Steps are fixed and exact, so a
+ * flight is the same at any frame rate and the aiming line shows exactly
+ * where the arrow will go.
  */
+const flightStep = (f: Field, unit: number) => f.cell / (1920 * unit);
+
+/** Fly an arrow on for `dt` seconds. Returns what happened, if anything did. */
 export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number; height: number; unit: number; waterY?: number }): ArrowEvent | null {
   a.age += dt;
   if (a.state !== 'flying') {
@@ -78,13 +90,11 @@ export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number;
     if (a.state === 'sunk' && a.age > .5) a.state = 'gone';
     return null;
   }
-  const g = ARROW.gravity * page.unit;
-  const speed = Math.hypot(a.vx, a.vy);
-  const steps = Math.max(1, Math.ceil(speed * dt / (2 * f.cell)));
-  const h = dt / steps;
-  for (let i = 0; i < steps; i++) {
-    a.vy += g * h;
-    a.x += a.vx * h; a.y += a.vy * h;
+  const g = ARROW.gravity * page.unit, h = flightStep(f, page.unit);
+  a.acc = (a.acc ?? 0) + dt;
+  while (a.acc >= h) {
+    a.acc -= h;
+    a.x += a.vx * h; a.y += a.vy * h + .5 * g * h * h; a.vy += g * h;
     if (a.x < -60 || a.x > page.width + 60 || a.y > page.height + 60 || a.y < -page.height) { a.state = 'gone'; return { type: 'gone' }; }
     if (page.waterY !== undefined && a.y >= page.waterY + 4) { a.state = 'sunk'; a.age = 0; return { type: 'sink', x: a.x, y: page.waterY }; }
     const at = strikeAt(f, a.x, a.y);
@@ -161,12 +171,14 @@ export function drawArrow(c: CanvasRenderingContext2D, a: Arrow, unit = 1): void
   const alpha = a.state === 'glancing' ? Math.max(0, 1 - a.age / .7) : a.state === 'sunk' ? Math.max(0, 1 - a.age / .5) : 1;
   if (alpha <= 0) return;
   const tailX = headX - dx * visible, tailY = headY - dy * visible;
+  // A shaft that bears weight is drawn a little stouter, so it reads as a step.
+  const stout = a.state === 'stuck' && a.hit?.foothold ? 1.3 : 1;
   c.save();
   c.globalAlpha = alpha;
   c.lineCap = 'round';
-  c.strokeStyle = '#3a2412'; c.lineWidth = 3.4 * unit;
+  c.strokeStyle = '#3a2412'; c.lineWidth = 3.4 * stout * unit;
   c.beginPath(); c.moveTo(tailX, tailY); c.lineTo(headX, headY); c.stroke();
-  c.strokeStyle = '#c99a5b'; c.lineWidth = 1.8 * unit;
+  c.strokeStyle = '#c99a5b'; c.lineWidth = 1.8 * stout * unit;
   c.beginPath(); c.moveTo(tailX, tailY); c.lineTo(headX, headY); c.stroke();
   if (a.state !== 'stuck') {
     // The iron head, pointing the way it flies.
@@ -184,22 +196,45 @@ export function drawArrow(c: CanvasRenderingContext2D, a: Arrow, unit = 1): void
   c.restore();
 }
 
-/** The dotted line of a shot about to be loosed, ending in a mark for what will happen. */
+/**
+ * The dotted line of a shot about to be loosed, ending in a mark for what
+ * will happen: a shining gold ring and the ghost of the step it will make, a
+ * dull ring for an arrow that only sticks, a cross where stone turns it aside,
+ * a ripple where the water takes it.
+ */
 export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof trajectory>, unit = 1, time = 0): void {
   const { points, end } = path;
   if (points.length < 2) return;
   c.save();
-  for (let i = 2; i < points.length - 1; i += 3) {
+  // The dots are spaced along the flight's own length, so a flight steps evenly at any speed.
+  let run = 0;
+  for (let i = 1; i < points.length - 1; i++) {
+    run += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+    if (run < 16 * unit) continue;
+    run = 0;
     const [x, y] = points[i];
-    c.fillStyle = 'rgba(255, 248, 228, .55)'; c.beginPath(); c.arc(x, y, 3.6 * unit, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(43, 29, 20, .7)'; c.beginPath(); c.arc(x, y, 2.3 * unit, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(255, 248, 228, .7)'; c.beginPath(); c.arc(x, y, 4.2 * unit, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(43, 29, 20, .78)'; c.beginPath(); c.arc(x, y, 2.6 * unit, 0, Math.PI * 2); c.fill();
   }
   const [ex, ey] = points[points.length - 1];
-  c.lineWidth = 2 * unit;
-  if (end?.type === 'stick') {
-    const r = (end.foothold ? 9 : 6) * unit * (1 + .12 * Math.sin(time * 6));
-    c.strokeStyle = end.foothold ? 'rgba(200, 150, 40, .95)' : 'rgba(120, 90, 50, .8)';
+  c.lineWidth = 2.4 * unit;
+  if (end?.type === 'stick' && end.foothold) {
+    // The ghost of the step: the shaft standing out of the face, the way it flew.
+    const [px, py] = points[points.length - 2];
+    const len = Math.hypot(ex - px, ey - py) || 1, dx = (ex - px) / len, dy = (ey - py) / len;
+    const out = (ARROW.shaft - ARROW.embed) * unit;
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(255, 226, 140, .55)'; c.lineWidth = 7 * unit;
+    c.beginPath(); c.moveTo(ex, ey); c.lineTo(ex - dx * out, ey - dy * out); c.stroke();
+    c.strokeStyle = 'rgba(160, 110, 20, .85)'; c.lineWidth = 2.4 * unit;
+    c.beginPath(); c.moveTo(ex, ey); c.lineTo(ex - dx * out, ey - dy * out); c.stroke();
+    const r = 13 * unit * (1 + .1 * Math.sin(time * 6));
+    c.fillStyle = 'rgba(255, 214, 110, .22)'; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 2.6 * unit;
     c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
+  } else if (end?.type === 'stick') {
+    c.strokeStyle = 'rgba(110, 82, 48, .8)';
+    c.beginPath(); c.arc(ex, ey, 7 * unit, 0, Math.PI * 2); c.stroke();
   } else if (end?.type === 'glance') {
     c.strokeStyle = 'rgba(90, 90, 100, .8)'; const s = 6 * unit;
     c.beginPath(); c.moveTo(ex - s, ey - s); c.lineTo(ex + s, ey + s); c.moveTo(ex + s, ey - s); c.lineTo(ex - s, ey + s); c.stroke();

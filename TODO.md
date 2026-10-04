@@ -15,7 +15,8 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] Compact phone folio layout: a column on upright phones (picture spans the width, tools docked, touch pad below the picture); sideways phones keep the folio with touch buttons in the gutters and finger-sized handles.
 - [ ] The tale's cover, contents and tailor, and the scriptorium's contents, on an upright phone.
 - [x] Archery, part one (named by the user on 2026-10-04; design confirmed the same day): point to aim with the mouse, arrows from the margin counted by the frugal seal, footholds where a level arrow sticks in wood or earth, stone turns arrows aside, water swallows them; a quiver setting in the Scriptorium.
-- [ ] Archery, Chapter II: folios that teach arrow footholds, proved by the solver once the level harness can simulate shots.
+- [x] Two books in the tale's contents, turned between by a leaf corner; Liber secundus, *The Greenwood*, begun with Folio VII, *The Barred Gate* (the first arrow), proved by the solver with simulated shots.
+- [ ] Liber secundus: Folios VIII–IX teaching footholds further (earth, shots planned from afar, pieces with arrows); X–XI with targets; XII with beasts.
 - [ ] Archery, part two: targets that work things (switches, doors, drawbridges).
 - [ ] Archery, part three: perils and beasts.
 - [ ] Archery on touch: a way to see the shot before loosing it (the user put PC first; mobile is not a priority).

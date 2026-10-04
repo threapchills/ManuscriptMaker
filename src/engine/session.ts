@@ -9,7 +9,7 @@ import type { Collectible, Rect, World, WorldEvent } from './world';
 import { advanceWorld, createWorld, drawnFeet } from './world';
 import { audio } from './audio';
 import type { Arrow } from './archery';
-import { addFoothold, drawAim, drawArrow, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
+import { addFoothold, bowPoint, drawAim, drawArrow, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
 
 export interface SessionSpec {
   field: Field;
@@ -105,7 +105,7 @@ export class PlaySession {
   /** Where arrows leave the bow: chest height, a little ahead of the traveller. */
   private bowPoint(facing: number): { x: number; y: number } {
     const b = this.world.body, c = this.spec.field.cell;
-    return { x: (b.x + b.w / 2) * c + facing * 16 * this.spec.unit, y: (b.y + b.h) * c - this.spec.avatarHeight * .58 };
+    return bowPoint({ x: (b.x + b.w / 2) * c, y: (b.y + b.h) * c }, this.spec.avatarHeight, facing, this.spec.unit);
   }
 
   /** Loose an arrow at a spot in the picture, if there is one to loose. */

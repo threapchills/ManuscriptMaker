@@ -176,6 +176,49 @@ try {
   assert.ok(gilded >= 15, `the motto keeps every letter gathered before the finale (${gilded} gilded)`);
   await page.screenshot({ path: '.local/chapter-ended.png' });
 
+  // ——— The second book: turned to from the first, its first folio climbed by an arrow ———
+  await expect(page.locator('.leaf-corner--next.is-beckoning')).toBeVisible();
+  await page.locator('.leaf-corner--next').click();
+  await expect(page.getByRole('heading', { name: 'The Greenwood' })).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.folio-row').first()).toBeEnabled();
+  await expect(page.locator('.folio-row.is-coming')).toHaveCount(5);
+  await page.locator('.folio-row').first().click();
+  await expect(page.getByRole('heading', { name: 'The Barred Gate' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  await expect(page.locator('.quiver-token')).toContainText('iii');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  const gate = await page.locator('.scene').boundingBox();
+  const onGate = { x: gate.x + 579 * gate.width / 1280, y: gate.y + 480 * gate.height / 720 };
+  await page.mouse.move(onGate.x, onGate.y);
+  await page.waitForTimeout(250);
+  await page.mouse.click(onGate.x, onGate.y);
+  await page.waitForFunction(() => window.__playSession.arrows.some(a => a.state === 'stuck'), null, { timeout: 4000 });
+  const struck = await page.evaluate(() => window.__playSession.arrows[0].hit);
+  assert.ok(struck.foothold && struck.material === 'wood', 'an arrow aimed at the gate sticks in the timber as a foothold');
+  await expect(page.locator('.quiver-left')).toContainText('ii left');
+  await page.mouse.move(gate.x + 20, gate.y + 20);
+  await page.keyboard.down('ArrowRight');
+  const climbed = Date.now();
+  let leapt = 0;
+  while (Date.now() - climbed < 20000) {
+    const p = await page.evaluate(() => window.__playSession.probe(34));
+    if (p.phase === 'won') break;
+    if (p.grounded && (!p.support || p.wall || (p.stuck && Date.now() - climbed > 500)) && Date.now() - leapt > 500) {
+      leapt = Date.now();
+      await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
+    }
+    await page.waitForTimeout(8);
+  }
+  await page.keyboard.up('ArrowRight');
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the seventh folio', { timeout: 5000 });
+  await expect(page.getByRole('dialog')).toContainText('1 arrow used · par 1');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-barred-gate.png' });
+  tale = await saved(page);
+  assert.ok(tale.folios['folio-7'].done && tale.folios['folio-7'].frugal, 'the barred gate is recorded as done, and frugal with one arrow');
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, and Folio VII climbed by an aimed arrow, no runtime errors');
 } finally { await browser.close(); }

@@ -41,7 +41,11 @@ export function readTale(): TaleSave {
           };
         }
         const traveller = v.traveller && typeof v.traveller.name === 'string' && v.traveller.design?.parts ? v.traveller : null;
-        return { version: 1, traveller, unlocked: Math.max(0, Math.min(LEVELS.length - 1, Number(v.unlocked) || 0)), folios, createdAt: v.createdAt || new Date().toISOString() };
+        // A folio walked opens the next, even one written after it was walked
+        // (the end of the first book now opens the second).
+        const walked = LEVELS.reduce((n, level, i) => folios[level.id]?.done ? i + 1 : n, 0);
+        const unlocked = Math.max(0, Math.min(LEVELS.length - 1, Math.max(Number(v.unlocked) || 0, walked)));
+        return { version: 1, traveller, unlocked, folios, createdAt: v.createdAt || new Date().toISOString() };
       }
     }
   } catch { /* Storage can be unavailable; the tale still plays this session. */ }
@@ -62,4 +66,4 @@ export const recordFor = (tale: TaleSave, id: string): FolioRecord => tale.folio
 
 /** Seals earned on a folio: reached, all letters, frugal. */
 export const sealsOf = (r: FolioRecord) => [r.done, r.letters.every(Boolean), r.frugal];
-export const totalSeals = (tale: TaleSave) => LEVELS.reduce((n, l) => n + sealsOf(recordFor(tale, l.id)).filter(Boolean).length, 0);
+export const totalSeals = (tale: TaleSave, levels = LEVELS) => levels.reduce((n, l) => n + sealsOf(recordFor(tale, l.id)).filter(Boolean).length, 0);

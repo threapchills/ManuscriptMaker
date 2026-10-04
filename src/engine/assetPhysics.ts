@@ -45,7 +45,8 @@ export const ASSET_PHYSICS: Record<string, AssetPhysics> = {
   'wall-stone-ruined': { material: 'stone' },
   'wall-crenellation': { material: 'stone' },
   'wall-moss': { material: 'stone' },
-  'wall-timber': { material: 'wood' },
+  // The top beam juts past the posts, which left a toehold at every joint of stacked panels.
+  'wall-timber': { material: 'wood', polygon: [[.06, .05], [.94, .05], [.94, .955], [.06, .955]] },
   'wall-corner': { material: 'stone' },
   'window-sill': { material: 'stone' },
   'window-balcony': { material: 'wood' },

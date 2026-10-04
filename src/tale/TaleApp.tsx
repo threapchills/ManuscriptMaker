@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FolioRecord, PlacedPiece, TaleSave, Traveller } from './save';
 import { emptyRecord, readTale, recordFor, writeTale } from './save';
-import { LEVELS } from './levels';
+import { BOOKS, LEVELS, bookOf } from './levels';
 import Contents from './Contents';
 import Tailor from './Tailor';
 import LevelScreen from './LevelScreen';
@@ -11,7 +11,9 @@ import { audio } from '../engine/audio';
 import { music } from '../engine/music';
 import './tale.css';
 
-type Screen = { kind: 'contents' } | { kind: 'tailor'; first: boolean } | { kind: 'level'; index: number };
+type Screen = { kind: 'contents'; book?: number } | { kind: 'tailor'; first: boolean } | { kind: 'level'; index: number };
+
+const BOOK_ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
 
 export default function TaleApp({ onScriptorium, onClose }: { onScriptorium: () => void; onClose: () => void }) {
   const [tale, setTale] = useState<TaleSave>(readTale);
@@ -48,7 +50,10 @@ export default function TaleApp({ onScriptorium, onClose }: { onScriptorium: () 
   }
   if (screen.kind === 'level' && tale.traveller) {
     const level = LEVELS[screen.index];
-    const next = LEVELS[screen.index + 1];
+    const place = bookOf(screen.index);
+    // The next folio of the same book; a new book begins from its contents.
+    const next = place.last ? undefined : LEVELS[screen.index + 1];
+    const endNote = place.book.coming.length ? 'More folios are being written' : `Here endeth the ${BOOK_ORDINAL[place.bookIndex] ?? ''} book`;
     const record = recordFor(tale, level.id);
     return <>
       <LevelScreen key={level.id} level={level} record={record} traveller={tale.traveller}
@@ -62,16 +67,18 @@ export default function TaleApp({ onScriptorium, onClose }: { onScriptorium: () 
           }));
           setTale(t => ({ ...t, unlocked: Math.max(t.unlocked, Math.min(LEVELS.length - 1, screen.index + 1)) }));
         }}
-        onContents={() => go({ kind: 'contents' }, true)}
+        onContents={() => go({ kind: 'contents', book: place.bookIndex }, true)}
         onNext={next ? () => go({ kind: 'level', index: screen.index + 1 }) : undefined}
         nextTitle={next?.title}
+        endNote={endNote}
       />
       {saveTrouble && <div className="save-warning" role="alert">This browser could not save your progress. Free some storage to keep your pages.</div>}
       {turn && <PageTurn {...turn} />}
     </>;
   }
   return <>
-    <Contents tale={tale}
+    <Contents tale={tale} book={screen.kind === 'contents' ? screen.book : undefined}
+      onBook={book => go({ kind: 'contents', book: Math.max(0, Math.min(BOOKS.length - 1, book)) }, book < (screen.kind === 'contents' && screen.book !== undefined ? screen.book : bookOf(tale.unlocked).bookIndex))}
       onOpen={index => go({ kind: 'level', index })}
       onTailor={() => go({ kind: 'tailor', first: false })}
       onScriptorium={onScriptorium}

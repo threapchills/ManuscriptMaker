@@ -30,6 +30,19 @@ describe('archery', () => {
     }
   });
 
+  it('flies the same at any frame rate, exactly where the aiming line shows', () => {
+    const f = field(g => fillRect(g, 'solid', 700, 200, 120, 400, 'wood'));
+    const from = { x: 380, y: 470 }, to = { x: 760, y: 410 };
+    const shown = trajectory(from, to, f, page).end;
+    expect(shown?.type).toBe('stick');
+    for (const fps of [30, 60, 75, 144]) {
+      const a = loose(from, to);
+      let e = null;
+      for (let i = 0; i < 400 && !e; i++) e = stepArrow(a, f, 1 / fps, page);
+      expect(e, `${fps} frames a second`).toEqual(shown);
+    }
+  });
+
   it('shoots as far as it can at a spot out of reach', () => {
     const v = aim({ x: 0, y: 600 }, { x: 5000, y: 600 });
     expect(Math.abs(v.vx)).toBeCloseTo(Math.abs(v.vy), 0);

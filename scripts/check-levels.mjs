@@ -112,11 +112,29 @@ try {
     const r = await solved(5, specs);
     assert.ok(!r.solved, `${label} is not enough for Folio VI (${note(r)})`);
   }
+  // Folio VII, the first arrow: a timber gate about 222 high. Shots are loosed
+  // as play looses them, from resting places the search really reaches.
+  const shots = (i, specs, list) => page.evaluate(([i, s, l]) => window.solveShots(i, s, l), [i, specs, list]);
+  const bare7 = await solved(6);
+  assert.ok(!bare7.solved, `Folio VII cannot be climbed without an arrow (${note(bare7)}; highest ${bare7.highest})`);
+  for (const [label, list] of [
+    ['one arrow low in the timber, loosed from the road', [{ from: [440, 562], at: [579, 492] }]],
+    ['one arrow halfway up, loosed from far back', [{ from: [200, 562], at: [579, 452] }]],
+    ['one arrow high in the timber', [{ from: [400, 562], at: [579, 410] }]],
+  ]) {
+    const r = await shots(6, [], list);
+    assert.ok(r.solved, `Folio VII climbed with ${label} (${r.failed ?? note(r)})`);
+    console.log(`  folio VII · ${label}: ${note(r)}`);
+  }
+  // The lesson in the brief: loosed steeply from the foot of the gate, an arrow sticks but bears no weight.
+  const steep = await shots(6, [], [{ from: [545, 562], at: [579, 420] }]);
+  assert.ok(!steep.solved && /no foothold \(stick/.test(steep.failed ?? ''), `a steep arrow from the foot of the gate makes no foothold (${steep.failed})`);
+
   // For the record, not a rule: can one crate hung at the very edge of a leap do it?
   for (const top of [412, 404]) {
     const r = await solved(2, [{ top: 'crate-wood', cx: 700, y: top, ...crate }]);
     console.log(`  folio III · one crate floating ${562 - top} up: ${r.solved ? 'reaches the loft' : 'not enough'} (${note(r)})`);
   }
   assert.deepEqual(errors, []);
-  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways');
+  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold');
 } finally { await browser.close(); }

@@ -42,6 +42,8 @@ export interface SolveResult {
   highest: number;
   /** Furthest right any resting place reached (page units). */
   furthest: number;
+  /** Every resting place found (feet, page units), when asked for: where an archer could stand to shoot. */
+  places?: Array<{ x: number; y: number; climbing: boolean }>;
 }
 
 interface Seg { steps: number; x: number; jump?: boolean; up?: boolean; down?: boolean; press?: boolean; untilGround?: boolean }
@@ -49,7 +51,7 @@ interface Node { body: Body; parent: number; how: string }
 
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
-export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: number } = {}): SolveResult {
+export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: number; places?: boolean } = {}): SolveResult {
   const { field } = spec, cell = field.cell, unit = spec.unit ?? 1;
   const tuning = scaleTuning(unit, cell, spec.tuning ?? TUNING);
   const maxNodes = options.maxNodes ?? 5000, grid = options.grid ?? 6;
@@ -105,7 +107,8 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
     return out;
   };
   let lastParent = 0;
-  const done = (path: string[]): SolveResult => ({ solved: true, nodes: nodes.length, steps, path, trail: trailTo(lastParent), highest, furthest });
+  const placesOf = () => options.places ? nodes.map(n => ({ x: Math.round((n.body.x + n.body.w / 2) * cell), y: Math.round((n.body.y + n.body.h) * cell), climbing: n.body.climbing })) : undefined;
+  const done = (path: string[]): SolveResult => ({ solved: true, nodes: nodes.length, steps, path, trail: trailTo(lastParent), highest, furthest, places: placesOf() });
   if (first.won) return done(['start']);
 
   // The repertoire. Distances are physics steps at 120 Hz.
@@ -180,5 +183,5 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
       if (hit) return hit;
     }
   }
-  return { solved: false, nodes: nodes.length, steps, path: [], trail: [], highest, furthest };
+  return { solved: false, nodes: nodes.length, steps, path: [], trail: [], highest, furthest, places: placesOf() };
 }

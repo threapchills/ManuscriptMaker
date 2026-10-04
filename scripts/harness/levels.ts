@@ -14,6 +14,10 @@ import { physicsFor } from '../../src/engine/assetPhysics';
 import { rasterizeField } from '../../src/engine/rasterize';
 import { loadImage } from '../../src/engine/images';
 import type { ControlInput } from '../../src/engine/controller';
+import { addFoothold, ARROW, bowPoint, loose, restorePlatforms, snapshotPlatforms, stepArrow } from '../../src/engine/archery';
+import type { Arrow, ArrowEvent } from '../../src/engine/archery';
+import type { Field } from '../../src/engine/field';
+import { AVATAR_HEIGHT } from '../../src/tale/levelWorld';
 
 const traveller = { name: 'Bot', design: { parts: { Head: 'char-head-hare', Body: 'char-body-blue', Arms: 'char-arms-blue', Legs: 'char-legs-boots' }, offsets: {} } };
 
@@ -159,3 +163,103 @@ export async function traceFrom(index: number, specs: Spec[], feet: { x: number;
   return out;
 }
 (window as unknown as Record<string, unknown>).traceFrom = traceFrom;
+
+// ——— Archery ———
+
+type Shot = { from: [number, number]; at: [number, number] };
+const PAGE = (waterY?: number) => ({ width: 1280, height: 720, unit: 1, waterY });
+
+/** Loose an arrow from where the traveller stands, exactly as play does; any foothold is laid into the field. */
+function shootFrom(field: Field, feet: { x: number; y: number }, at: { x: number; y: number }, waterY?: number): { event: ArrowEvent | null; arrow: Arrow } {
+  const facing = at.x < feet.x ? -1 : 1;
+  const arrow = loose(bowPoint(feet, AVATAR_HEIGHT, facing), at);
+  for (let t = 0; t < 5; t += STEP) {
+    const event = stepArrow(arrow, field, STEP, PAGE(waterY));
+    if (!event) continue;
+    if (event.type === 'stick' && event.foothold) addFoothold(field, arrow);
+    return { event, arrow };
+  }
+  return { event: null, arrow };
+}
+
+/** Every place the traveller can come to rest on the field as it now stands. */
+function placesOn(level: LevelDef, field: Field) {
+  return solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals: [] }, { places: true, maxNodes: 8000 }).places ?? [];
+}
+
+/**
+ * A solution with arrows, written the way a player plays it: pieces placed,
+ * then each shot loosed in turn from a place the traveller can really reach
+ * on the field as it is at that moment (the resting place found by search
+ * nearest `from`, which is feet, and within 14 across and 10 up or down),
+ * and finally a search for the goal.
+ */
+export async function solveShots(index: number, specs: Spec[], shots: Shot[]) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, buildPieces(specs), images);
+  const loosed: Array<{ from: { x: number; y: number }; event: ArrowEvent | null }> = [];
+  for (const shot of shots) {
+    const [fx, fy] = shot.from;
+    const spot = placesOn(level, field).filter(p => Math.abs(p.y - fy) <= 10).sort((a, b) => Math.hypot(a.x - fx, a.y - fy) - Math.hypot(b.x - fx, b.y - fy))[0];
+    if (!spot || Math.abs(spot.x - fx) > 14) return { id: level.id, solved: false, failed: `nowhere to stand near ${fx},${fy}`, loosed };
+    const { event } = shootFrom(field, spot, { x: shot.at[0], y: shot.at[1] }, level.waterY);
+    loosed.push({ from: { x: spot.x, y: spot.y }, event });
+    if (!(event?.type === 'stick' && event.foothold)) return { id: level.id, solved: false, failed: `the arrow from ${spot.x},${spot.y} made no foothold (${event ? `${event.type}${'x' in event ? ` at ${Math.round(event.x)},${Math.round(event.y)}` : ''}` : 'nothing'})`, loosed };
+  }
+  const began = performance.now();
+  const r = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals: [goalRect(level, images)] });
+  return { id: level.id, solved: r.solved, nodes: r.nodes, ms: Math.round(performance.now() - began), highest: Math.round(r.highest), furthest: Math.round(r.furthest), path: r.path, trail: r.trail, loosed };
+}
+(window as unknown as Record<string, unknown>).solveShots = solveShots;
+
+/** Where a shot from a standing place would strike, without changing anything: for designing shots. */
+export async function previewShot(index: number, specs: Spec[], from: [number, number], at: [number, number]) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, buildPieces(specs), images);
+  const { event, arrow } = shootFrom(field, { x: from[0], y: from[1] }, { x: at[0], y: at[1] }, level.waterY);
+  return { event, tilt: arrow.hit ? Math.round(Math.atan2(arrow.hit.dy, Math.abs(arrow.hit.dx)) * 180 / Math.PI) : null };
+}
+(window as unknown as Record<string, unknown>).previewShot = previewShot;
+
+/**
+ * Whether any single arrow could open the folio. Lays a foothold at every
+ * sampled height of every face that takes arrows inside `region`, at several
+ * tilts, whether or not a real shot could put it there, and searches each.
+ * That over-approximates what one arrow can do, so finding nothing is strong
+ * evidence that one arrow is not enough (sampled every `step` units).
+ */
+export async function oneArrowOpens(index: number, specs: Spec[] = [], opts: { region?: { x0: number; x1: number; y0: number; y1: number }; step?: number; tilts?: number[]; arrows?: number } = {}) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, buildPieces(specs), images);
+  const region = opts.region ?? { x0: 0, x1: 1280, y0: 0, y1: level.waterY ?? 720 };
+  const step = opts.step ?? 6, tilts = opts.tilts ?? [-36, -18, 0, 18, 36];
+  const wall = (x: number, y: number) => x >= 0 && y >= 0 && x < field.width && y < field.height && !!(field.solid[y * field.width + x] || field.platform[y * field.width + x]);
+  const faces: Array<{ x: number; y: number; dir: number }> = [];
+  for (let y = Math.max(1, region.y0); y < Math.min(field.height, region.y1); y += step)
+    for (let x = Math.max(1, region.x0); x < Math.min(field.width, region.x1); x++) {
+      if (wall(x, y) && !wall(x - 1, y)) faces.push({ x, y, dir: 1 });
+      if (wall(x - 1, y) && !wall(x, y)) faces.push({ x: x - 1, y, dir: -1 });
+    }
+  const snap = snapshotPlatforms(field);
+  const goals = [goalRect(level, images)];
+  let tried = 0;
+  const began = performance.now();
+  for (const face of faces) for (const tilt of tilts) {
+    const r = tilt * Math.PI / 180, dx = face.dir * Math.cos(r), dy = Math.sin(r);
+    // Fly the arrow in from a short way off, so the real rules decide whether it holds.
+    const arrow: Arrow = { x: face.x + .5 - dx * 30, y: face.y + .5 - dy * 30, vx: dx * ARROW.speed, vy: dy * ARROW.speed, state: 'flying', age: 0 };
+    let event: ArrowEvent | null = null;
+    for (let i = 0; i < 20 && !event; i++) event = stepArrow(arrow, field, 1 / 240, PAGE(level.waterY));
+    if (!(event?.type === 'stick' && event.foothold)) continue;
+    addFoothold(field, arrow);
+    tried++;
+    const s = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals });
+    restorePlatforms(field, snap);
+    if (s.solved) return { id: level.id, opens: true, at: { x: Math.round(arrow.hit!.x), y: Math.round(arrow.hit!.y), tilt }, path: s.path, trail: s.trail, tried, faces: faces.length, ms: Math.round(performance.now() - began) };
+  }
+  return { id: level.id, opens: false, tried, faces: faces.length, ms: Math.round(performance.now() - began) };
+}
+(window as unknown as Record<string, unknown>).oneArrowOpens = oneArrowOpens;
