@@ -163,6 +163,8 @@
 .quiver-left { display: inline-flex; align-items: center; gap: 6px; font: italic 19px var(--book); color: var(--vermilion-deep); }
 .quiver-left .sheaf { width: 30px; height: 30px; }
 .quiver-left.is-empty { color: var(--ink-faint); }
+.quiver-left { flex-wrap: wrap; white-space: nowrap; }
+.quiver-left small { flex: 1 1 100%; font-size: 15px; color: var(--ink-soft); white-space: normal; }
 .scene.can-shoot { cursor: crosshair; }
 /* A piece a target works glides to rest (FolioStage WORKS_MS). */
 .scene-layer.has-works { transition: left .9s cubic-bezier(.45, 0, .3, 1), top .9s cubic-bezier(.45, 0, .3, 1), transform .9s cubic-bezier(.45, 0, .3, 1); }

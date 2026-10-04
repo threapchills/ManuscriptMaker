@@ -30,9 +30,16 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
   - `validateProject` passes unknown fields through and the old desk spreads projects when it edits them, so a book opened at the old desk keeps its kept pictures.
   - Checked: a unit test (keeping, showing again, a torn-out folio, putting away, validation), and `test:scriptorium`, where the picture taken off the first folio stays in the cabinet, is offered on the second, and is put away.
 - **Checks run before pushing the pictures**: `npm test` (195), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **Archery on touch** (pushed after the pictures). A finger has no hover, so a tap used to loose an arrow at once, unseen.
+  - Now, on touch or pen, pressing the picture shows the dotted line of the shot, dragging moves it, and lifting looses it. Drawn off the picture, the line is hidden, and lifting there lets the shot go. This is the `aim` gesture in `FolioStage`; the mouse is unchanged.
+  - The aim's dots and rings are drawn larger when the picture is shown small (`PlaySession.markScale`, from the stage's on-screen scale; the `mark` argument of `drawAim`), so they can be seen on a phone. The ghost of a step keeps its true length.
+  - Touch players read "press the picture to aim, lift to loose" beneath the arrows left.
+  - Folio VII's brief no longer speaks of the pointer and clicking, and the scriptorium's quiver note names both ways of shooting.
+  - Checked: `test:chapter` aims at Folio VII's gate with real touches on an upright phone. Pressed, the shot shows and nothing flies; lifted, an arrow flies; drawn off the picture, the shot is hidden, and lifted there nothing flies.
+- **Checks run before pushing archery on touch**: `npm test` (195), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass. The last small change (hiding the shot off the picture) was followed by `npm run build`, `test:chapter`, `test:scriptorium` and `npm test` again.
 - **Next**:
   - Possibly a third book, once the user has chosen what it should teach (flying was the other mechanic named).
-  - On touch, a way to see an arrow's flight before loosing it (the user put PC first).
+  - The old desk could be loaded only when opened: the main script is about 600 KB (186 KB gzipped), and the tale does not need the desk's editor, exports or icons. Check that `app.css` holds nothing the tale relies on before splitting it.
 
 ## 2026-10-04 (later) Claude session: archery, part one — arrows as footholds
 

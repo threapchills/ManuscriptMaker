@@ -70,6 +70,8 @@ export class PlaySession {
   loosed = 0;
   /** Where the pointer rests over the picture, for the dotted line of a shot. */
   aimAt: { x: number; y: number } | null = null;
+  /** How much larger than the page's own the aiming marks are drawn, to stay visible on a small screen. */
+  markScale = 1;
   private bowAt = -10;
   /** The walkable masks before any arrow, to wipe footholds away when a run begins again. */
   private platforms: ReturnType<typeof snapshotPlatforms>;
@@ -447,7 +449,7 @@ export class PlaySession {
     // The dotted line of the next shot, and the bow as it is drawn and loosed.
     if (this.aimAt && !this.frozen && this.quiver > 0 && world.phase === 'playing') {
       const facing = this.aimAt.x < feet.x ? -1 : 1;
-      drawAim(context, trajectory(this.bowPoint(facing), this.aimAt, spec.field, this.arrowPage()), unit, this.time);
+      drawAim(context, trajectory(this.bowPoint(facing), this.aimAt, spec.field, this.arrowPage()), unit, this.time, unit * this.markScale);
     }
     const sinceBow = this.time - this.bowAt;
     if (sinceBow < .45 && alpha > 0) drawBow(context, this.bowPoint(b.facing), b.facing, unit, Math.max(0, 1 - sinceBow / .45));

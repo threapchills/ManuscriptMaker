@@ -33,7 +33,7 @@ export default function FolioSettings({ sky, waterY, height, brief, arrows, onSk
         <button type="button" className="passage-toggle" onClick={() => { onArrows(Math.max(0, arrows - 1)); audio.play('tick'); }} disabled={arrows <= 0} aria-label="One arrow fewer">−</button>
         <span className="quiver-count" aria-live="polite">{arrows ? `${arrows} ${arrows === 1 ? 'arrow' : 'arrows'}` : 'No arrows'}</span>
         <button type="button" className="passage-toggle" onClick={() => { onArrows(Math.min(MAX_ARROWS, arrows + 1)); audio.play('tick'); }} disabled={arrows >= MAX_ARROWS} aria-label="One arrow more">+</button>
-        <small>Loosed in play: click where to shoot. Arrows stick in wood and earth; level ones are footholds.</small>
+        <small>Loosed in play where you click, or where a finger pressed on the picture is lifted. Arrows stick in wood and earth; level ones are footholds.</small>
       </div>
       <span className="rubric small">The words in the margin</span>
       <textarea className="weather-brief" value={brief} rows={3} maxLength={600} onChange={e => onBrief(e.target.value)} aria-label="The brief" />

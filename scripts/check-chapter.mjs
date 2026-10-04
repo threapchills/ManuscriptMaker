@@ -156,6 +156,37 @@ try {
   await page.screenshot({ path: '.local/chapter-phone-upright.png' });
   await page.close();
 
+  // On a phone an arrow is aimed with a finger: pressed, the shot shows and nothing flies; lifted, it
+  // flies; lifted off the picture, the shot is let go. Real touches, through the browser's own input.
+  page = await open(upright, seed({}, 6));
+  await page.locator('.folio-row').first().click();
+  await expect(page.getByRole('heading', { name: 'The Barred Gate' })).toBeVisible({ timeout: 8000 });
+  await page.getByRole('button', { name: /^Play/ }).first().click();
+  await expect(page.getByRole('button', { name: 'Walk right' })).toBeVisible();
+  await expect(page.locator('.quiver-left small')).toContainText('press the picture to aim');
+  const s7 = await page.locator('.scene').boundingBox();
+  const onPicture = (x, y) => ({ x: s7.x + x * s7.width / 1280, y: s7.y + y * s7.height / 720 });
+  const cdp = await upright.newCDPSession(page);
+  const finger = (type, point) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: point ? [point] : [] });
+  const quiverLeft = () => page.evaluate(() => window.__playSession.quiver);
+  await finger('touchStart', onPicture(640, 420));
+  await page.waitForTimeout(120);
+  assert.ok(await page.evaluate(() => !!window.__playSession.aimAt), 'a finger pressed on the picture shows the shot');
+  assert.equal(await quiverLeft(), 3, 'and looses nothing yet');
+  await finger('touchMove', onPicture(650, 400));
+  await finger('touchEnd');
+  await page.waitForTimeout(120);
+  assert.equal(await quiverLeft(), 2, 'lifted, the arrow flies');
+  assert.equal(await page.evaluate(() => window.__playSession.aimAt), null, 'and the shot is no longer shown');
+  await finger('touchStart', onPicture(640, 420));
+  await finger('touchMove', { x: s7.x + s7.width / 2, y: s7.y + s7.height + 50 });
+  assert.equal(await page.evaluate(() => window.__playSession.aimAt), null, 'drawn off the picture, the shot is hidden');
+  await finger('touchEnd');
+  await page.waitForTimeout(120);
+  assert.equal(await quiverLeft(), 2, 'lifted off the picture, the shot is let go');
+  await page.screenshot({ path: '.local/chapter-phone-arrow.png' });
+  await page.close();
+
   // ——— A phone held sideways keeps the whole folio, with its buttons in the gutters ———
   page = await open(phone, seed({ 'folio-4': record({ pieces: ladder }) }), 3);
   await page.getByRole('button', { name: /^Play/ }).first().click();
@@ -362,5 +393,5 @@ try {
   await page.screenshot({ path: '.local/chapter-book-two-ended.png' });
 
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf sent running from the palisade to end the second book, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf sent running from the palisade to end the second book, no runtime errors');
 } finally { await browser.close(); }

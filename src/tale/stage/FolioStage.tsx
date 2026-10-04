@@ -42,7 +42,8 @@ type Gesture =
   | { kind: 'spawn'; dx: number; dy: number; pointer: number; before: StageState }
   | { kind: 'target'; id: string; dx: number; dy: number; pointer: number; before: StageState }
   | { kind: 'beast'; id: string; dx: number; dy: number; base: StageBeast; pointer: number; before: StageState }
-  | { kind: 'beast-end'; id: string; end: 'x0' | 'x1'; pointer: number; before: StageState };
+  | { kind: 'beast-end'; id: string; end: 'x0' | 'x1'; pointer: number; before: StageState }
+  | { kind: 'aim'; pointer: number };
 
 const MOTIONS: Array<{ id: StagePiece['anim'] | null; label: string; note: string }> = [
   { id: null, label: 'Still', note: 'Keeps perfectly still' },
@@ -75,7 +76,7 @@ export interface FolioStageProps {
   onChange: (state: StageState) => void;
   /** Scriptorium powers: every piece editable, roles, letters and the start. */
   free?: boolean;
-  /** Arrows in the quiver for each run: loosed in play by clicking where to shoot. */
+  /** Arrows in the quiver for each run: loosed in play by a click, or a finger lifted, where they should fly. */
   quiver?: number;
   traveller: Traveller | null;
   tray?: TrayItem[];
@@ -413,6 +414,17 @@ export default function FolioStage(props: FolioStageProps) {
   const onScenePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (mode === 'play' && event.button === 0) {
       const { x, y } = toScene(event.clientX, event.clientY);
+      // A finger has no hover to show the shot before it is loosed, so it aims while pressed and the
+      // arrow flies when it is lifted. Off the picture the shot is hidden, and lifted there it is let go.
+      // A mouse looses at once.
+      if (event.pointerType !== 'mouse' && quiver > 0 && sessionRef.current) {
+        event.preventDefault();
+        sceneRef.current?.setPointerCapture(event.pointerId);
+        setTouch(true);
+        sessionRef.current.aimAt = { x, y };
+        gesture.current = { kind: 'aim', pointer: event.pointerId };
+        return;
+      }
       if (sessionRef.current?.loose(x, y)) event.preventDefault();
       return;
     }
@@ -451,9 +463,9 @@ export default function FolioStage(props: FolioStageProps) {
     audio.play('lift');
   };
   const onScenePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (modeRef.current === 'play' && sessionRef.current) { const { x, y } = toScene(event.clientX, event.clientY); sessionRef.current.aimAt = { x, y }; }
+    if (modeRef.current === 'play' && sessionRef.current) { const { x, y, inside } = toScene(event.clientX, event.clientY); sessionRef.current.aimAt = inside ? { x, y } : null; }
     const g = gesture.current;
-    if (!g || g.pointer !== event.pointerId) return;
+    if (!g || g.pointer !== event.pointerId || g.kind === 'aim') return;
     const { x, y } = toScene(event.clientX, event.clientY);
     if (g.kind === 'letter') { live(s => ({ ...s, letters: s.letters.map(l => l.id === g.id ? { ...l, x: clamp(x - g.dx, 10, W - 10), y: clamp(y - g.dy, 10, H - 10) } : l) })); return; }
     if (g.kind === 'spawn') { live(s => ({ ...s, spawn: { x: clamp(x - g.dx, 20, W - 20), y: clamp(y - g.dy, AVATAR_HEIGHT * unit, H) } })); return; }
@@ -493,6 +505,11 @@ export default function FolioStage(props: FolioStageProps) {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId) return;
     gesture.current = null; setLifted(null);
+    if (g.kind === 'aim') {
+      const { x, y, inside } = toScene(event.clientX, event.clientY), session = sessionRef.current;
+      if (session) { session.aimAt = null; if (inside && event.type === 'pointerup') session.loose(x, y); }
+      return;
+    }
     const { y, inside } = toScene(event.clientX, event.clientY);
     if (g.kind === 'spawn') { const s = stateRef.current; commit({ ...s, spawn: snapToGround(s.spawn) }, g.before); audio.play('place'); return; }
     // Dragged down into the margin: back where it came from.
@@ -700,6 +717,9 @@ export default function FolioStage(props: FolioStageProps) {
   // piece tools at a finger's size, like the compact column does.
   const small = !compact && onScreen < .55;
   const grow = small ? Math.max(1, .9 / onScreen) : 1;
+  // The dotted line of a shot keeps a visible size however small the picture is shown.
+  const markScale = Math.max(1, Math.min(3, .9 / onScreen));
+  useEffect(() => { if (sessionRef.current) sessionRef.current.markScale = markScale; }, [markScale, images]);
   const contents = () => { audio.play('page'); props.onContents(); };
 
   const titleBlock = <div className="folio-title">
@@ -807,7 +827,7 @@ export default function FolioStage(props: FolioStageProps) {
           </button>;
         })}
       </div> : quiver ? null : props.emptyMargin ?? <p className="margin-note">No pieces are needed here. Press <b>Play</b> and walk the road.</p>}
-      {quiver > 0 && <div className="tray-piece quiver-token" title="Arrows in the quiver: in play, click where to loose one" aria-label={`${quiver} ${quiver === 1 ? 'arrow' : 'arrows'} in the quiver, loosed in play by clicking where to shoot`}>
+      {quiver > 0 && <div className="tray-piece quiver-token" title="Arrows in the quiver: in play, click where to loose one" aria-label={`${quiver} ${quiver === 1 ? 'arrow' : 'arrows'} in the quiver, loosed in play where you aim`}>
         <Sheaf />
         <span className="tray-count">{toRoman(quiver).toLowerCase()}</span>
       </div>}
@@ -818,8 +838,8 @@ export default function FolioStage(props: FolioStageProps) {
         {!free && tool('sweep', 'Clear your pieces', () => { if (placedCount) { commit(withPieces(stateRef.current, stateRef.current.pieces.filter(p => p.fixed))); setSelection(null); audio.play('drop'); } }, !placedCount)}
       </div>
     </> : <div className="play-notes">
-      {!(compact && touch) && <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>}{quiver > 0 && <> · <b>click</b> to loose an arrow</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>}
-      {quiver > 0 && <span className={`quiver-left${arrows.left ? '' : ' is-empty'}`} aria-live="polite"><Sheaf />{arrows.left ? `${toRoman(arrows.left).toLowerCase()} left` : 'the quiver is empty'}</span>}
+      {!(compact && touch) && <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>}{quiver > 0 && !touch && <> · <b>click</b> to loose an arrow</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>}
+      {quiver > 0 && <span className={`quiver-left${arrows.left ? '' : ' is-empty'}`} aria-live="polite"><Sheaf />{arrows.left ? `${toRoman(arrows.left).toLowerCase()} left` : 'the quiver is empty'}{touch && arrows.left > 0 && <small>press the picture to aim, lift to loose</small>}</span>}
       <div className="ink-tools">
         {tool('restart', 'Begin again (R)', restart)}
         {tool('lens', 'Scribe’s lens (L)', () => setLens(v => !v), false, lens)}

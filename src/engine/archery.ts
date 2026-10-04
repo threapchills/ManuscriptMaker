@@ -235,7 +235,11 @@ export function drawArrow(c: CanvasRenderingContext2D, a: Arrow, unit = 1): void
  * dull ring for an arrow that only sticks, a cross where stone turns it aside,
  * a ripple where the water takes it.
  */
-export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof trajectory>, unit = 1, time = 0): void {
+/**
+ * `mark` sizes the dots and rings, which may be drawn larger than the page's own `unit` so they
+ * stay visible on a small screen; the ghost of a step keeps its true length.
+ */
+export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof trajectory>, unit = 1, time = 0, mark = unit): void {
   const { points, end } = path;
   if (points.length < 2) return;
   c.save();
@@ -243,50 +247,50 @@ export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof tra
   let run = 0;
   for (let i = 1; i < points.length - 1; i++) {
     run += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
-    if (run < 16 * unit) continue;
+    if (run < 16 * mark) continue;
     run = 0;
     const [x, y] = points[i];
-    c.fillStyle = 'rgba(255, 248, 228, .7)'; c.beginPath(); c.arc(x, y, 4.2 * unit, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(43, 29, 20, .78)'; c.beginPath(); c.arc(x, y, 2.6 * unit, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(255, 248, 228, .7)'; c.beginPath(); c.arc(x, y, 4.2 * mark, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(43, 29, 20, .78)'; c.beginPath(); c.arc(x, y, 2.6 * mark, 0, Math.PI * 2); c.fill();
   }
   const [ex, ey] = points[points.length - 1];
-  c.lineWidth = 2.4 * unit;
+  c.lineWidth = 2.4 * mark;
   if (end?.type === 'stick' && end.foothold) {
     // The ghost of the step: the shaft standing out of the face, the way it flew.
     const [px, py] = points[points.length - 2];
     const len = Math.hypot(ex - px, ey - py) || 1, dx = (ex - px) / len, dy = (ey - py) / len;
     const out = (ARROW.shaft - ARROW.embed) * unit;
     c.lineCap = 'round';
-    c.strokeStyle = 'rgba(255, 226, 140, .55)'; c.lineWidth = 7 * unit;
+    c.strokeStyle = 'rgba(255, 226, 140, .55)'; c.lineWidth = 7 * mark;
     c.beginPath(); c.moveTo(ex, ey); c.lineTo(ex - dx * out, ey - dy * out); c.stroke();
-    c.strokeStyle = 'rgba(160, 110, 20, .85)'; c.lineWidth = 2.4 * unit;
+    c.strokeStyle = 'rgba(160, 110, 20, .85)'; c.lineWidth = 2.4 * mark;
     c.beginPath(); c.moveTo(ex, ey); c.lineTo(ex - dx * out, ey - dy * out); c.stroke();
-    const r = 13 * unit * (1 + .1 * Math.sin(time * 6));
+    const r = 13 * mark * (1 + .1 * Math.sin(time * 6));
     c.fillStyle = 'rgba(255, 214, 110, .22)'; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.fill();
-    c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 2.6 * unit;
+    c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 2.6 * mark;
     c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
   } else if (end?.type === 'target') {
-    const r = 16 * unit * (1 + .12 * Math.sin(time * 7));
-    c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 3 * unit;
+    const r = 16 * mark * (1 + .12 * Math.sin(time * 7));
+    c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 3 * mark;
     c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
     for (let i = 0; i < 8; i++) {
       const t = i * Math.PI / 4 + time * .8;
       c.beginPath(); c.moveTo(ex + Math.cos(t) * r * 1.2, ey + Math.sin(t) * r * 1.2); c.lineTo(ex + Math.cos(t) * r * 1.55, ey + Math.sin(t) * r * 1.55); c.stroke();
     }
   } else if (end?.type === 'beast') {
-    const r = 15 * unit * (1 + .12 * Math.sin(time * 8));
-    c.strokeStyle = 'rgba(179, 38, 30, .9)'; c.lineWidth = 3 * unit;
+    const r = 15 * mark * (1 + .12 * Math.sin(time * 8));
+    c.strokeStyle = 'rgba(179, 38, 30, .9)'; c.lineWidth = 3 * mark;
     c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
     c.beginPath(); c.arc(ex, ey, r * .45, 0, Math.PI * 2); c.stroke();
   } else if (end?.type === 'stick') {
     c.strokeStyle = 'rgba(110, 82, 48, .8)';
-    c.beginPath(); c.arc(ex, ey, 7 * unit, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(ex, ey, 7 * mark, 0, Math.PI * 2); c.stroke();
   } else if (end?.type === 'glance') {
-    c.strokeStyle = 'rgba(90, 90, 100, .8)'; const s = 6 * unit;
+    c.strokeStyle = 'rgba(90, 90, 100, .8)'; const s = 6 * mark;
     c.beginPath(); c.moveTo(ex - s, ey - s); c.lineTo(ex + s, ey + s); c.moveTo(ex + s, ey - s); c.lineTo(ex - s, ey + s); c.stroke();
   } else if (end?.type === 'sink') {
     c.strokeStyle = 'rgba(40, 80, 160, .7)';
-    c.beginPath(); c.ellipse(ex, ey, 10 * unit, 3 * unit, 0, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.ellipse(ex, ey, 10 * mark, 3 * mark, 0, 0, Math.PI * 2); c.stroke();
   }
   c.restore();
 }

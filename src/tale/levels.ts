@@ -381,7 +381,7 @@ const f7Gate = [...f7Rows(640), ...f7Rows(760)];
 const f7Top = topOf(f7Gate[1]);
 const folio7: LevelDef = {
   id: 'folio-7', numeral: 7, title: 'The Barred Gate',
-  brief: 'The forest gate is barred from within, and its timbers stand too high to leap. Rest the pointer on the wood: where the ring shines gold, an arrow will bear your weight. Click to loose it, leap onto the shaft, and climb over.',
+  brief: 'The forest gate is barred from within, and its timbers stand too high to leap. Aim at the wood, and where the ring shines gold, an arrow will bear your weight. Loose it there, leap onto the shaft, and climb over.',
   sky: 'dawn',
   scene: [
     piece('cloud-bank', 200, 70, 300, { layer: 'far', anim: 'drift', opacity: .85 }),
