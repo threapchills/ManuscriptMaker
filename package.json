@@ -14,7 +14,8 @@
     "test:solidity": "node scripts/check-solidity.mjs",
     "test:tale": "node scripts/check-tale.mjs",
     "test:levels": "node scripts/check-levels.mjs",
-    "test:scriptorium": "node scripts/check-scriptorium.mjs"
+    "test:scriptorium": "node scripts/check-scriptorium.mjs",
+    "test:chapter": "node scripts/check-chapter.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

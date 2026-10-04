@@ -66,7 +66,24 @@ describe('the reachability solver', () => {
     const ladder = terrain(f => { wall(f); fillRect(f, 'ladder', 660, GROUND - 200, 36, 200); });
     const r = attempt(ladder);
     expect(r.solved).toBe(true);
-    expect(r.path.some(step => step.startsWith('climb'))).toBe(true);
+    expect(r.path.some(step => step.includes('climb'))).toBe(true);
+  }, SEARCH);
+
+  it('leaps to catch a ladder hung over water, the only way up', () => {
+    // Water between the bank and a sheer wall 260 high; a ladder hangs against
+    // the wall with its foot above the water, out of reach of anyone standing.
+    const build = (withLadder: boolean) => terrain(f => {
+      f.solid.fill(0);
+      fillRect(f, 'solid', 0, GROUND, 560, H - GROUND, 'grass');
+      fillRect(f, 'hazard', 560, GROUND + 20, 160, H - GROUND);
+      fillRect(f, 'solid', 720, GROUND - 260, W - 720, H - GROUND + 260, 'stone');
+      if (withLadder) fillRect(f, 'ladder', 672, GROUND - 270, 40, 230);
+    });
+    const onTheWall = (field: Field) => solve({ field, pageHeight: H, spawn: { x: 100, y: GROUND }, hitbox: { width: 40, height: 101 }, goals: [{ x: 1150, y: GROUND - 390, width: 60, height: 130 }] });
+    expect(onTheWall(build(false)).solved).toBe(false);
+    const r = onTheWall(build(true));
+    expect(r.solved).toBe(true);
+    expect(r.path.some(step => step.includes('catch the ladder'))).toBe(true);
   }, SEARCH);
 
   it('is not fooled by a pit of water', () => {

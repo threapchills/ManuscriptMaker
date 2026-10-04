@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { LevelDef } from './levels';
+import { COMING } from './levels';
 import type { FolioRecord } from './save';
 import type { LevelResult } from './LevelScreen';
 import { Flourish, WaxSeal, toRoman } from './ornaments';
@@ -16,7 +17,7 @@ export default function Explicit({ level, result, record, onNext, nextTitle, onA
   const allLetters = letters === 3 || record.letters.every(Boolean);
   const frugal = result.pieces <= level.par || record.frugal;
   const seals = [
-    { earned: true, fresh: !record.done, title: 'The road is walked', note: 'You reached the signpost.' },
+    { earned: true, fresh: !record.done, title: 'The road is walked', note: level.reached ?? 'You reached the signpost.' },
     { earned: allLetters, fresh: letters === 3 && !record.letters.every(Boolean), title: 'Every gilded letter', note: letters === 3 ? 'All three gathered.' : allLetters ? 'Gathered on an earlier walk.' : `${letters} of 3 this time.` },
     { earned: frugal, fresh: result.pieces <= level.par && !record.frugal, title: 'A frugal scribe', note: level.par === 0 ? 'No pieces needed.' : `${result.pieces} ${result.pieces === 1 ? 'piece' : 'pieces'} used · par ${level.par}.` },
   ];
@@ -43,7 +44,7 @@ export default function Explicit({ level, result, record, onNext, nextTitle, onA
       <div className="explicit-actions">
         {onNext
           ? <button type="button" className="seal-button seal-button--inline" onClick={() => { audio.play('page'); onNext(); }}><WaxSeal glyph="turn" size={78} seed={3} /><span>Turn the page{nextTitle ? <small>{nextTitle}</small> : null}</span></button>
-          : <button type="button" className="seal-button seal-button--inline" onClick={() => { audio.play('page'); onContents(); }}><WaxSeal glyph="book" size={78} seed={3} /><span>To the contents<small>More folios are being written</small></span></button>}
+          : <button type="button" className="seal-button seal-button--inline" onClick={() => { audio.play('page'); onContents(); }}><WaxSeal glyph="book" size={78} seed={3} /><span>To the contents<small>{COMING.length ? 'More folios are being written' : 'Here endeth the first book'}</small></span></button>}
         <div className="explicit-secondary">
           <button type="button" className="text-link" onClick={onAgain}>Walk it again</button>
           <button type="button" className="text-link" onClick={onBuild}>Keep building</button>

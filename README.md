@@ -1,64 +1,76 @@
 # Manuscript
 
-Manuscript Maker has two connected experiences: a free-form manuscript sandbox and a curated create-and-play game campaign.
+Manuscript Maker is an illuminated manuscript you build and then walk. It has three rooms: **the tale**, a short campaign of playable folios; **the scriptorium**, where you make and play folios of your own; and **the old illuminator's desk**, the original free-form book and map editor.
 
-**[Open the workshop](https://threapchills.github.io/ManuscriptMaker/)**
+**[Open the book](https://threapchills.github.io/ManuscriptMaker/)**
 
-## Make a manuscript
+## Walk the tale
+
+Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or take a ready-made one), then open the contents of *Liber primus: The Hare's Road*. Each folio is a level: a fixed miniature, a few pieces in the margin, three gilded letters and a goal. Drag pieces into the picture, stretch and turn them, press **Play**, and walk what you have made. Reaching the goal unlocks the next folio, and most folios can be solved more than one way.
+
+| Folio | What it asks of you |
+| --- | --- |
+| I · Here Beginneth the Road | walking and leaping |
+| II · The Broken Bridge | mending a broken bridge over a stream |
+| III · The Hayloft | heaping crates and bales into steps up to a hay door |
+| IV · Over the Rooftops | climbing a town wall by ladder, crossing the roofs, bridging a canal |
+| V · The Mill Stream | sharing one plank and two stepping stones between two channels |
+| VI · The Moat and the Keep | finding your own way over the moat and into the keep |
+
+Each folio presses up to three seals: the road walked, every gilded letter gathered, and a frugal scribe (no more pieces than the folio's par). Across the chapter the letters spell its motto.
+
+**Controls:** ← → or A/D walk · Space leaps (hold it to leap higher) · ↑ ↓ climb a ladder · R begins again · Esc returns to building · L shows the scribe's lens, which outlines solid ground. On touch screens a pad appears during play, with climbing buttons whenever a ladder is on the page. Progress is saved in this browser.
+
+## Make your own folios: the scriptorium
+
+Choose **The scriptorium** on the cover. Its folios use the same stage as the tale with everything unlocked: the whole cabinet of art (ground, dwellings, nature, sky, beasts, folk, marks), pictures of your own, gilded letters, passages of writing, and a role for every picture (ground, ledge, scenery, peril, ladder, goal, or the traveller). Give each folio a sky and a stream, play any page or the whole book in order, and save or open the book as a file. Pages from the old desk can be brought in.
+
+## The old illuminator's desk
+
+Reached from the scriptorium's contents (or `#desk`), this is the original free-form editor for books and maps:
 
 - Click or drag original illustrations from the searchable, categorized library. Favorite your most-used details or import PNG, JPEG, WebP, and GIF artwork.
 - Add independent text passages. Choose any combination of Thorn, Eth, Wynn, Eng, Yogh, Long s, Ash, Ethel, and Tironian et. Original spelling stays editable.
-- Control typeface, size, alignment, weight, italic, ink, line height, and letter spacing per passage. An overflow notice helps you resize text frames.
-- Move, resize, rotate, flip, duplicate, hide, lock, and reorder layers. Shift constrains movement or snaps rotation. Arrow keys nudge; Shift+arrows move ten pixels.
-- Choose parchment, borders, page proportions, or an editable starter folio.
-- Undo/redo edits. The current manuscript autosaves in this browser. Download an editable project for reliable long-term storage, then use **Open** to restore it.
-- Export a 2× PNG or a self-contained SVG with embedded images and fonts. SVG uses `foreignObject` to preserve the browser's text layout; PNG is the best choice for programs without that SVG feature.
+- Control typeface, size, alignment, weight, italic, ink, line height, and letter spacing per passage.
+- Move, resize, rotate, flip, duplicate, hide, lock, and reorder layers, with undo and redo. Give illustrations a play role and choose **Play scene** to try the page.
+- Choose a book or a map and its size; add, duplicate, reorder and remove pages. The project autosaves in this browser; download it for reliable long-term storage and use **Open** to restore it.
+- Export a page as a 2× PNG or a self-contained SVG, the whole book as one image per page, or a multi-page PDF.
 
-The workshop has no account or server storage. Autosave belongs to this browser and device; clearing browser data removes it. Uploaded images remain in the local document and downloaded project. Exported images have no editor guides or selection handles.
-
-Letter substitution is creative spelling, not translation into historical Old English. The voiced/unvoiced rules and exception dictionaries derive from the supplied Olde Scribe prototype; they remain approximate.
-
-## Start a playable game
-
-From the first screen, choose **Start a playable game**. Make a traveller by combining original manuscript heads, clothing, limbs and extras on a small page, or pick a ready-made character. Each campaign page is a level: arrange the selected scene pieces, press **Play page**, walk and jump to the signpost checkpoint, and turn to the next page. The first two pages are practice prototypes. They share the editor's writing, page appearance, layer and transform tools, while offering a focused set of built-in art. A separate save keeps the campaign apart from the free manuscript sandbox. Starting another game keeps the current run as a restorable previous game.
-
-## Playtest a sandbox scene
-
-Choose the **Playable crossing** starter when creating a book, or give illustrations a **Play role** in the inspector. Scenery can be walked through; a Character can move and jump; Solid objects block movement; Platforms can be landed on from above; a Goal finishes the scene. Select **Play scene** to test it, then return to Edit. Play does not change the saved artwork. Arrow keys or A/D move, and Up, W, or Space jumps; touch buttons are available too.
-
-Sandbox **Play scene** is an optional playtest and has no checkpoints or unlocks. The campaign's practice pages have fixed starting scenes and selected pieces but can be solved by different routes. Neither practice page is a finished Level One. The full product brief and remaining decisions are in `docs/GAME_VISION.md`.
+Nothing is stored on a server. Saves belong to this browser and device, and clearing browser data removes them, so download books you care about. Letter substitution is creative spelling, not translation into historical Old English; its rules derive from the user's Olde Scribe prototype and remain approximate.
 
 ## Development
 
-React, TypeScript, Vite, and native pointer events. All artwork and typefaces are served with the app. No image-generation API or secret is needed to use the published workshop.
+React, TypeScript and Vite, with native pointer events. All artwork and typefaces are served with the app; no image-generation service or secret is needed to use it.
 
 ```sh
 npm ci --legacy-peer-deps
-npm run dev
-npm test
+npm run dev      # http://localhost:5173/ManuscriptMaker/
+npm test         # unit tests, including the level solver
 npm run build
-npm run test:play
-npm run test:campaign
 ```
 
-The Vite base is `/ManuscriptMaker/`. Pushing `main` tests, builds, and deploys through GitHub Actions. In repository settings, Pages uses **GitHub Actions** as its source.
+Browser checks drive the real app with Playwright and need `npm run dev` running (set `CHROME=/path/to/chromium` if Playwright's own browser is missing):
+
+- `npm run test:levels` proves each folio is closed when bare and solvable several ways, by searching the real physics (`src/engine/solver.ts`).
+- `npm run test:chapter` plays the later folios in a browser: pieces dragged from the margin, ladders climbed with the touch pad on a phone, and the finale walked to the end of the book.
+- `npm run test:tale` covers the cover, the tailor, the contents, Folios I and II, saving and reloading.
+- `npm run test:solidity` drops a probe on every walkable piece and checks it rests where the art is painted.
+- `npm run test:scriptorium`, `npm run test:play` and `npm run test:browser` cover the scriptorium, the desk's play scene, and the desk.
+
+Pushing `main` tests, builds and deploys the site through GitHub Actions.
 
 ## Project structure
 
-- `src/App.tsx`: workshop UI, document history, local save, import, and library controls.
-- `src/ManuscriptCanvas.tsx`: layer rendering, pointer gestures, and selection overlay.
-- `src/game.ts` and `src/PlayMode.tsx`: pure movement/collision rules and read-only play.
-- `src/campaign.ts` and `src/CharacterMaker.tsx`: separate campaign pages/progress and new-game character composition.
-- `src/TextEditor.tsx` and `src/text.ts`: typography controls and independently enabled substitutions.
-- `src/document.ts`: starter folios, schema validation, and project files.
-- `src/assets.ts` and `public/assets/`: illustration catalog and original generated cutouts.
-- `src/export.ts`: image and font embedding for PNG/SVG exports.
-- `docs/art-prompts.md`: illustration prompts and provenance.
-
-The art catalog is data-driven: add a transparent PNG and an `ArtAsset` entry to extend it. Each passage preserves its own typography and substitution preferences; project files carry a versioned schema.
+- `src/tale/`: the tale's cover, tailor, contents, folio screen and Explicit card; `levels.ts` holds the folios as data, with measured walkable surfaces.
+- `src/tale/stage/`: the folio stage shared by the tale and the scriptorium, and the cabinet of pieces.
+- `src/scriptorium/`: the scriptorium's book of folios, its settings, and conversion to and from project pages.
+- `src/engine/`: play. Collision is rasterised from each picture's painted pixels; a fixed-step controller, per-asset physics, the puppet, synthesised sound and music, and the reachability solver used by the checks.
+- `src/App.tsx`, `src/ManuscriptCanvas.tsx`, `src/TextEditor.tsx`, `src/text.ts`, `src/document.ts`, `src/project.ts`, `src/export.ts`: the old illuminator's desk.
+- `src/assets.ts`, `src/generated-assets.json` and `public/assets/`: the art catalog. Sheet originals, prompts and manifests live in `art-source/`; see `docs/ART_PIPELINE.md`.
+- `scripts/`: the browser checks and the level harness. `docs/`: the product vision (`GAME_VISION.md`) and the agents' handover notes.
 
 ## Credits
 
-Inspired by the creative sandbox of [Scriptorium: Master of Manuscripts](https://www.yazagames.com/faq) and the user's Olde Scribe prototype. This is an independent project with original generated illustrations, and is not affiliated with Yaza Games.
+Inspired by the creative sandbox of [Scriptorium: Master of Manuscripts](https://www.yazagames.com/faq), the place-and-play spirit of *Klik & Play*, and the user's Olde Scribe prototype. This is an independent project with original generated illustrations, and is not affiliated with Yaza Games.
 
-Typefaces: Cormorant Garamond, EB Garamond, Gentium Book Plus, IM Fell English, and Uncial Antiqua, distributed through Fontsource under their open font licenses. Icons: Lucide, ISC license. Dependency license texts are included with their packages.
+Typefaces: Cormorant Garamond, EB Garamond, Gentium Book Plus, Grenze Gotisch, IM Fell English, IM Fell English SC, UnifrakturMaguntia, and Uncial Antiqua, distributed through Fontsource under their open font licenses. Icons: Lucide, ISC license. Dependency license texts are included with their packages.

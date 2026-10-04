@@ -60,7 +60,7 @@ try {
   ]) {
     const r = await solved(3, specs);
     assert.ok(r.solved, `Folio IV crossed with ${label} (${note(r)}; furthest ${r.furthest}, highest ${r.highest})`);
-    assert.ok(r.path.some(step => step.startsWith('climb')), `Folio IV's ${label} uses the ladder`);
+    assert.ok(r.path.some(step => step.includes('climb')), `Folio IV's ${label} uses the ladder`);
     console.log(`  folio IV · ${label}: ${note(r)}`);
   }
   for (const [label, specs] of [
@@ -70,11 +70,53 @@ try {
     const r = await solved(3, specs);
     assert.ok(!r.solved, `${label} is not enough for Folio IV (${note(r)})`);
   }
+  // Folio V: two channels, each past the longest leap; one plank, two stones.
+  const stone = { w: 130 };
+  const bare5 = await solved(4);
+  assert.ok(!bare5.solved, `Folio V cannot be crossed bare (${note(bare5)}; furthest ${bare5.furthest})`);
+  for (const [label, specs] of [
+    ['a plank over the first channel and a stone in the second', [{ top: 'plank-walkway', cx: 480, y: 552, w: 288 }, { stand: 'boulder', cx: 968, base: 625, ...stone }]],
+    ['a stone in the first channel and a plank over the second', [{ stand: 'boulder', cx: 480, base: 625, ...stone }, { top: 'plank-walkway', cx: 968, y: 528, w: 288 }]],
+    ['a stone in each channel', [{ stand: 'boulder', cx: 480, base: 625, ...stone }, { stand: 'boulder', cx: 968, base: 625, ...stone }]],
+  ]) {
+    const r = await solved(4, specs);
+    assert.ok(r.solved, `Folio V crossed with ${label} (${note(r)}; furthest ${r.furthest})`);
+    console.log(`  folio V · ${label}: ${note(r)}`);
+  }
+  for (const [label, specs] of [
+    ['the plank alone', [{ top: 'plank-walkway', cx: 480, y: 552, w: 288 }]],
+    ['one stone alone', [{ stand: 'boulder', cx: 480, base: 625, ...stone }]],
+    ['one stone in the second channel alone', [{ stand: 'boulder', cx: 968, base: 625, ...stone }]],
+  ]) {
+    const r = await solved(4, specs);
+    assert.ok(!r.solved, `${label} is not enough for Folio V (${note(r)})`);
+  }
+  // Folio VI: a moat 450 across, then the keep's wall about 211 high.
+  const bare6 = await solved(5);
+  assert.ok(!bare6.solved, `Folio VI cannot be entered bare (${note(bare6)}; furthest ${bare6.furthest})`);
+  for (const [label, specs, needsLadder] of [
+    ['two planks leant into one long ramp', [{ ramp: 'plank-walkway', from: [326, 562], to: [598, 471] }, { ramp: 'plank-walkway', from: [594, 472], to: [784, 350] }], false],
+    ['a two-plank bridge and a tall ladder to the wall', [{ top: 'plank-walkway', cx: 474, y: 562, w: 288 }, { top: 'plank-walkway', cx: 700, y: 562, w: 180 }, { stand: 'stairs-ladder', cx: 745, base: 562, ...tallLadder }], true],
+    ['one plank, then a leap to catch a hung ladder', [{ top: 'plank-walkway', cx: 474, y: 562, w: 288 }, { stand: 'stairs-ladder', cx: 745, base: 590, ...tallLadder }], true],
+  ]) {
+    const r = await solved(5, specs);
+    assert.ok(r.solved, `Folio VI entered with ${label} (${note(r)}; furthest ${r.furthest}, highest ${r.highest})`);
+    if (needsLadder) assert.ok(r.path.some(step => step.includes('climb')), `Folio VI's ${label} uses the ladder`);
+    console.log(`  folio VI · ${label}: ${note(r)}`);
+  }
+  for (const [label, specs] of [
+    ['one plank', [{ top: 'plank-walkway', cx: 474, y: 562, w: 288 }]],
+    ['two planks laid flat', [{ top: 'plank-walkway', cx: 474, y: 562, w: 288 }, { top: 'plank-walkway', cx: 700, y: 562, w: 180 }]],
+    ['the ladder alone', [{ stand: 'stairs-ladder', cx: 745, base: 590, ...tallLadder }]],
+  ]) {
+    const r = await solved(5, specs);
+    assert.ok(!r.solved, `${label} is not enough for Folio VI (${note(r)})`);
+  }
   // For the record, not a rule: can one crate hung at the very edge of a leap do it?
   for (const top of [412, 404]) {
     const r = await solved(2, [{ top: 'crate-wood', cx: 700, y: top, ...crate }]);
     console.log(`  folio III · one crate floating ${562 - top} up: ${r.solved ? 'reaches the loft' : 'not enough'} (${note(r)})`);
   }
   assert.deepEqual(errors, []);
-  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank');
+  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways');
 } finally { await browser.close(); }

@@ -1,6 +1,6 @@
 // Browser harness: builds each folio's real collision from its artwork and
 // lets a simple reactive traveller try to walk it, with and without pieces.
-import { LEVELS, ground, standing, topOf } from '../../src/tale/levels';
+import { LEVELS, SCALE_RANGE, TRAY_WIDTH, ground, standing, topOf } from '../../src/tale/levels';
 import type { LevelDef } from '../../src/tale/levels';
 import { buildLevelField, goalRect, loadLevelImages } from '../../src/tale/levelWorld';
 import type { PlacedPiece } from '../../src/tale/save';
@@ -118,6 +118,11 @@ export function buildPieces(specs: Spec[]): PlacedPiece[] {
       const cx = (x0 + x1) / 2 - nx * lift, cy = (y0 + y1) / 2 - ny * lift;
       out.push(make(asset, { x: cx - length / 2, y: cy - height / 2, width: length, height }, angle * 180 / Math.PI));
     }
+  }
+  // A proof that uses a piece the margin could not make is no proof.
+  for (const p of out) {
+    const base = TRAY_WIDTH[p.asset];
+    if (base && (p.width > base * SCALE_RANGE[1] + .5 || p.width < base * SCALE_RANGE[0] - .5)) throw new Error(`${p.asset} at width ${p.width.toFixed(1)} is outside what the margin allows (${base * SCALE_RANGE[0]}–${base * SCALE_RANGE[1]})`);
   }
   return out;
 }

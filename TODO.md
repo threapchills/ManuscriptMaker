@@ -9,9 +9,11 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] Folio I and Folio II playable and verified by automated playthrough.
 - [x] Scriptorium rebuilt on the tale's own folio stage: full cabinet, every role, motion, letters, words, sky and stream, templates, book contents with miniatures, play the whole book, file save/open, old desk kept at `#desk`.
 - [x] `test:play` mobile Restart failure fixed (tale CSS class collision with the classic desk).
-- [x] Folio III (The Hayloft, stacking) and Folio IV (Over the Rooftops, ladders), each proved closed bare and solvable several ways by a search over the real physics (2026-10-04).
-- [x] Reachability solver for level checks (`src/engine/solver.ts`); masonry walls collide as blocks; touch climb buttons when a ladder is present.
-- [ ] Folios V–VI; compact phone folio layout; Folios III–IV in the end-to-end tale walk.
+- [x] Chapter I complete: Folio III (The Hayloft, stacking), IV (Over the Rooftops, ladders), V (The Mill Stream, stepping stones) and VI (The Moat and the Keep, finale), each proved closed bare and solvable several ways by a search over the real physics (2026-10-04).
+- [x] Reachability solver for level checks (`src/engine/solver.ts`); masonry walls collide as blocks; touch climb buttons when a ladder is present; end-of-book Explicit and contents line.
+- [x] `test:chapter`: the later folios in a real browser (margin drag, touch climbing on a phone, the finale to the end of the book).
+- [ ] Compact phone folio layout.
+- [ ] Chapter II, with the user's choice of what comes next (enemies, archery, flying, or behaviours such as moving ledges and doors).
 - [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).
 
 ## Playable manuscript direction — new top product priority

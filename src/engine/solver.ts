@@ -161,6 +161,14 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
         hit = consider(index, play(body, [{ steps: n, x: 0, up: true }, { steps: 46, x: dir, jump: true, press: true }, { steps: 200, x: dir, untilGround: true }]), `climb ${n} then leap ${d}`);
         if (hit) return hit;
       }
+      if (hasLadders) for (const run of [0, 40]) for (const hold of [22, 46]) for (const n of [80, 200]) {
+        // Leap at a ladder and catch it in the air by holding up, climb, then leap off the top.
+        const segs: Seg[] = [];
+        if (run && !body.climbing) segs.push({ steps: run, x: dir });
+        segs.push({ steps: hold, x: dir, jump: true, press: true }, { steps: n, x: 0, up: true }, { steps: 46, x: dir, jump: true, press: true }, { steps: 200, x: dir, untilGround: true });
+        const hit = consider(index, play(body, segs), `${run ? `run ${d} ${run}, ` : ''}leap ${d} hold ${hold}, catch the ladder and climb ${n}, leap ${d}`);
+        if (hit) return hit;
+      }
     }
     if (hasLadders) for (const n of CLIMBS) {
       const hit = consider(index, play(body, [{ steps: n, x: 0, down: true }]), `climb down ${n}`);

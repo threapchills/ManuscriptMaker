@@ -322,6 +322,8 @@
 .folio-row.is-coming em { font: italic 18px var(--book); color: var(--ink-soft); white-space: nowrap; }
 .seal-total { font: italic 21px var(--book); color: var(--ink-soft); margin: 10px 10px; }
 .seal-total b { font: 26px var(--caps); color: var(--vermilion); font-style: normal; }
+.book-ended { margin: 4px 10px; font: italic 21px/1.4 var(--book); color: var(--ink); }
+.book-ended .rubric { display: block; margin-bottom: 2px; }
 .contents-actions { position: absolute !important; left: 76px; right: 76px; bottom: 56px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 
 /* the tailor */

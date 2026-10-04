@@ -38,6 +38,8 @@ export interface LevelDef {
   tray: TrayItem[];
   par: number;
   hints: Hint[];
+  /** What the first seal says was reached, when the goal is not a signpost. */
+  reached?: string;
 }
 
 /** The motto gathered letter by letter across the chapter. */
@@ -205,6 +207,7 @@ const folio3: LevelDef = {
   spawn: { x: 104, y: 562 },
   // Well inside the ledge, so the door cannot be touched by leaping past either end.
   goal: standing('door-oak', 930, f3LoftY, 92, { role: 'goal', layer: 'ground' }),
+  reached: 'You climbed in at the hay door.',
   letters: [{ x: 440, y: 400, glyph: 'G' }, { x: 704, y: 336, glyph: 'A' }, { x: 820, y: f3LoftY - 70, glyph: 'V' }],
   tray: [
     { asset: 'crate-wood', count: 2, role: 'solid', name: 'Crate' },
@@ -268,16 +271,101 @@ const folio4: LevelDef = {
   ],
 };
 
-export const LEVELS: LevelDef[] = [folio1, folio2, folio3, folio4];
+// ——— Folio V: the mill stream ———
+// The stream parts round the mill's island, and each channel is about 335
+// across (measured on the collision field): past the longest running leap. One plank and two boulders,
+// so the traveller must choose which channel gets which; stones can stand in
+// the water as stepping stones, a new idea for this folio.
+const f5Island = ground('earth-ledge-short', 640, 552, 170);
+const f5Far = ground('earth-ledge-long', 1128, 500, 230);
+const folio5: LevelDef = {
+  id: 'folio-5', numeral: 5, title: 'The Mill Stream',
+  brief: 'The stream parts round the mill, and each channel is wider than a leap. You have one plank and two stones to set in the water: put each where it serves best, then press Play and cross.',
+  sky: 'day', waterY: 604,
+  scene: [
+    piece('sun-gold', 840, 36, 100, { layer: 'far', anim: 'turn' }),
+    piece('cloud-bank', 120, 70, 300, { layer: 'far', anim: 'drift', opacity: .9 }),
+    piece('cloud-curl', 640, 110, 150, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('hills-blue', -60, 318, 820, { layer: 'far', opacity: .88, filter: 'saturate(.8)' }),
+    piece('hills-blue', 560, 330, 780, { layer: 'far', opacity: .84, flipX: true, filter: 'saturate(.8)' }),
+    piece('castle', 990, 96, 280, { layer: 'far', opacity: .78, filter: 'saturate(.75)' }),
+    piece('forest-line', -20, 400, 560, { layer: 'far' }),
+    piece('forest-line', 640, 408, 640, { layer: 'far', flipX: true }),
+    standing('pine-grove', 120, 566, 200, { layer: 'mid' }),
+    standing('farmhouse-thatch', 726, 556, 214, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 360),
+    f5Island,
+    f5Far,
+    standing('leafy-grove', 1240, 504, 150, { layer: 'mid' }),
+    standing('pond-reeds', 330, 626, 120, { layer: 'front' }),
+    standing('pond-reeds', 1110, 626, 110, { layer: 'front', flipX: true }),
+    standing('grass-tuft', 250, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 60, 574, 90, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 90, y: 562 },
+  goal: standing('signpost-blank', 1206, 500, 86, { role: 'goal', layer: 'ground' }),
+  letters: [{ x: 480, y: 420, glyph: 'B' }, { x: 726, y: 330, glyph: 'R' }, { x: 960, y: 420, glyph: 'E' }],
+  tray: [
+    { asset: 'plank-walkway', count: 1, role: 'platform', name: 'Plank' },
+    { asset: 'boulder', count: 2, role: 'solid', name: 'Stepping stone' },
+  ],
+  par: 2,
+  hints: [
+    { x: 480, y: 500, text: 'too wide to leap', mode: 'build', point: 'down' },
+    { x: 960, y: 500, text: 'and this one too', mode: 'build', point: 'down' },
+  ],
+};
+
+// ——— Folio VI: the moat and the keep ———
+// The finale: a moat 450 across (past any leap, and wider than one plank) and
+// then the keep's curtain wall, two sheer courses about 211 high, with the
+// portcullis on top. Two planks and a ladder: lay a bridge and climb, lean the
+// planks into one long ramp, or leap from a plank and catch a hung ladder.
+const f6WallRows = (cx: number) => { const low = standing('wall-stone-straight', cx, 562, f4Block, { role: 'solid', layer: 'ground' }); return [low, standing('wall-stone-straight', cx, topOf(low), f4Block, { role: 'solid', layer: 'ground' })]; };
+const f6Wall = [...f6WallRows(881), ...f6WallRows(1083), ...f6WallRows(1285)];
+const f6Top = topOf(f6Wall[1]);
+const folio6: LevelDef = {
+  id: 'folio-6', numeral: 6, title: 'The Moat and the Keep',
+  brief: 'The keep at last. Its moat is too wide to leap and its wall too high to climb, and the margin holds two planks and a ladder. Find your own way in, then pass beneath the portcullis.',
+  sky: 'night', waterY: 604,
+  scene: [
+    piece('moon-silver', 150, 46, 84, { layer: 'far', anim: 'bob' }),
+    piece('stars-three', 330, 40, 104, { layer: 'far', opacity: .95 }),
+    piece('stars-three', 600, 90, 84, { layer: 'far', opacity: .85, flipX: true }),
+    piece('cloud-bank', 380, 150, 260, { layer: 'far', anim: 'drift', opacity: .45, filter: 'brightness(.7)' }),
+    piece('hills-blue', -60, 330, 820, { layer: 'far', opacity: .8, filter: 'saturate(.6) brightness(.6)' }),
+    piece('forest-line', -20, 404, 640, { layer: 'far', filter: 'brightness(.65)' }),
+    piece('castle', 800, 6, 520, { layer: 'mid', filter: 'brightness(.92)' }),
+    standing('pine-grove', 140, 566, 220, { layer: 'mid', filter: 'brightness(.8)' }),
+    ground('meadow-wide', -40, 562, 380),
+    ...f6Wall,
+    standing('pond-reeds', 360, 626, 110, { layer: 'front', filter: 'brightness(.85)' }),
+    standing('pond-reeds', 742, 626, 100, { layer: 'front', flipX: true, filter: 'brightness(.85)' }),
+    standing('grass-tuft', 280, 568, 70, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 90, y: 562 },
+  goal: standing('door-portcullis', 1062, f6Top, 120, { role: 'goal', layer: 'ground' }),
+  reached: 'You passed beneath the portcullis.',
+  letters: [{ x: 555, y: 420, glyph: 'V' }, { x: 724, y: 430, glyph: 'I' }, { x: 900, y: 200, glyph: 'S' }],
+  tray: [
+    { asset: 'plank-walkway', count: 2, role: 'platform', name: 'Plank' },
+    { asset: 'stairs-ladder', count: 1, role: 'ladder', name: 'Ladder' },
+  ],
+  par: 2,
+  hints: [
+    { x: 555, y: 500, text: 'too wide to leap', mode: 'build', point: 'down' },
+    { x: 690, y: 300, text: 'too high to climb', mode: 'build', point: 'down' },
+  ],
+};
+
+export const LEVELS: LevelDef[] = [folio1, folio2, folio3, folio4, folio5, folio6];
 
 /** Folios still being written, shown in the contents so the road ahead is visible. */
 export const COMING: Array<{ numeral: number; title: string }> = [
-  { numeral: 5, title: 'The Mill Stream' },
-  { numeral: 6, title: 'The Moat and the Keep' },
 ];
 
 export const levelIndex = (id: string) => LEVELS.findIndex(level => level.id === id);
 
 /** Default size for a tray piece when it first lands on the page. */
-export const TRAY_WIDTH: Record<string, number> = { 'bridge-wooden': 250, 'plank-walkway': 180, 'crate-wood': 96, 'hay-bale': 128, 'stone-walkway': 170, 'stairs-ladder': 70, 'earth-ledge-short': 150, 'stairs-stone': 170, 'bridge-arch': 230 };
+export const TRAY_WIDTH: Record<string, number> = { 'boulder': 130, 'bridge-wooden': 250, 'plank-walkway': 180, 'crate-wood': 96, 'hay-bale': 128, 'stone-walkway': 170, 'stairs-ladder': 70, 'earth-ledge-short': 150, 'stairs-stone': 170, 'bridge-arch': 230 };
 export const SCALE_RANGE: [number, number] = [.6, 1.6];

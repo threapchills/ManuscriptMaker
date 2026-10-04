@@ -78,6 +78,7 @@ export default function Contents({ tale, onOpen, onTailor, onScriptorium, onClos
             </div></li>)}
           </ol>
           <p className="seal-total">Seals pressed · <b>{seals}</b> of {LEVELS.length * 3}</p>
+          {!COMING.length && LEVELS.every(level => recordFor(tale, level.id).done) && <p className="book-ended"><span className="rubric small">Explicit liber primus</span>The first book is ended. Ars longa, vita brevis.</p>}
           <div className="contents-actions">
             <button type="button" className="text-link" onClick={() => { audio.play('page'); onScriptorium(); }}><InkIcon name="pen" size={17} /> The scriptorium · make your own pages</button>
             <button type="button" className="text-link" onClick={() => { audio.play('open'); onClose(); }}><InkIcon name="book" size={17} /> Close the book</button>
