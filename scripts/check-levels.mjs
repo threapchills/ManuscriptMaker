@@ -9,13 +9,18 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto(base + 'scripts/harness/levels.html');
 await page.waitForFunction(() => window.harnessReady === true, null, { timeout: 20000 });
-// The long searches over every arrow a traveller could loose run in a page of
-// their own, alongside the rest.
-const searches = await (await browser.newContext()).newPage();
-searches.on('pageerror', e => errors.push(e.message));
-await searches.goto(base + 'scripts/harness/levels.html');
-await searches.waitForFunction(() => window.harnessReady === true, null, { timeout: 20000 });
-const oneArrow8 = searches.evaluate(() => window.oneShotOpens(7, [], { region: { x0: 800, x1: 900, y0: 240, y1: 606 }, step: 6 })).catch(e => ({ error: e.message }));
+// The long searches over every arrow a traveller could loose each run in a
+// page of their own, alongside the rest.
+async function searchPage() {
+  const searches = await (await browser.newContext()).newPage();
+  searches.on('pageerror', e => errors.push(e.message));
+  await searches.goto(base + 'scripts/harness/levels.html');
+  await searches.waitForFunction(() => window.harnessReady === true, null, { timeout: 20000 });
+  return searches;
+}
+const oneArrow8 = (await searchPage()).evaluate(() => window.oneShotOpens(7, [], { region: { x0: 800, x1: 900, y0: 240, y1: 606 }, step: 6 })).catch(e => ({ error: e.message }));
+// Folio XI's raised drawbridge is timber: does any one foothold anywhere open the way?
+const oneArrow11 = (await searchPage()).evaluate(() => window.oneShotOpens(10, [], { targets: false, region: { x0: 520, x1: 1280, y0: 120, y1: 606 }, step: 6 })).catch(e => ({ error: e.message }));
 const run = (i, pieces = []) => page.evaluate(([i, p]) => window.tryLevel(i, p), [i, pieces]);
 const P = (asset, x, y, width, ratio) => ({ id: asset + x, asset, x, y, width, height: width * ratio, rotation: 0, flipX: false, flipY: false });
 const plank = 75 / 197, bridge = 115 / 263;
@@ -229,6 +234,31 @@ try {
     assert.equal(bellReach.solved, bellToo, `Folio X's letter ${i + 1} ${bellToo ? 'is' : 'is not'} within reach with the bell alone`);
   }
 
+  // Folio XI: a moat past any leap, a drawbridge raised on its hinge, and a gate behind it.
+  const bare11 = await solved(10);
+  assert.ok(!bare11.solved, `Folio XI cannot be crossed with the bridge up (${note(bare11)}; furthest ${bare11.furthest})`);
+  const butt = { from: [104, 562], at: [905, 150] };
+  const bridgeOnly = await shots(10, [], [butt]);
+  assert.ok(!bridgeOnly.solved && bridgeOnly.loosed[0].event?.type === 'target', `the butt lets the bridge down, but the portcullis still bars the way (${bridgeOnly.failed ?? note(bridgeOnly)})`);
+  const hidden = await page.evaluate(() => window.solveShots(10, [], [{ from: [480, 556], at: [900, 470] }]));
+  assert.ok(hidden.loosed[0].event?.type !== 'target', `the bell cannot be struck while the raised bridge hides it (${JSON.stringify(hidden.loosed[0].event)})`);
+  for (const [label, list] of [
+    ['the butt from the start, then the bell from the near bank', [butt, { from: [480, 556], at: [900, 470] }]],
+    ['the butt from the moat’s edge, then the bell from the far end of the bridge', [{ from: [500, 556], at: [905, 150] }, { from: [820, 540], at: [900, 470] }]],
+  ]) {
+    const r = await shots(10, [], list);
+    assert.ok(r.solved, `Folio XI crossed with ${label} (${r.failed ?? note(r)})`);
+    assert.deepEqual(r.loosed.map(l => l.event?.type), ['target', 'target'], `${label} strikes both targets`);
+    console.log(`  folio XI · ${label}: ${note(r)}`);
+  }
+  const route11 = [butt, { from: [480, 556], at: [900, 470] }];
+  for (const [i, bareToo] of [[0, true], [1, false], [2, false]]) {
+    const bareReach = await page.evaluate(i => window.solveShots(10, [], [], { letter: i }), i);
+    const full = await page.evaluate(([l, i]) => window.solveShots(10, [], l, { letter: i }), [route11, i]);
+    assert.ok(full.solved, `Folio XI's letter ${i + 1} can be gathered on the way in`);
+    assert.equal(bareReach.solved, bareToo, `Folio XI's letter ${i + 1} ${bareToo ? 'is' : 'is not'} within reach with the bridge up`);
+  }
+
   // For the record, not a rule: can one crate hung at the very edge of a leap do it?
   for (const top of [412, 404]) {
     const r = await solved(2, [{ top: 'crate-wood', cx: 700, y: top, ...crate }]);
@@ -237,6 +267,9 @@ try {
   const one8 = await oneArrow8;
   assert.ok(!one8.error && !one8.opens, `no single arrow opens Folio VIII (${one8.error ?? JSON.stringify(one8.at ?? {})})`);
   console.log(`  folio VIII · no single arrow is enough: ${one8.tried} distinct footholds from ${one8.vantage} vantage points, ${one8.ms} ms`);
+  const one11 = await oneArrow11;
+  assert.ok(!one11.error && !one11.opens, `no single foothold opens Folio XI (${one11.error ?? JSON.stringify(one11.at ?? {})})`);
+  console.log(`  folio XI · no single foothold opens it: ${one11.tried} distinct footholds, ${one11.ms} ms`);
   assert.deepEqual(errors, []);
-  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold; folio VIII closed bare and to every single arrow, climbed three ways with two and as a stair of three, no foothold loosed upward from a step at the bank’s foot, and its letters placed as meant; folio IX closed bare, to the crate alone and to arrows alone, stone glancing, climbed three ways with crate and arrows, letters as meant; folio X shut to every foothold, the portcullis turning arrows, opened by the bell from two places, letters as meant');
+  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold; folio VIII closed bare and to every single arrow, climbed three ways with two and as a stair of three, no foothold loosed upward from a step at the bank’s foot, and its letters placed as meant; folio IX closed bare, to the crate alone and to arrows alone, stone glancing, climbed three ways with crate and arrows, letters as meant; folio X shut to every foothold, the portcullis turning arrows, opened by the bell from two places, letters as meant; folio XI shut with the bridge up and to every single foothold, the bell hidden until the bridge falls, crossed two ways by the butt and the bell, letters as meant');
 } finally { await browser.close(); }

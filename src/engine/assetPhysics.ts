@@ -16,6 +16,8 @@ export interface AssetPhysics {
 
 // Deck of the arched wooden bridge, traced from the artwork and mirrored.
 const deck: Array<[number, number]> = [[.03, .665], [.1, .626], [.14, .557], [.18, .514], [.22, .474], [.26, .443], [.3, .426], [.34, .4], [.38, .392], [.42, .383], [.46, .375], [.5, .374]];
+const deckTop: Array<[number, number]> = [...deck, ...deck.slice(0, -1).reverse().map(([u, v]) => [1 - u, v] as [number, number])];
+const deckSlab: Array<[number, number]> = [...deckTop, ...deckTop.slice().reverse().map(([u, v]) => [u, v + .13] as [number, number])];
 const bridgeDeck: Array<[number, number]> = [
   ...deck, ...deck.slice(0, -1).reverse().map(([u, v]) => [1 - u, v] as [number, number]),
   [.97, .9], [.9, .88], [.72, .66], [.5, .6], [.28, .66], [.1, .88], [.03, .9],
@@ -96,6 +98,9 @@ const BLOCKS: Record<string, Array<[number, number]>> = {
   // A gateway seen face on, crossed in profile: only the stonework above its
   // passage stands in the way; the road runs past the pillars.
   'wall-arch-opening': [[.047, .07], [.943, .07], [.943, .33], [.047, .33]],
+  // The deck alone, as an even slab: raised on its hinge as a drawbridge, the
+  // arch beneath would otherwise face the road in steps a traveller could perch on.
+  'bridge-wooden': deckSlab,
 };
 /** The physics of a piece, as a plain block when its level asks for one. */
 export const piecePhysics = (assetId: string | undefined, block?: boolean): AssetPhysics => {

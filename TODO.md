@@ -17,10 +17,11 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] Archery, part one (named by the user on 2026-10-04; design confirmed the same day): point to aim with the mouse, arrows from the margin counted by the frugal seal, footholds where a level arrow sticks in wood or earth, stone turns arrows aside, water swallows them; a quiver setting in the Scriptorium.
 - [x] Two books in the tale's contents, turned between by a leaf corner; Liber secundus, *The Greenwood*, begun with Folio VII, *The Barred Gate* (the first arrow), proved by the solver with simulated shots.
 - [x] Liber secundus, Folios VIII (*The High Bank*: earth, shots planned from across the water) and IX (*The Watchtower*: stone turns arrows, a crate with an arrow), each proved closed to single arrows or pieces and open several ways.
-- [ ] Liber secundus: XI with a drawbridge worked by a target; XII with beasts.
+- [ ] Liber secundus: XII with beasts.
 - [x] Archery, part two: targets (painted butts and bells) whose strike sets set pieces moving to a resting pose (a portcullis wound up, a ladder let down), proved by the harness; Folio X, *The Bell in the Oak*.
 - [ ] Targets in the scriptorium: place targets, and give a piece a resting pose for when a target is struck.
-- [ ] Folio XI, *The Drawbridge*; Folio XII with beasts.
+- [x] Folio XI, *The Drawbridge*: a bridge swung down about its hinge by a butt, and a bell it hid that opens the gate.
+- [ ] Folio XII with beasts, closing the second book.
 - [ ] Archery, part three: perils and beasts.
 - [ ] Archery on touch: a way to see the shot before loosing it (the user put PC first; mobile is not a priority).
 - [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).

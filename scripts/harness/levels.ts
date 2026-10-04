@@ -14,7 +14,7 @@ import { physicsFor } from '../../src/engine/assetPhysics';
 import { rasterizeField } from '../../src/engine/rasterize';
 import { loadImage } from '../../src/engine/images';
 import type { ControlInput } from '../../src/engine/controller';
-import { addFoothold, ARROW, bowPoint, loose, restorePlatforms, snapshotPlatforms, stepArrow } from '../../src/engine/archery';
+import { addFoothold, ARROW, bowPoint, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow } from '../../src/engine/archery';
 import type { Arrow, ArrowEvent, Target } from '../../src/engine/archery';
 import type { Field } from '../../src/engine/field';
 import { AVATAR_HEIGHT } from '../../src/tale/levelWorld';
@@ -207,7 +207,7 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
     const [fx, fy] = shot.from;
     const spot = placesOn(level, field).filter(p => Math.abs(p.y - fy) <= 10).sort((a, b) => Math.hypot(a.x - fx, a.y - fy) - Math.hypot(b.x - fx, b.y - fy))[0];
     if (!spot || Math.abs(spot.x - fx) > 14) return { id: level.id, solved: false, failed: `nowhere to stand near ${fx},${fy}`, loosed };
-    const { event, arrow } = shootFrom(field, spot, { x: shot.at[0], y: shot.at[1] }, level.waterY, (level.targets ?? []).filter(t => !struck.has(t.id)));
+    const { event, arrow } = shootFrom(field, spot, { x: shot.at[0], y: shot.at[1] }, level.waterY, openTargets(level.targets, struck));
     loosed.push({ from: { x: spot.x, y: spot.y }, event });
     if (event?.type === 'target') {
       // Whatever it works comes to rest; the page is walked as it then stands.
@@ -321,7 +321,7 @@ export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { re
   const strikes = new Set<string>();
   let unreachable = 0;
   // With `targets: false`, ask what footholds alone could do.
-  const butts = opts.targets === false ? [] : level.targets ?? [];
+  const butts = opts.targets === false ? [] : openTargets(level.targets, new Set());
   for (const from of vantage) for (const to of [...targets, ...butts]) {
     const facing = to.x < from.x ? -1 : 1;
     const arrow = loose(bowPoint(from, AVATAR_HEIGHT, facing), to);

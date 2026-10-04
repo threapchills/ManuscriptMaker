@@ -41,8 +41,15 @@ export type ArrowEvent =
   | { type: 'sink'; x: number; y: number }
   | { type: 'gone' };
 
-/** A painted butt (or a bell): struck by an arrow, it sets something on the page working. */
-export interface Target { id: string; x: number; y: number; kind?: 'butt' | 'bell' }
+/**
+ * A painted butt (or a bell): struck by an arrow, it sets something on the
+ * page working. With `after`, it is hidden until that target has been struck
+ * (a bell the raised drawbridge stood in front of).
+ */
+export interface Target { id: string; x: number; y: number; kind?: 'butt' | 'bell'; after?: string }
+/** The targets an arrow can strike now: not yet struck, and not still hidden. */
+export const openTargets = (targets: Target[] | undefined, struck: { has: (id: string) => boolean }): Target[] =>
+  (targets ?? []).filter(t => !struck.has(t.id) && (!t.after || struck.has(t.after)));
 /** How near the centre an arrow must pass to strike a target (page units at a 720 page). */
 export const TARGET_RADIUS = 24;
 

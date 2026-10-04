@@ -20,6 +20,7 @@ Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or ta
 | VIII · The High Bank | two arrows in an earthen bank, planned from across the stream |
 | IX · The Watchtower | stone turns arrows: a crate from the margin, and an arrow in the timber above it |
 | X · The Bell in the Oak | ring the bell with an arrow, and the gatekeeper winds up his portcullis |
+| XI · The Drawbridge | strike the butt to let the drawbridge down, and find what the raised bridge was hiding |
 
 The second book is being written: its later folios are listed in its contents.
 

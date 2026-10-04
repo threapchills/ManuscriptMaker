@@ -1,5 +1,6 @@
 import type { GameRole } from '../types';
 import { ASSETS } from '../assets';
+import { swungAbout } from './stage/types';
 
 /**
  * Chapter I — The Hare's Road. Every folio is a fixed miniature, a margin of
@@ -23,7 +24,7 @@ export interface ScenePiece {
   /** Collide as a plain block (see piecePhysics), so pieces stacked into a bank leave no ledge at their joints. */
   block?: boolean;
   /** Moves when the target `by` is struck, to this pose. */
-  works?: { by: string; x: number; y: number; rotation: number };
+  works?: { by: string; x: number; y: number; rotation: number; pivot?: [number, number] };
 }
 export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder'; name: string }
 export interface Hint { x: number; y: number; text: string; mode: 'build' | 'play' | 'both'; point?: 'left' | 'right' | 'down' }
@@ -47,7 +48,7 @@ export interface LevelDef {
   /** Arrows in the quiver, loosed in play; they count toward par like pieces. */
   quiver?: number;
   /** Butts to shoot at; a struck one sets the scene pieces it works moving. */
-  targets?: Array<{ id: string; x: number; y: number; kind?: 'butt' | 'bell' }>;
+  targets?: Array<{ id: string; x: number; y: number; kind?: 'butt' | 'bell'; /** Hidden until this target is struck. */ after?: string }>;
 }
 
 
@@ -583,6 +584,66 @@ const folio10: LevelDef = {
   ],
 };
 
+// ——— Folio XI: the drawbridge ———
+// A moat 340 wide, past any leap, and beyond it a gatehouse whose drawbridge
+// stands raised on its hinge. A butt high on the gatehouse lets the bridge
+// down; only then is the bell revealed that the raised bridge hid, and the
+// bell winds up the portcullis. The raised bridge is timber: a bold traveller
+// may climb it on arrows instead.
+const f11Hinge: [number, number] = [870, 562];
+const f11Bridge = (() => {
+  const w = 383, h = w * 115 / 263;
+  const flat = piece('bridge-wooden', 510 - .03 * w, 562 - .665 * h, w, { role: 'solid', layer: 'ground', block: true });
+  return { ...flat, ...swungAbout(flat, f11Hinge, 90), works: { by: 'bridge', x: flat.x, y: flat.y, rotation: 0, pivot: f11Hinge } };
+})();
+const f11Gate = standing('wall-arch-opening', 990, 562, 260, { role: 'solid', layer: 'ground', block: true });
+const f11Battlements = standing('wall-crenellation', 990, topOf(f11Gate), 260, { role: 'solid', layer: 'ground' });
+const f11Portcullis = (() => {
+  const p = piece('door-portcullis', 989 - 98.5, 343, 197, { role: 'solid', layer: 'mid', block: true, clip: 'inset(20% 17% 3% 17%)' });
+  return { ...p, works: { by: 'gate', x: p.x, y: p.y - 125, rotation: 0 } };
+})();
+const folio11: LevelDef = {
+  id: 'folio-11', numeral: 11, title: 'The Drawbridge',
+  brief: 'The keeper has raised his drawbridge against you, and the moat is too wide to leap. A butt hangs high on his gatehouse; strike it, and see what the bridge was hiding.',
+  sky: 'dawn', waterY: 606,
+  scene: [
+    piece('cloud-bank', 140, 90, 300, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('cloud-curl', 620, 60, 160, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('castle', 1060, 150, 240, { layer: 'far', opacity: .55, filter: 'saturate(.6) blur(.4px)' }),
+    piece('hills-blue', -60, 330, 800, { layer: 'far', opacity: .85, filter: 'saturate(.75)' }),
+    piece('hills-blue', 600, 344, 760, { layer: 'far', opacity: .8, flipX: true, filter: 'saturate(.75)' }),
+    piece('forest-line', -20, 404, 660, { layer: 'far' }),
+    piece('forest-line', 600, 410, 700, { layer: 'far', flipX: true }),
+    standing('pine-single', 70, 565, 92, { layer: 'mid' }),
+    standing('leafy-grove', 300, 568, 220, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 640, { layer: 'mid' }),
+    piece('earth-ledge-long', 850, 540, 520, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 340),
+    ground('meadow-wide', 200, 562, 330),
+    ground('meadow-wide', 860, 562, 460),
+    f11Portcullis,
+    f11Gate,
+    f11Battlements,
+    f11Bridge,
+    standing('pond-reeds', 560, 626, 100, { layer: 'front' }),
+    standing('pond-reeds', 820, 626, 96, { layer: 'front', flipX: true }),
+    standing('wildflowers', 150, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 1180, 570, 70, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('signpost-blank', 1206, 566, 92, { role: 'goal', layer: 'ground' }),
+  reached: 'You crossed the drawbridge into the keep’s yard.',
+  letters: [{ x: 690, y: 430, glyph: 'A' }, { x: 989, y: 452, glyph: 'I' }, { x: 1150, y: 330, glyph: 'U' }],
+  targets: [{ id: 'bridge', x: 905, y: 150 }, { id: 'gate', x: 900, y: 470, kind: 'bell', after: 'bridge' }],
+  tray: [],
+  quiver: 3,
+  par: 2,
+  hints: [
+    { x: 690, y: 520, text: 'too wide to leap', mode: 'build', point: 'down' },
+    { x: 760, y: 150, text: 'strike the butt', mode: 'play', point: 'right' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -614,9 +675,8 @@ export const BOOKS: BookDef[] = [
     intro: 'From the armoury of the keep the traveller takes a short bow and a quiver, and turns toward the greenwood. Where the way climbs past any leap, loose an arrow into timber or earth and stand upon its shaft.',
     motto: 'FORTES FORTUNA IUVAT',
     explicit: { rubric: 'Explicit liber secundus', line: 'The second book is ended. Fortes fortuna iuvat.' },
-    levels: [folio7, folio8, folio9, folio10],
+    levels: [folio7, folio8, folio9, folio10, folio11],
     coming: [
-      { numeral: 11, title: 'The Drawbridge' },
       { numeral: 12, title: 'The Grey Wolf' },
     ],
   },

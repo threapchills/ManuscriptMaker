@@ -9,7 +9,7 @@ import type { Collectible, Rect, World, WorldEvent } from './world';
 import { advanceWorld, createWorld, drawnFeet } from './world';
 import { audio } from './audio';
 import type { Arrow, Target } from './archery';
-import { addFoothold, bowPoint, drawAim, drawArrow, drawTarget, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
+import { addFoothold, bowPoint, drawAim, drawArrow, drawTarget, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
 
 export interface SessionSpec {
   field: Field;
@@ -241,7 +241,7 @@ export class PlaySession {
 
   /** The page as an arrow sees it: its size, its water, and the targets not yet struck. */
   private arrowPage() {
-    return { width: this.spec.pageWidth, height: this.spec.pageHeight, unit: this.spec.unit, waterY: this.spec.water?.y, targets: (this.spec.targets ?? []).filter(t => !this.struck.has(t.id)) };
+    return { width: this.spec.pageWidth, height: this.spec.pageHeight, unit: this.spec.unit, waterY: this.spec.water?.y, targets: openTargets(this.spec.targets, this.struck) };
   }
 
   private handle(events: WorldEvent[]): void {
@@ -371,7 +371,15 @@ export class PlaySession {
       }
     }
 
-    for (const t of spec.targets ?? []) drawTarget(context, t, unit, this.time, this.struck.has(t.id) ? this.time - this.struck.get(t.id)! : -1);
+    for (const t of spec.targets ?? []) {
+      // A hidden target shows itself once what hid it has moved away.
+      if (t.after && !this.struck.has(t.after)) continue;
+      const shown = t.after ? this.time - this.struck.get(t.after)! : 9;
+      if (shown < .8) continue;
+      context.save(); context.globalAlpha = Math.min(1, (shown - .8) / .4);
+      drawTarget(context, t, unit, this.time, this.struck.has(t.id) ? this.time - this.struck.get(t.id)! : -1);
+      context.restore();
+    }
     for (const a of this.arrows) drawArrow(context, a, unit);
 
     // The traveller.

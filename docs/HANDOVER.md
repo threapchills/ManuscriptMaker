@@ -61,7 +61,20 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
 
   T is free, N lies beyond the gate, and U needs both the bell and the butt. `test:chapter` rings the bell with the mouse, waits for the portcullis to settle, and walks through.
 - **Checks run before pushing targets and Folio X**: `npm test` (186), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
-- **Next**: Folio XI, *The Drawbridge*: a target out of sight from the road, so its shot must be loosed from a vantage that footholds reach, and a bridge that swings down across a moat. Then perils and beasts for XII. Then the scriptorium: placing targets and giving pieces `works`, by setting where a piece comes to rest.
+- **Hinges and hidden targets.**
+  - `works.pivot` (a point on the page) makes a piece swing about that point, as a drawbridge swings about its hinge. On screen the piece turns about the pivot (`SceneLayer`'s `swing`, `.scene-swing`). Collision uses the pose the swing leaves it in, which `swungAbout` computes; `localPoint` finds the pivot within the piece's own box.
+  - A target with `after` stays hidden, and cannot be struck, until that other target has been struck (`openTargets`). It fades in after the moving piece has had time to move. Targets are painted on the play canvas above every piece, so a target behind a piece would otherwise show in front of it.
+  - `bridge-wooden` marked `block` collides as its deck alone, as an even slab. Raised on its hinge, the arch beneath faced the road in steps the traveller could perch on.
+- **Folio XI, *The Drawbridge*.** A moat 340 wide lies before a gatehouse whose drawbridge stands raised on its hinge. A butt high on the gatehouse lets the bridge swing down. That reveals the bell the raised bridge hid, and the bell winds up the portcullis. Three arrows; par two. Proved:
+  - shut with the bridge up;
+  - still shut with the bridge down and the gate closed;
+  - the bell cannot be struck while hidden (the arrow sticks in the bridge's timber);
+  - no single foothold anywhere opens it (484 searched);
+  - crossed two ways: the butt from the start and the bell from the near bank, or the butt from the moat's edge and the bell from the far end of the bridge.
+
+  A sticks to a leap over the moat; I and U need the way in. Whether a stair of arrows can climb the raised bridge itself is not proved either way: its curved timber mostly fails the upright-face test. `test:chapter` plays it with the mouse and keyboard. `test:levels` runs its foothold search and Folio VIII's in two extra pages, and takes about two and a half minutes.
+- **Checks run before pushing Folio XI**: `npm test` (188), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **Next**: perils and beasts for Folio XII, which closes the second book; then the scriptorium: placing targets, and giving pieces a resting pose or a hinge for when a target is struck.
 
 ## 2026-10-04 Claude session: Chapter I complete (Folios III–VI) and a reachability solver
 

@@ -97,7 +97,7 @@ export function stageSpec(o: {
     collectibles: o.letters.map(l => ({ x: l.x, y: l.y, radius: 26 * unit, glyph: l.glyph })),
     water: o.waterY !== undefined ? { y: o.waterY } : undefined,
     sink: 4 * unit,
-    targets: o.targets?.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind })),
+    targets: o.targets?.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind, after: t.after })),
     playerId: who.playerId,
   };
 }

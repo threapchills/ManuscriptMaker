@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import type { Field } from '../src/engine/field';
-import { addFoothold, aim, ARROW, footholdShape, loose, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
-import { posed } from '../src/tale/stage/types';
+import { addFoothold, aim, ARROW, footholdShape, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
+import { localPoint, posed, swungAbout } from '../src/tale/stage/types';
 import type { Arrow } from '../src/engine/archery';
 import { createWorld, stepWorld } from '../src/engine/world';
 import { NO_INPUT } from '../src/engine/controller';
@@ -131,6 +131,30 @@ describe('archery', () => {
     expect(posed(portcullis, new Set(['bell']))).toMatchObject({ x: 600, y: 300, rotation: 0 });
     const plain = { x: 10, y: 20, rotation: 5 };
     expect(posed(plain, new Set(['bell']))).toBe(plain);
+  });
+
+  it('swings a piece about a hinge, and finds the hinge within its box', () => {
+    // A bridge 300 long lying flat, hinged at its far end, raised a quarter turn.
+    const flat = { x: 100, y: 500, width: 300, height: 40, rotation: 0 };
+    const hinge: [number, number] = [400, 520];
+    const raised = swungAbout(flat, hinge, 90);
+    expect(raised.rotation).toBe(90);
+    // Its centre now stands straight above the hinge, half its length up.
+    expect(raised.x + flat.width / 2).toBeCloseTo(400, 6);
+    expect(raised.y + flat.height / 2).toBeCloseTo(370, 6);
+    // Swung back, it lies flat where it began.
+    const back = swungAbout({ ...flat, ...raised }, hinge, -90);
+    expect(back.x).toBeCloseTo(flat.x, 6); expect(back.y).toBeCloseTo(flat.y, 6); expect(back.rotation).toBe(0);
+    // The hinge is the same point of the raised piece's own box as of the flat one's.
+    const [lx, ly] = localPoint({ ...flat, ...raised }, hinge);
+    expect(lx).toBeCloseTo(300, 6); expect(ly).toBeCloseTo(20, 6);
+  });
+
+  it('keeps a hidden target out of reach until the one that hides it is struck', () => {
+    const targets = [{ id: 'bridge', x: 900, y: 150 }, { id: 'gate', x: 900, y: 470, after: 'bridge' }];
+    expect(openTargets(targets, new Set()).map(t => t.id)).toEqual(['bridge']);
+    expect(openTargets(targets, new Set(['bridge'])).map(t => t.id)).toEqual(['gate']);
+    expect(openTargets(targets, new Set(['bridge', 'gate']))).toEqual([]);
   });
 
   it('keeps its numbers sensible', () => {

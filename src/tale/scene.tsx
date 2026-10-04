@@ -16,15 +16,20 @@ export interface Drawable {
 }
 
 /** A picture on the scene: the same geometry the collision rasteriser uses. */
-export function SceneLayer({ piece, className = '', style, dataId, srcOverride }: { piece: Drawable | ScenePiece | PlacedPiece; className?: string; style?: CSSProperties; dataId?: string; srcOverride?: string }) {
+export function SceneLayer({ piece, className = '', style, dataId, srcOverride, swing }: {
+  piece: Drawable | ScenePiece | PlacedPiece; className?: string; style?: CSSProperties; dataId?: string; srcOverride?: string;
+  /** Turned this far about a point in the piece's own box: a drawbridge swinging about its hinge. */
+  swing?: { degrees: number; origin: [number, number] };
+}) {
   const p = piece as Drawable;
   const src = srcOverride || p.src || srcOf(p.asset ?? '');
-  return <div className={`scene-layer ${className}`} data-piece={dataId} style={{ left: p.x, top: p.y, width: p.width, height: p.height, transform: `rotate(${p.rotation ?? 0}deg)`, ...style }}>
-    <div className={`scene-anim${p.anim ? ` anim-${p.anim}` : ''}`} style={p.anim ? { animationDelay: `${-((p.x * 7 + p.y * 3) % 900) / 100}s` } : undefined}>
-      <div className="scene-flip" style={{ transform: `scale(${p.flipX ? -1 : 1}, ${p.flipY ? -1 : 1})`, opacity: p.opacity ?? 1 }}>
-        <img src={src} alt="" draggable={false} style={{ filter: p.filter, clipPath: p.clip, objectFit: p.fit ?? 'contain' }} />
-      </div>
+  const inner = <div className={`scene-anim${p.anim ? ` anim-${p.anim}` : ''}`} style={p.anim ? { animationDelay: `${-((p.x * 7 + p.y * 3) % 900) / 100}s` } : undefined}>
+    <div className="scene-flip" style={{ transform: `scale(${p.flipX ? -1 : 1}, ${p.flipY ? -1 : 1})`, opacity: p.opacity ?? 1 }}>
+      <img src={src} alt="" draggable={false} style={{ filter: p.filter, clipPath: p.clip, objectFit: p.fit ?? 'contain' }} />
     </div>
+  </div>;
+  return <div className={`scene-layer ${className}`} data-piece={dataId} style={{ left: p.x, top: p.y, width: p.width, height: p.height, transform: `rotate(${p.rotation ?? 0}deg)`, ...style }}>
+    {swing ? <div className="scene-swing" style={{ transform: `rotate(${swing.degrees}deg)`, transformOrigin: `${swing.origin[0]}px ${swing.origin[1]}px` }}>{inner}</div> : inner}
   </div>;
 }
 

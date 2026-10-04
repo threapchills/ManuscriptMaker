@@ -291,9 +291,34 @@ try {
   await expect(page.getByRole('dialog')).toContainText('Here endeth the tenth folio', { timeout: 5000 });
   await expect(page.getByRole('dialog')).toContainText('You passed through the gatehouse.');
   await expect(page.getByRole('dialog')).toContainText('1 arrow used · par 1');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-bell.png' });
 
+  // ——— Folio XI: the butt lets the drawbridge down, revealing the bell that opens the gate ———
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Drawbridge' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  const moat = await page.locator('.scene').boundingBox();
+  const shoot = async (x, y, id) => {
+    const at = { x: moat.x + x * moat.width / 1280, y: moat.y + y * moat.height / 720 };
+    await page.mouse.move(at.x, at.y);
+    await page.waitForTimeout(250);
+    await page.mouse.click(at.x, at.y);
+    await page.waitForFunction(id => window.__playSession.struck.has(id), id, { timeout: 4000 });
+    await page.waitForTimeout(1200);
+  };
+  await shoot(905, 150, 'bridge');
+  await shoot(900, 470, 'gate');
+  await page.mouse.move(moat.x + 20, moat.y + 20);
+  await walkRight(page);
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the eleventh folio', { timeout: 5000 });
+  await expect(page.getByRole('dialog')).toContainText('You crossed the drawbridge into the keep’s yard.');
+  await expect(page.getByRole('dialog')).toContainText('2 arrows used · par 2');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-drawbridge.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, and Folio X’s gate opened by ringing the bell, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, and Folio XI crossed by the butt and the bell the drawbridge hid, no runtime errors');
 } finally { await browser.close(); }

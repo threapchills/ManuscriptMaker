@@ -32,10 +32,29 @@ export interface StagePiece {
   works?: Works;
 }
 
-/** How a piece moves when the target `by` is struck: to this pose, then it stays. */
-export interface Works { by: string; x: number; y: number; rotation: number }
+/**
+ * How a piece moves when the target `by` is struck: to this pose, then it
+ * stays. With `pivot` (a point on the page) it swings about that point, as a
+ * drawbridge about its hinge; the pose is where the swing leaves it.
+ */
+export interface Works { by: string; x: number; y: number; rotation: number; pivot?: [number, number] }
+
+/** A piece's pose turned `degrees` about a point on the page, as a drawbridge swings about its hinge. */
+export function swungAbout(p: { x: number; y: number; width: number; height: number; rotation?: number }, pivot: [number, number], degrees: number): { x: number; y: number; rotation: number } {
+  const a = degrees * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+  const cx = p.x + p.width / 2 - pivot[0], cy = p.y + p.height / 2 - pivot[1];
+  const nx = pivot[0] + cx * cos - cy * sin, ny = pivot[1] + cx * sin + cy * cos;
+  return { x: nx - p.width / 2, y: ny - p.height / 2, rotation: (p.rotation ?? 0) + degrees };
+}
+
+/** Where a page point lies within a piece's own box (before its rotation), for turning about it. */
+export function localPoint(p: { x: number; y: number; width: number; height: number; rotation?: number }, point: [number, number]): [number, number] {
+  const a = -(p.rotation ?? 0) * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+  const dx = point[0] - (p.x + p.width / 2), dy = point[1] - (p.y + p.height / 2);
+  return [p.width / 2 + dx * cos - dy * sin, p.height / 2 + dx * sin + dy * cos];
+}
 /** A butt (or a bell) to shoot at. */
-export interface StageTarget { id: string; x: number; y: number; kind?: 'butt' | 'bell' }
+export interface StageTarget { id: string; x: number; y: number; kind?: 'butt' | 'bell'; /** Hidden until this target is struck. */ after?: string }
 
 /** A piece as it stands once the struck targets have moved it. */
 export const posed = <P extends { x: number; y: number; rotation?: number; works?: Works }>(p: P, struck?: { has: (id: string) => boolean }): P =>

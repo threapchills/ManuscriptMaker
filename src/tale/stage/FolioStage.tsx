@@ -18,7 +18,7 @@ import { audio } from '../../engine/audio';
 import { music } from '../../engine/music';
 import { ASSETS } from '../../assets';
 import type { StageLetter, StagePiece, StageResult, StageState } from './types';
-import { ROLE_LABELS, posed } from './types';
+import { ROLE_LABELS, localPoint, posed } from './types';
 import { AVATAR_HEIGHT, buildStageField, loadStageImages, srcOf, stageSpec } from './world';
 import Library from './Library';
 import type { LibraryPick } from './Library';
@@ -586,8 +586,14 @@ export default function FolioStage(props: FolioStageProps) {
     if (p.role === 'player' && p.id === playerId && mode !== 'build') return null;
     const classes = [p.front ? 'front' : '', !p.fixed ? 'placed' : '', p.role === 'goal' ? 'goal' : '', sel?.id === p.id && mode === 'build' ? 'is-selected' : '', lifted === p.id ? 'is-lifted' : '', settling === p.id ? 'is-settling' : '', free && mode === 'build' && !p.fixed ? `role-${p.role}` : ''].filter(Boolean).join(' ');
     const anim = free && p.role !== 'scenery' ? undefined : p.anim;
-    // A piece a target works glides to its resting pose; a new run remounts it where it began.
-    if (p.works) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...posed(p, mode === 'build' ? undefined : struck), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works`} srcOverride={p.src} />;
+    // A piece a target works glides (or swings about its pivot) to its resting
+    // pose; a new run remounts it where it began.
+    if (p.works) {
+      const moved = mode !== 'build' && struck.has(p.works.by);
+      if (p.works.pivot) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
+        swing={{ degrees: moved ? p.works.rotation - p.rotation : 0, origin: localPoint(p, p.works.pivot) }} />;
+      return <SceneLayer key={`${p.id}:${run}`} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works`} srcOverride={p.src} />;
+    }
     return <SceneLayer key={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
   };
   /**
