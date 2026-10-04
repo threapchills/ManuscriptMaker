@@ -1,8 +1,9 @@
+import { useLayoutEffect, useRef } from 'react';
 import type { TaleSave } from './save';
 import { recordFor, sealsOf, totalSeals } from './save';
 import type { BookDef } from './levels';
 import { BOOKS, LEVELS, bookOf } from './levels';
-import { useFit } from './scene';
+import { useSpread } from './scene';
 import { DropCap, Flourish, InkIcon, WaxSeal, toRoman } from './ornaments';
 import PuppetView from './PuppetView';
 import { audio } from '../engine/audio';
@@ -31,7 +32,7 @@ export default function Contents({ tale, book: shownBook, onBook, onOpen, onTail
   onBook: (book: number) => void;
   onOpen: (index: number) => void; onTailor: () => void; onScriptorium: () => void; onClose: () => void;
 }) {
-  const fit = useFit(W, H, 6);
+  const { leaf, stage, spread } = useSpread(W, H);
   const at = Math.max(0, Math.min(BOOKS.length - 1, shownBook ?? bookOf(tale.unlocked).bookIndex));
   const book = BOOKS[at];
   const first = LEVELS.indexOf(book.levels[0]);
@@ -39,18 +40,21 @@ export default function Contents({ tale, book: shownBook, onBook, onOpen, onTail
   const ended = !book.coming.length && book.levels.every(level => recordFor(tale, level.id).done);
   const previous = BOOKS[at - 1], next = BOOKS[at + 1];
   const nextOpen = next && LEVELS.indexOf(next.levels[0]) <= tale.unlocked;
-  return <div className="tale-screen contents-screen">
+  // On a leaf the screen scrolls: a book turned to opens at its top, not where the last was left.
+  const screen = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => { screen.current?.scrollTo(0, 0); }, [at]);
+  return <div ref={screen} className={`tale-screen contents-screen${leaf ? ' is-leaf' : ''}`}>
     <div className="desk-light" aria-hidden="true" />
-    <div className="spread-stage" style={{ width: W * fit, height: H * fit }}>
-      <div className="spread" style={{ transform: `scale(${fit})` }}>
+    <div className="spread-stage" style={stage}>
+      <div className="spread" style={spread}>
         <div className={`spread-page spread-page--left${previous ? ' has-leaf' : ''}`}>
           <div className="vellum-sheet" aria-hidden="true" />
           <span className="rubric">{book.rubric}</span>
           <h1>{book.title}</h1>
           <Flourish />
-          <p className="chapter-intro"><DropCap letter={book.intro[0]} size={74} />{book.intro.slice(1)}</p>
+          <p className="chapter-intro"><DropCap letter={book.intro[0]} size={leaf ? 50 : 74} />{book.intro.slice(1)}</p>
           {tale.traveller && <div className="traveller-card">
-            <div className="traveller-roundel"><PuppetView design={tale.traveller.design} height={196} width={176} /></div>
+            <div className="traveller-roundel"><PuppetView design={tale.traveller.design} height={leaf ? 112 : 196} width={leaf ? 100 : 176} /></div>
             <div>
               <span className="rubric small">Your traveller</span>
               <strong>{tale.traveller.name}</strong>

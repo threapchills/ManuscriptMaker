@@ -53,6 +53,26 @@ export function useViewport(): { w: number; h: number } {
   return viewport;
 }
 
+/** Below this scale an upright screen reads an open book a leaf at a time instead of the whole spread. */
+export const LEAF_BELOW = .6;
+
+/**
+ * How an open-book screen (the contents, the tailor) is laid out. The spread
+ * is a fixed design scaled to the window; on a narrow upright screen that
+ * would leave its writing a quarter of its size, so there it becomes a single
+ * leaf the width of the screen, the left page above the right, which scrolls.
+ */
+export function useSpread(width: number, height: number) {
+  const viewport = useViewport();
+  const fit = Math.max(.2, Math.min((viewport.w - 12) / width, (viewport.h - 12) / height, 1.3));
+  const leaf = viewport.h > viewport.w && fit < LEAF_BELOW;
+  return {
+    leaf,
+    stage: leaf ? undefined : { width: width * fit, height: height * fit },
+    spread: leaf ? undefined : { transform: `scale(${fit})` },
+  };
+}
+
 /** Fit a fixed design size into the window, like a game resolution. */
 export function useFit(width: number, height: number, margin = 12): number {
   const [scale, setScale] = useState(1);

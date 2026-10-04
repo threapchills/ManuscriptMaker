@@ -276,10 +276,28 @@ try {
   await page.waitForTimeout(300);
   assert.ok(await page.evaluate(() => document.body.scrollWidth) <= 844, 'the contents fit a phone held sideways');
   await page.screenshot({ path: '.local/scriptorium-mobile.png' });
+
+  // An upright phone: the contents become a leaf, and a folio of your own a column that fits.
+  // Every screen is a fixed layer, so the body never shows what overflows; each part is measured.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.scriptorium-contents.is-leaf')).toBeVisible({ timeout: 5000 });
+  const fits = async selector => { const b = await page.locator(selector).first().boundingBox(); return !!b && b.x >= -1 && b.x + b.width <= 391; };
+  assert.ok(await fits('.spread'), 'the scriptorium’s contents are a leaf the width of an upright phone');
+  await page.locator('.maker-open').first().click();
+  await expect(page.locator('.level-screen.is-compact')).toBeVisible({ timeout: 5000 });
+  assert.ok(await fits('.compact-folio') && await fits('.compact-head') && await fits('.library'), 'a folio of your own is a column that fits an upright phone, cabinet and all');
+  await page.getByRole('button', { name: 'The folio’s sky, stream and words' }).click();
+  assert.ok(await fits('.weather-card'), 'its sky, stream and words open on the screen');
+  await page.getByRole('button', { name: 'The folio’s sky, stream and words' }).click();
+  await page.getByRole('button', { name: 'Marks', exact: true }).click();
+  await expect(page.getByTitle('A gilded letter to gather')).toBeInViewport();
+  await page.screenshot({ path: '.local/scriptorium-phone.png' });
+  await page.locator('.compact-contents').click();
+  await expect(page.locator('.maker-row')).toHaveCount(2, { timeout: 5000 });
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, a quiver and an arrow foothold, a butt that raises a crate and a wolf driven off, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit, old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, a quiver and an arrow foothold, a butt that raises a crate and a wolf driven off, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen), old desk reachable, no runtime errors');
 } finally { await browser.close(); }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { CharacterDesignLike } from '../engine/puppet';
 import type { Traveller } from './save';
-import { useFit } from './scene';
+import { useSpread } from './scene';
 import { Flourish, InkIcon, WaxSeal } from './ornaments';
 import PuppetView from './PuppetView';
 import { srcOf } from './levelWorld';
@@ -35,7 +35,7 @@ const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 const nameOf = (id: string) => id === 'char-head-blank' ? 'Plain head' : (ASSETS.find(a => a.id === id)?.name ?? '');
 
 export default function Tailor({ traveller, onDone, onBack }: { traveller: Traveller | null; onDone: (t: Traveller) => void; onBack?: () => void }) {
-  const fit = useFit(W, H, 6);
+  const { leaf, stage, spread } = useSpread(W, H);
   const [design, setDesign] = useState<CharacterDesignLike>(() => traveller?.design ?? PRESETS[0].design);
   const [name, setName] = useState(traveller?.name ?? `${pick(NAMES)} ${pick(EPITHETS)}`);
   const [tab, setTab] = useState<Group>('Head');
@@ -57,10 +57,10 @@ export default function Tailor({ traveller, onDone, onBack }: { traveller: Trave
     setCheer(c => c + 1); audio.play('respawn');
   };
   const ready = !!design.parts.Head && !!design.parts.Body && !!design.parts.Legs;
-  return <div className="tale-screen tailor-screen">
+  return <div className={`tale-screen tailor-screen${leaf ? ' is-leaf' : ''}`}>
     <div className="desk-light" aria-hidden="true" />
-    <div className="spread-stage" style={{ width: W * fit, height: H * fit }}>
-      <div className="spread" style={{ transform: `scale(${fit})` }}>
+    <div className="spread-stage" style={stage}>
+      <div className="spread" style={spread}>
         <div className="spread-page spread-page--left">
           <div className="vellum-sheet" aria-hidden="true" />
           <span className="rubric">The tailor’s page</span>
@@ -68,7 +68,7 @@ export default function Tailor({ traveller, onDone, onBack }: { traveller: Trave
           <Flourish />
           <div className="tailor-stage">
             <div className="tailor-arch" aria-hidden="true" />
-            <PuppetView design={stable} height={430} width={380} walk={walk} cheerKey={cheer} />
+            <PuppetView design={stable} height={leaf ? 250 : 430} width={leaf ? 220 : 380} walk={walk} cheerKey={cheer} />
             <div className="tailor-mound" aria-hidden="true" />
           </div>
           <label className="tailor-name"><span className="rubric small">Their name</span>
@@ -107,7 +107,7 @@ export default function Tailor({ traveller, onDone, onBack }: { traveller: Trave
           <div className="tailor-actions">
             {onBack && <button type="button" className="text-link" onClick={() => { audio.play('page'); onBack(); }}><InkIcon name="left" size={17} /> Back</button>}
             <button type="button" className="seal-button seal-button--inline" disabled={!ready} onClick={() => { audio.play('seal'); onDone({ name: name.trim() || 'The Traveller', design }); }}>
-              <WaxSeal glyph="hare" size={84} seed={21} /><span>{traveller ? 'Keep these clothes' : 'Begin the tale'}</span>
+              <WaxSeal glyph="hare" size={leaf ? 64 : 84} seed={21} /><span>{traveller ? 'Keep these clothes' : 'Begin the tale'}</span>
             </button>
           </div>
         </div>

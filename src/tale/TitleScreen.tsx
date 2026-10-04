@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useFit } from './scene';
+import { LEAF_BELOW, useViewport } from './scene';
 import { InkIcon } from './ornaments';
 import { srcOf } from './levelWorld';
 import { audio } from '../engine/audio';
 
 const W = 1500, H = 960;
+/** The desk on an upright screen: the book above, the candle and inkwell before it. */
+const UPRIGHT_W = 600, UPRIGHT_H = 1090;
 
 /** Gold tooling on the leather: rules, corner fleurons, a lozenge around the title. */
 function Tooling() {
@@ -66,7 +68,11 @@ function InkwellAndQuill() {
 }
 
 export default function TitleScreen({ hasTale, onBegin, onScriptorium }: { hasTale: boolean; onBegin: () => void; onScriptorium: () => void }) {
-  const fit = useFit(W, H, 0);
+  const viewport = useViewport();
+  const wide = Math.min(viewport.w / W, viewport.h / H);
+  const upright = viewport.h > viewport.w && wide < LEAF_BELOW;
+  const [w, h] = upright ? [UPRIGHT_W, UPRIGHT_H] : [W, H];
+  const fit = Math.max(.2, Math.min(viewport.w / w, viewport.h / h, 1.3));
   const [opening, setOpening] = useState(false);
   const [muted, setMuted] = useState(audio.settings.muted);
   useEffect(() => audio.subscribe(() => setMuted(audio.settings.muted)), []);
@@ -81,11 +87,11 @@ export default function TitleScreen({ hasTale, onBegin, onScriptorium }: { hasTa
     setOpening(true);
     window.setTimeout(onBegin, 1050);
   };
-  return <div className="tale-screen title-screen">
+  return <div className={`tale-screen title-screen${upright ? ' is-upright' : ''}`}>
     <div className="desk-light" aria-hidden="true" />
     <div className="motes" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${-i * 1.7}s`, animationDuration: `${14 + (i % 5) * 3}s` }} />)}</div>
-    <div className="title-stage" style={{ width: W * fit, height: H * fit }}>
-      <div className="title-layout" style={{ transform: `scale(${fit})` }}>
+    <div className="title-stage" style={{ width: w * fit, height: h * fit }}>
+      <div className="title-layout" style={{ width: w, height: h, transform: `scale(${fit})` }}>
         <Candle />
         <InkwellAndQuill />
         <div className="closed-book">
@@ -118,7 +124,7 @@ export default function TitleScreen({ hasTale, onBegin, onScriptorium }: { hasTa
     <footer className="title-foot">
       <button type="button" className="quiet-button" onClick={() => { audio.unlock(); audio.set({ muted: !muted }); }} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}><InkIcon name="bell" size={18} />{muted ? 'Sound off' : 'Sound on'}</button>
       <button type="button" className="quiet-button" onClick={() => { audio.unlock(); audio.set({ music: audio.settings.music > .01 ? 0 : .55 }); }} aria-label="Music"><InkIcon name="lute" size={18} />{audio.settings.music > .01 ? 'Music on' : 'Music off'}</button>
-      <span>Original illuminations · Press Enter to begin</span>
+      <span>Original illuminations<span className="title-keys"> · Press Enter to begin</span></span>
     </footer>
   </div>;
 }

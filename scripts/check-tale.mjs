@@ -116,6 +116,44 @@ try {
   await page.waitForTimeout(1500);
   assert.ok(await page.evaluate(() => document.body.scrollWidth) <= 844, 'folio fits a phone held sideways');
   await page.screenshot({ path: '.local/tale-mobile.png' });
+
+  // ——— An upright phone: the cover is rearranged, and the contents and the tailor become a leaf ———
+  // Every screen is a fixed layer, so the body never shows what overflows; each screen is measured itself.
+  const taleSave = await page.evaluate(() => localStorage.getItem('manuscript-maker:tale-v1'));
+  const upright = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const phone = await upright.newPage();
+  phone.on('pageerror', error => errors.push(error.message));
+  await phone.addInitScript(saved => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('manuscript-maker:tale-v1', saved); sessionStorage.setItem('seeded', '1'); } }, taleSave);
+  const box = selector => phone.locator(selector).first().boundingBox();
+  const fits = async selector => { const b = await box(selector); return !!b && b.x >= -1 && b.x + b.width <= 391; };
+  const unscrolledSideways = () => phone.evaluate(() => { const s = document.querySelector('.tale-screen'); return s.scrollWidth <= s.clientWidth; });
+  await phone.goto(base);
+  await expect(phone.locator('.title-screen.is-upright')).toBeVisible();
+  assert.ok((await box('.closed-book')).width >= 300 && await fits('.closed-book'), 'the closed book spans an upright phone');
+  await expect(phone.locator('.title-keys')).toBeHidden();
+  await phone.getByRole('button', { name: /Continue the tale/ }).click();
+  await expect(phone.locator('.contents-screen.is-leaf')).toBeVisible({ timeout: 5000 });
+  assert.ok(await fits('.spread') && await unscrolledSideways(), 'the contents are a leaf the width of the phone');
+  assert.ok((await box('.folio-row')).height >= 44, 'a folio’s row is a finger high');
+  assert.ok(await phone.locator('.folio-name').first().evaluate(e => parseFloat(getComputedStyle(e).fontSize)) >= 18, 'and its name is written large enough to read');
+  await phone.screenshot({ path: '.local/tale-phone-contents.png' });
+  // The corner to the next book is at the leaf's foot; the book it turns to opens at its top.
+  await phone.locator('.leaf-corner--next').click();
+  await expect(phone.getByRole('heading', { name: 'The Greenwood' })).toBeVisible({ timeout: 5000 });
+  assert.equal(await phone.evaluate(() => document.querySelector('.tale-screen').scrollTop), 0, 'a book turned to opens at its top');
+  await phone.locator('.leaf-corner--back').click();
+  await expect(phone.getByRole('heading', { name: 'The Hare’s Road' })).toBeVisible({ timeout: 5000 });
+  await phone.getByRole('button', { name: /Change their clothes/ }).click();
+  await expect(phone.locator('.tailor-screen.is-leaf')).toBeVisible({ timeout: 5000 });
+  assert.ok(await fits('.spread') && await unscrolledSideways(), 'the tailor’s page is a leaf the width of the phone');
+  await phone.getByRole('button', { name: 'Adornment', exact: true }).click();
+  await phone.getByRole('option', { name: /Crown/i }).click();
+  await phone.getByRole('button', { name: /Keep these clothes/ }).click();
+  await expect(phone.getByRole('heading', { name: 'The Hare’s Road' })).toBeVisible({ timeout: 5000 });
+  await phone.waitForTimeout(450);
+  assert.equal(await phone.evaluate(() => JSON.parse(localStorage.getItem('manuscript-maker:tale-v1')).traveller.design.parts.Extra), 'char-crown', 'clothes chosen on the phone are kept');
+  await upright.close();
+
   assert.deepEqual(errors, []);
-  console.log('PASS title, tailor, contents, folio I walked, folio II mended and crossed, seals saved, reload resume, phone fit, no runtime errors');
+  console.log('PASS title, tailor, contents, folio I walked, folio II mended and crossed, seals saved, reload resume, phone fit, the cover, contents and tailor on an upright phone, no runtime errors');
 } finally { await browser.close(); }

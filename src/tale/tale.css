@@ -50,7 +50,7 @@
     radial-gradient(ellipse 60% 55% at 50% 42%, rgba(255, 251, 236, .55), rgba(255, 251, 236, 0) 70%),
     radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0, 0, 0, 0) 58%, rgba(122, 78, 28, .30) 100%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='500'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .3  0 0 0 0 .16  0 0 0 .13 0'/></filter><rect width='100%' height='100%' filter='url(%23f)'/></svg>"),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='5'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .38  0 0 0 0 .16  1.2 0 0 0 -.5'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='m' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .38  0 0 0 0 .16  1.2 0 0 0 -.5'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
   background-size: cover, cover, 500px 500px, 900px 900px;
   box-shadow: 0 34px 70px rgba(0, 0, 0, .55), 0 6px 14px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(90, 60, 30, .28), inset 0 0 40px rgba(140, 95, 40, .18);
 }
@@ -213,7 +213,9 @@
    Inside the picture, sizes are scene units and the picture is shrunk to
    fit, so handles, hints and notices are scaled back up by --inv to keep a
    finger's size and a readable hand. */
-.level-screen.is-compact { display: block; overflow-y: auto; overflow-x: hidden; }
+/* The column is a block, not the screen's grid, and the grid's centring is reset: block layout now
+   honours justify-items, which would shrink the column to its content and centre it off the screen. */
+.level-screen.is-compact { display: block; place-items: normal; overflow-y: auto; overflow-x: hidden; }
 .compact-folio { position: relative; min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 12px max(18px, env(safe-area-inset-bottom)); }
 .compact-folio > .vellum-sheet { border-radius: 0; }
 .compact-folio > :not(.vellum-sheet) { position: relative; }
@@ -258,6 +260,14 @@
 .compact-foot .margin-note { font-size: 16px; }
 .compact-foot.has-library { flex-wrap: wrap; }
 .compact-foot.has-library .folio-margin { flex: 1 1 100%; }
+/* The cabinet in the column: its shelves wrap rather than run off the screen, the shelf takes the
+   whole width, and the ink tools share a row with the Play seal. */
+.is-compact .library-tabs { flex-wrap: wrap; row-gap: 2px; }
+.is-compact .library-tabs > button { font-size: 19px; padding: 8px 8px 9px; }
+.is-compact .library-search input { width: 104px; }
+.mode-build .compact-foot.has-library .folio-margin { display: contents; }
+.compact-foot.has-library .library { flex: 1 1 100%; }
+.compact-foot.has-library .ink-tools { margin-right: auto; }
 .is-compact .folio-brief { align-self: stretch; width: auto; gap: 10px; }
 .is-compact .folio-brief p { font-size: 17px; line-height: 1.45; }
 .is-compact .touch-pad { position: relative; inset: auto; padding: 2px 0 6px; align-self: stretch; }
@@ -365,7 +375,15 @@
 .cover-clasp { position: absolute; right: -6px; width: 34px; height: 64px; border-radius: 6px 0 0 6px; background: linear-gradient(90deg, #6b4712, #e8c066 45%, #8a5e1a); box-shadow: -2px 3px 6px rgba(0, 0, 0, .5); }
 .cover-clasp--top { top: 150px; } .cover-clasp--bottom { bottom: 150px; }
 .title-foot { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 30px; align-items: center; font: italic 15px var(--book); color: rgba(233, 205, 150, .55); z-index: 2; }
-.quiet-button { display: inline-flex; align-items: center; gap: 8px; color: rgba(240, 214, 160, .75) !important; font: italic 15px var(--book) !important; }
+.quiet-button { display: inline-flex; align-items: center; gap: 8px; color: rgba(240, 214, 160, .75) !important; font: italic 15px var(--book) !important; white-space: nowrap; }
+/* With no keyboard to hand, there is no Enter to press. */
+@media (hover: none) { .title-keys { display: none; } }
+/* The desk on an upright screen: the book above, the candle and inkwell set before it. */
+.is-upright .closed-book { left: 13px; top: 34px; }
+.is-upright .desk-candle { left: 46px; top: 808px; width: 108px; height: 270px; }
+.is-upright .desk-inkwell { right: 44px; top: 842px; width: 168px; height: 229px; }
+.is-upright .title-foot { gap: 18px; bottom: max(12px, env(safe-area-inset-bottom)); }
+.is-upright .quiet-button { padding: 8px 2px; }
 .quiet-button:hover { color: #f7dc8c !important; }
 
 /* ——— open-book spreads: contents and the tailor ——— */
@@ -466,6 +484,82 @@
 .sound-toggles { display: flex; gap: 2px; }
 .spread-sound { position: absolute !important; right: 58px; top: 40px; }
 .sound-toggles .ink-tool:not(.is-active) { opacity: .5; }
+
+/* ——— the leaf: an open book on a narrow upright screen ———
+   The spread's two pages are laid one above the other on a single leaf the
+   width of the screen, which scrolls, so the writing keeps a readable size
+   and every control a finger's. The pages give up their own positioning, so
+   the left page's vellum covers the whole leaf, and the sound toggles and
+   the corners for turning between books sit on the leaf itself. */
+.tale-screen.is-leaf { display: block; place-items: normal; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+/* The candlelight stays put, so it adds nothing to scroll past. */
+.is-leaf .desk-light, .is-compact .desk-light { position: fixed; }
+.is-leaf .spread-stage { max-width: 640px; margin: 0 auto; padding: 10px 10px max(14px, env(safe-area-inset-bottom)); }
+.is-leaf .spread { position: relative; width: auto; height: auto; padding-bottom: 8px; }
+.is-leaf .spread:has(.leaf-corner) { padding-bottom: 78px; }
+.is-leaf .spread-page { position: static; width: auto; padding: 22px 20px 4px; }
+.is-leaf .spread-page--right { padding-top: 8px; }
+.is-leaf .spread-gutter, .is-leaf .spread-page--right > .vellum-sheet { display: none; }
+.is-leaf .spread-page--left > .vellum-sheet { border-radius: 6px; box-shadow: 0 18px 40px rgba(0, 0, 0, .55), 0 4px 10px rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(90, 60, 30, .28), inset 0 0 40px rgba(140, 95, 40, .18); }
+.is-leaf .spread-sound { right: 10px; top: 10px; }
+.is-leaf .rubric { font-size: 13px; letter-spacing: .22em; }
+.is-leaf .rubric.small { font-size: 11px; letter-spacing: .18em; }
+.is-leaf .spread-page h1 { font-size: 40px; margin: 8px 48px 4px 0; }
+.is-leaf .flourish { margin: 4px 0 12px; }
+.is-leaf .chapter-intro { font-size: 17px; line-height: 1.45; margin: 4px 0 16px; }
+.is-leaf .chapter-intro .drop-cap { margin: 4px 10px 0 0; }
+.is-leaf .chapter-intro .drop-cap b { font-size: 39px; margin-top: 4px; }
+.is-leaf .text-link { font-size: 17px; padding: 9px 2px 7px; }
+.is-leaf .traveller-card { gap: 18px; margin: 4px 0 16px; }
+.is-leaf .traveller-roundel { width: 112px; height: 112px; flex-shrink: 0; box-shadow: 0 0 0 3px #c9a13b, 0 0 0 5px #7d1812, 0 0 0 6px #e3b04b, 0 6px 14px rgba(60, 35, 10, .35); }
+.is-leaf .traveller-card strong { font-size: 27px; margin: 2px 0 2px; }
+.is-leaf .motto-block, .is-leaf .contents-actions, .is-leaf .tailor-actions { position: relative !important; left: auto; right: auto; bottom: auto; }
+.is-leaf .motto-block { margin-bottom: 10px; }
+.is-leaf .motto { gap: 8px 16px; margin-top: 6px; }
+.is-leaf .motto-letter { width: 22px; height: 28px; font-size: 21px; }
+.is-leaf .folio-list { margin: 8px -6px 10px; }
+.is-leaf .folio-row { gap: 10px; min-height: 50px; padding: 9px 6px; }
+.is-leaf .folio-row:hover:not(:disabled):not(.is-coming) { transform: none; }
+.is-leaf .folio-numeral { width: 34px; font-size: 19px; }
+.is-leaf .folio-name { font-size: 21px; white-space: normal; }
+.is-leaf .leader { min-width: 6px; margin-top: 8px; }
+.is-leaf .folio-seals { min-width: 0; gap: 2px; }
+.is-leaf .folio-seals .wax-seal { width: 22px; height: 22px; }
+.is-leaf .folio-seals .seal-ring { width: 18px; height: 18px; margin: 2px; }
+.is-leaf .folio-row.is-coming em { font-size: 14px; white-space: normal; text-align: right; }
+.is-leaf .seal-total { font-size: 16px; margin: 4px 6px; }
+.is-leaf .seal-total b { font-size: 20px; }
+.is-leaf .book-ended { font-size: 16px; margin: 4px 6px; }
+.is-leaf .contents-actions { gap: 0; margin: 10px 0 0; }
+.is-leaf .leaf-corner { gap: 10px; font-size: 19px; }
+.is-leaf .leaf-corner-label { margin-bottom: 12px; }
+.is-leaf .leaf-corner-label .rubric { font-size: 10px; }
+.is-leaf .leaf-corner-curl { width: 48px; height: 48px; }
+/* the tailor on a leaf */
+.is-leaf .tailor-stage { height: 270px; }
+.is-leaf .tailor-arch { width: 250px; height: 262px; margin-left: -125px; bottom: 8px; border-radius: 125px 125px 10px 10px; box-shadow: inset 0 0 0 4px #c9a13b, inset 0 0 0 6px #7d1812, inset 0 0 0 7px #e3b04b, inset 0 -40px 40px rgba(40, 80, 40, .15), 0 8px 18px rgba(60, 35, 10, .3); }
+.is-leaf .tailor-mound { width: 242px; height: 42px; margin-left: -121px; bottom: 8px; }
+.is-leaf .tailor-stage .puppet-view { margin-bottom: 18px; }
+.is-leaf .tailor-name { gap: 10px; margin: 10px 0 2px; }
+.is-leaf .tailor-name input { font-size: 26px; }
+.is-leaf .tailor-row { gap: 4px 22px; flex-wrap: wrap; margin: 0 0 14px; }
+.is-leaf .tailor-tabs { gap: 0; margin: 6px 0 12px; }
+.is-leaf .tailor-tabs button { flex: 1 1 auto; font-size: 17px; padding: 9px 3px 8px; }
+.is-leaf .tailor-grid { gap: 4px; }
+.is-leaf .tailor-option { padding: 6px 2px; }
+.is-leaf .tailor-option img, .is-leaf .tailor-none { width: 62px; height: 56px; }
+.is-leaf .tailor-none { font-size: 15px; }
+.is-leaf .tailor-option span { font-size: 13px; }
+.is-leaf .tailor-nudge { flex-wrap: wrap; margin: 8px 0 12px; }
+.is-leaf .tailor-nudge button { width: 46px; height: 46px; }
+.is-leaf .tailor-presets { grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; }
+.is-leaf .tailor-preset { padding: 6px 2px; }
+.is-leaf .tailor-preset img { width: 50px; height: 50px; }
+.is-leaf .tailor-preset span { font-size: 13px; }
+.is-leaf .tailor-actions { margin: 18px 0 12px; }
+.is-leaf .seal-button--inline { gap: 10px; }
+.is-leaf .seal-button--inline > span { font-size: 23px; }
+.is-leaf .seal-button--inline small { font-size: 14px; }
 
 /* ——— the Scriptorium's powers on the shared stage ——— */
 .scene-text { z-index: 1; }

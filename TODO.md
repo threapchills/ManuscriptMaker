@@ -13,7 +13,7 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] Reachability solver for level checks (`src/engine/solver.ts`); masonry walls collide as blocks; touch climb buttons when a ladder is present; end-of-book Explicit and contents line.
 - [x] `test:chapter`: the later folios in a real browser (margin drag, touch climbing on a phone, the finale to the end of the book).
 - [x] Compact phone folio layout: a column on upright phones (picture spans the width, tools docked, touch pad below the picture); sideways phones keep the folio with touch buttons in the gutters and finger-sized handles.
-- [ ] The tale's cover, contents and tailor, and the scriptorium's contents, on an upright phone.
+- [x] The tale's cover, contents and tailor, and the scriptorium's contents, on an upright phone: a single leaf that scrolls, and the cover rearranged (2026-10-04). The scriptorium's own folio, broken on upright phones by the screens' grid centring, fixed in the same batch.
 - [x] Archery, part one (named by the user on 2026-10-04; design confirmed the same day): point to aim with the mouse, arrows from the margin counted by the frugal seal, footholds where a level arrow sticks in wood or earth, stone turns arrows aside, water swallows them; a quiver setting in the Scriptorium.
 - [x] Two books in the tale's contents, turned between by a leaf corner; Liber secundus, *The Greenwood*, begun with Folio VII, *The Barred Gate* (the first arrow), proved by the solver with simulated shots.
 - [x] Liber secundus, Folios VIII (*The High Bank*: earth, shots planned from across the water) and IX (*The Watchtower*: stone turns arrows, a crate with an arrow), each proved closed to single arrows or pieces and open several ways.

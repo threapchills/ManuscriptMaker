@@ -2,7 +2,32 @@
 
 Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-04 (later) Claude session: archery, part one — arrows as footholds (read first)
+## 2026-10-04 (evening) Claude session: the book on an upright phone (read first)
+
+- **A leaf, not a shrunken spread.** The open-book screens are the tale's contents and tailor and the scriptorium's contents. Each is a 1500×960 spread scaled to the window, which left its writing about 8px on a phone. Now, when the screen is upright and the spread would be scaled below 0.6, the screen becomes a single leaf: `LEAF_BELOW` and `useSpread` in `src/tale/scene.tsx`, the same rule as the compact folio (`COMPACT_BELOW`).
+  - The left page lies above the right on one sheet of vellum, the width of the screen and at most 640, and the screen scrolls.
+  - Writing and controls keep a readable, finger size: `.is-leaf` in `tale.css` and `scriptorium.css`, plus smaller drop caps, roundels, seals and miniatures passed as props.
+  - The corners for turning between books sit at the leaf's foot. A book turned to opens at its top; the scroll used to be kept.
+  - Desktop and phones held sideways are unchanged.
+- **The cover upright.** On an upright screen the cover is laid out on a 600×1090 desk: the book spans the width, with the candle and inkwell before it. "Press Enter to begin" is hidden where nothing can hover (`.title-keys`).
+- **Fixed: the scriptorium's folio on an upright phone** (broken in the published app before this session).
+  - **The fault.** The compact column measured 2158 wide and was centred off both edges, so the title, the folio's settings and the book button could not be reached.
+  - **The cause.** Newer Chromium honours `justify-items` in block layout. The screens' grid centring (`place-items: center` on `.tale-screen`) therefore shrank the column to its content, the cabinet's long shelf, and centred it. Both block layouts (`.level-screen.is-compact` and `.is-leaf`) now reset `place-items`.
+  - **The column now.** The cabinet's shelves wrap onto two rows, its shelf takes the whole width, and the ink tools share a row with the Play seal. The folio's settings card opens beneath the head at the column's width; at its fixed 430 width it had opened off the left edge.
+- **Small fixes.**
+  - The vellum's mottling now tiles seamlessly (`stitchTiles`); a tall leaf showed a band 900 down.
+  - The candlelight is fixed on scrolling screens, so it adds nothing to scroll past.
+  - A folio's tools in the scriptorium's contents are always shown where nothing can hover.
+- **Why the old phone checks missed it.** They measured `document.body`, which never overflows, because every screen is a fixed layer. The checks now measure the screen and its parts.
+  - `test:tale` opens the cover, contents and tailor on an upright phone (390×844, touch). It turns to the second book and back, and checks that a crown chosen on the phone is kept.
+  - `test:scriptorium` checks, at an upright phone's width, the contents leaf, the folio column, the cabinet and the settings card, and that the Marks shelf can be reached.
+- **Checks run before pushing**: `npm test` (194), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **Next**:
+  - The maker's own pictures across the whole book: the cabinet lists only those on the current folio, so one vanishes once its last piece is removed.
+  - Possibly a third book, once the user has chosen what it should teach (flying was the other mechanic named).
+  - On touch, a way to see an arrow's flight before loosing it (the user put PC first).
+
+## 2026-10-04 (later) Claude session: archery, part one — arrows as footholds
 
 - **The user's design answers** (2026-10-04, after "archery is a thing"): arrows should do three things, built in this order: **footholds**, then **targets that work things**, then **perils and beasts**. Aiming is **point to aim**: click the spot to shoot at ("PC first. mobile is not priority"). Arrows come **from the margin**: a folio offers a few, and the frugal seal counts them.
 - **Engine** (`src/engine/archery.ts`, pure apart from its drawing helpers): `aim` takes the flatter of the two ballistic arcs that reach the clicked spot (speed 1250, gravity 1100 page units per second), or the 45° shot when the spot is out of range. `stepArrow` flies in steps of at most two cells, so an arrow cannot pass through a thin plank. Wood, earth, grass, hay, leaves and cloth take an arrow; stone turns it aside (it springs back and tumbles away); below the stream's surface it sinks. An arrow that sticks within 38° of level in an upright face becomes a **foothold**: the 46 units of shaft left standing out become a one-way wooden ledge 5 units thick, laid into the collision field (`addFoothold`), so the traveller can land on it and leap up through it. An arrow struck into the ground or the top of a wall sticks but makes no ledge (the upright test looks for solid material a little above the point of impact, just inside the face). `trajectory` previews a shot and how it will end.
@@ -97,7 +122,7 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
   - **Pictures.** A wolf's pictures load when he is placed and before play; a wolf placed later used to have no pictures, and was quietly left out of play.
   - **Checked.** `test:scriptorium` hangs a butt, sets a wolf down and gives the crate "When struck: Butt i · Rises" through the interface. In play it sends the wolf running, then strikes the butt and finds the crate risen by its height. It begins again, takes the butt down (the crate forgets its motion) and sends the wolf away.
 - **Checks run before pushing archery in the scriptorium**: `npm test` (194), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
-- **Next**:
+- **Next** (as left then; the upright phone screens were done in the evening session above):
   - The tale's cover, contents and tailor on upright phones.
   - The maker's own pictures across the whole book.
   - Possibly a third book, once the user has chosen what it should teach (flying was the other mechanic named).

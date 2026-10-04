@@ -60,10 +60,10 @@ npm run build
 Browser checks drive the real app with Playwright and need `npm run dev` running (set `CHROME=/path/to/chromium` if Playwright's own browser is missing):
 
 - `npm run test:levels` proves each folio is closed when bare and solvable several ways, by searching the real physics (`src/engine/solver.ts`); archery folios are proved with shots loosed as play looses them.
-- `npm run test:chapter` plays the later folios in a browser: pieces dragged from the margin, ladders climbed with the touch pad on a phone, the finale walked to the end of the first book, and the second book's first folio climbed by an arrow aimed with the mouse.
-- `npm run test:tale` covers the cover, the tailor, the contents, Folios I and II, saving and reloading.
+- `npm run test:chapter` plays the later folios in a browser: pieces dragged from the margin, ladders climbed with the touch pad on a phone, the finale walked to the end of the first book, and the whole second book, from an arrow aimed with the mouse to the wolf sent running.
+- `npm run test:tale` covers the cover, the tailor, the contents, Folios I and II, saving and reloading, and the cover, contents and tailor on an upright phone.
 - `npm run test:solidity` drops a probe on every walkable piece and checks it rests where the art is painted.
-- `npm run test:scriptorium`, `npm run test:play` and `npm run test:browser` cover the scriptorium, the desk's play scene, and the desk.
+- `npm run test:scriptorium`, `npm run test:play` and `npm run test:browser` cover the scriptorium (on a phone too), the desk's play scene, and the desk.
 
 Pushing `main` tests, builds and deploys the site through GitHub Actions.
 
