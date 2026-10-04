@@ -40,6 +40,8 @@ export interface LevelDef {
   hints: Hint[];
   /** What the first seal says was reached, when the goal is not a signpost. */
   reached?: string;
+  /** Arrows in the quiver, loosed in play; they count toward par like pieces. */
+  quiver?: number;
 }
 
 /** The motto gathered letter by letter across the chapter. */

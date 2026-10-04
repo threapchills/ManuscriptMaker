@@ -1,6 +1,6 @@
 # Playable manuscript vision
 
-Updated 2026-09-24 from the user's direct brief. This document is the shared product direction for Codex, Claude, Grok, and any other collaborator. Read with `AGENTS.md`, `TODO.md`, and `docs/HANDOVER.md`. The active conversation wins if it clarifies or changes this brief.
+Updated 2026-09-24 from the user's direct brief; archery direction added 2026-10-04. This document is the shared product direction for Codex, Claude, Grok, and any other collaborator. Read with `AGENTS.md`, `TODO.md`, and `docs/HANDOVER.md`. The active conversation wins if it clarifies or changes this brief.
 
 ## What Manuscript Maker is becoming
 
@@ -53,13 +53,13 @@ Current prototype architecture: `src/types.ts` declares an optional `gameRole` o
 1. **v0.1 movement and modes:** keep the Manuscript sandbox; add the separate Game campaign save; playable campaign pages, walking, jumping, gravity, solid/platform/scenery/goal roles, restart, keyboard/touch controls, checkpoint-gated page turning, and two short practice pages. The practice pages are prototypes, not finished Level One.
 2. **Character maker:** combine original modular shapes on a small page at new game start, or choose a pre-built traveller. Preserve the design for later editing.
 3. **Construction puzzle foundation:** fixed scene and curated asset tray per page, especially in tutorials, while keeping every editing tool. Build/play/revise; success by actually reaching the checkpoint, allowing different routes. Later improve the broken-bridge challenge design and reset/retry UX without deleting work.
-4. **Interaction foundation:** after movement works well, add enemies, archery and flying as user-requested future mechanics; design other reusable active-object behavior when needed for actual levels. Keep rules understandable in the inspector.
+4. **Interaction foundation:** after movement works well, add enemies, archery and flying as user-requested future mechanics; design other reusable active-object behavior when needed for actual levels. Keep rules understandable in the inspector. Archery comes first (2026-10-04): arrows that stick level in wood or earth become footholds (built), then arrows that strike targets to work doors, switches and drawbridges, then perils and beasts.
 5. **Content and polish:** more original medieval art and playable characters/backgrounds, purposeful page composition, visual/audio feedback, accessibility, mobile usability, performance, and browser verification. Make finished Level One only when its creation puzzle and play solution are fully designed and reliable.
 
 ## Open product decisions for the user
 
 - What outcomes beyond reaching the checkpoint should matter when later mechanics arrive? For v0.1, traversal alone is enough.
-- Which mechanics should follow movement first among enemies, archery, and flying? On 2026-10-04 the user named archery ("archery is a thing"); what arrows do, and the order of the others, is not yet set.
+- Which mechanics should follow movement first among enemies, archery, and flying? On 2026-10-04 the user named archery ("archery is a thing") and settled what arrows do, in this order: footholds, then targets that work things, then perils and beasts. Aiming is point-and-click, PC first; arrows come from each folio's margin and count toward the frugal seal. Footholds are built; the order of enemies and flying after archery is not yet set.
 - Should campaign scenes be copyable into the Manuscript sandbox for unrestricted creation? This has not been specified; do not assume conversion or shared saves.
 
 Do not silently settle these open points in a way that locks the product direction. Build compatible foundations and record assumptions in the handover.

@@ -37,7 +37,7 @@ export interface StageState {
   spawn: { x: number; y: number };
 }
 
-export interface StageResult { letters: boolean[]; letterCount: number; pieces: number; time: number; deaths: number }
+export interface StageResult { letters: boolean[]; letterCount: number; pieces: number; /** Arrows loosed on the winning run. */ arrows?: number; time: number; deaths: number }
 
 export const ROLE_LABELS: Record<GameRole, { name: string; note: string }> = {
   solid: { name: 'Ground', note: 'stood on and bumped into' },

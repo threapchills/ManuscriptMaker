@@ -8,6 +8,8 @@ import type { InputController } from './input';
 import type { Collectible, Rect, World, WorldEvent } from './world';
 import { advanceWorld, createWorld, drawnFeet } from './world';
 import { audio } from './audio';
+import type { Arrow } from './archery';
+import { addFoothold, drawAim, drawArrow, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
 
 export interface SessionSpec {
   field: Field;
@@ -25,11 +27,15 @@ export interface SessionSpec {
   sink?: number;
   /** A stream along the bottom of the scene, painted over everything it covers. */
   water?: { y: number };
+  /** Arrows in the quiver for each run. */
+  quiver?: number;
 }
 
 export interface SessionCallbacks {
   onEvents?: (events: WorldEvent[], session: PlaySession) => void;
   onShake?: (amount: number) => void;
+  /** Arrows left in the quiver, and loosed so far this run. */
+  onArrows?: (left: number, loosed: number) => void;
 }
 
 /** Everything a running playtest needs: physics, feel, particles and drawing. */
@@ -50,9 +56,21 @@ export class PlaySession {
   /** While frozen the world waits at the start (building); time, light and particles still move. */
   frozen = false;
 
+  /** Arrows in flight or stuck fast this run; footholds they make are laid into the field. */
+  arrows: Arrow[] = [];
+  quiver = 0;
+  loosed = 0;
+  /** Where the pointer rests over the picture, for the dotted line of a shot. */
+  aimAt: { x: number; y: number } | null = null;
+  private bowAt = -10;
+  /** The walkable masks before any arrow, to wipe footholds away when a run begins again. */
+  private platforms: ReturnType<typeof snapshotPlatforms>;
+
   constructor(spec: SessionSpec, private input: InputController, private callbacks: SessionCallbacks = {}) {
     this.spec = spec;
     this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
+    this.platforms = snapshotPlatforms(spec.field);
+    this.quiver = spec.quiver ?? 0;
     this.paintLetters();
     // Letters are drawn in blackletter; repaint once the face has arrived.
     void document.fonts?.load?.('40px "UnifrakturMaguntia"').then(() => this.paintLetters()).catch(() => undefined);
@@ -74,7 +92,34 @@ export class PlaySession {
     this.lensImage = null;
     this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
     this.collectedAt = [];
+    this.platforms = snapshotPlatforms(spec.field);
+    this.refillQuiver();
     if (lettersChanged) this.paintLetters();
+  }
+
+  private refillQuiver(): void {
+    this.arrows = []; this.quiver = this.spec.quiver ?? 0; this.loosed = 0;
+    this.callbacks.onArrows?.(this.quiver, 0);
+  }
+
+  /** Where arrows leave the bow: chest height, a little ahead of the traveller. */
+  private bowPoint(facing: number): { x: number; y: number } {
+    const b = this.world.body, c = this.spec.field.cell;
+    return { x: (b.x + b.w / 2) * c + facing * 16 * this.spec.unit, y: (b.y + b.h) * c - this.spec.avatarHeight * .58 };
+  }
+
+  /** Loose an arrow at a spot in the picture, if there is one to loose. */
+  loose(x: number, y: number): boolean {
+    if (this.frozen || this.world.phase !== 'playing' || this.quiver <= 0) return false;
+    const b = this.world.body, c = this.spec.field.cell;
+    const facing = x < (b.x + b.w / 2) * c ? -1 : 1;
+    b.facing = facing;
+    const from = this.bowPoint(facing);
+    this.arrows.push(loose(from, { x, y }, this.spec.unit));
+    this.quiver--; this.loosed++; this.bowAt = this.time;
+    audio.play('loose', { pan: (from.x / this.spec.pageWidth - .5) * 1.2 });
+    this.callbacks.onArrows?.(this.quiver, this.loosed);
+    return true;
   }
 
   /** What lies just ahead of the traveller: used by automated playtests. */
@@ -93,10 +138,12 @@ export class PlaySession {
   }
 
   restart(): void {
+    if (this.arrows.some(a => a.hit?.foothold)) { restorePlatforms(this.spec.field, this.platforms); this.lensImage = null; }
     this.world = createWorld({ ...this.world.spec });
     this.particles = new Particles();
     this.collectedAt = [];
     this.squash = 0; this.stretch = 0;
+    this.refillQuiver();
   }
 
   /** Advance by real elapsed seconds. */
@@ -126,6 +173,30 @@ export class PlaySession {
       for (const goal of this.spec.goals) this.particles.emit('mote', goal.x + Math.random() * goal.width, goal.y + goal.height * (.3 + Math.random() * .7), 1, 1, unit);
     }
     this.particles.update(dt);
+    this.flyArrows(dt);
+  }
+
+  private flyArrows(dt: number): void {
+    if (!this.arrows.length) return;
+    const { unit } = this.spec;
+    const page = { width: this.spec.pageWidth, height: this.spec.pageHeight, unit, waterY: this.spec.water?.y };
+    const pan = (x: number) => (x / this.spec.pageWidth - .5) * 1.2;
+    for (const a of this.arrows) {
+      const e = stepArrow(a, this.spec.field, dt, page);
+      if (!e || e.type === 'gone') continue;
+      if (e.type === 'stick') {
+        if (e.foothold && addFoothold(this.spec.field, a, unit)) this.lensImage = null;
+        this.particles.emit('dust', e.x, e.y, 5, .5, unit);
+        audio.play('thunk', { material: e.material, pan: pan(e.x) });
+      } else if (e.type === 'glance') {
+        this.particles.emit('spark', e.x, e.y, 6, .5, unit);
+        audio.play('clink', { pan: pan(e.x) });
+      } else if (e.type === 'sink') {
+        this.particles.emit('splash', e.x, e.y, 10, .6, unit);
+        audio.play('plop', { pan: pan(e.x) });
+      }
+    }
+    this.arrows = this.arrows.filter(a => a.state !== 'gone');
   }
 
   private handle(events: WorldEvent[]): void {
@@ -255,6 +326,8 @@ export class PlaySession {
       }
     }
 
+    for (const a of this.arrows) drawArrow(context, a, unit);
+
     // The traveller.
     let alpha = 1, extraScale = 1, sinkBy = 0;
     const drowning = world.phase === 'dying' && !!spec.water && feet.y > spec.water.y - 10;
@@ -278,6 +351,14 @@ export class PlaySession {
 
     if (spec.water) drawWater(context, spec.water.y, spec.pageWidth, spec.pageHeight, this.time);
     this.particles.draw(context);
+
+    // The dotted line of the next shot, and the bow as it is drawn and loosed.
+    if (this.aimAt && !this.frozen && this.quiver > 0 && world.phase === 'playing') {
+      const facing = this.aimAt.x < feet.x ? -1 : 1;
+      drawAim(context, trajectory(this.bowPoint(facing), this.aimAt, spec.field, { width: spec.pageWidth, height: spec.pageHeight, unit, waterY: spec.water?.y }), unit, this.time);
+    }
+    const sinceBow = this.time - this.bowAt;
+    if (sinceBow < .45 && alpha > 0) drawBow(context, this.bowPoint(b.facing), b.facing, unit, Math.max(0, 1 - sinceBow / .45));
   }
 }
 
@@ -310,6 +391,24 @@ export function drawWater(c: CanvasRenderingContext2D, y: number, width: number,
     c.globalAlpha = .35 + .35 * Math.sin(time * 2 + i);
     c.beginPath(); c.moveTo(gx, gy); c.quadraticCurveTo(gx + len / 2, gy - 3, gx + len, gy); c.stroke();
   }
+  c.restore();
+}
+
+/** A short bow held at the chest, its string just loosed. */
+function drawBow(c: CanvasRenderingContext2D, at: { x: number; y: number }, facing: number, unit: number, alpha: number): void {
+  const r = 24 * unit;
+  c.save();
+  c.globalAlpha = alpha;
+  c.translate(at.x - facing * 6 * unit, at.y);
+  c.scale(facing, 1);
+  c.lineCap = 'round';
+  c.strokeStyle = '#4a2c14'; c.lineWidth = 4 * unit;
+  c.beginPath(); c.arc(-r * .55, 0, r, -Math.PI / 2.6, Math.PI / 2.6); c.stroke();
+  c.strokeStyle = '#a8743a'; c.lineWidth = 2 * unit;
+  c.beginPath(); c.arc(-r * .55, 0, r, -Math.PI / 2.6, Math.PI / 2.6); c.stroke();
+  const tipX = -r * .55 + r * Math.cos(Math.PI / 2.6), tipY = r * Math.sin(Math.PI / 2.6);
+  c.strokeStyle = 'rgba(240, 232, 210, .9)'; c.lineWidth = 1 * unit;
+  c.beginPath(); c.moveTo(tipX, -tipY); c.lineTo(tipX - 3 * unit * alpha, 0); c.lineTo(tipX, tipY); c.stroke();
   c.restore();
 }
 

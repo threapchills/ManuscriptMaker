@@ -156,6 +156,14 @@
 .tray-piece img { max-width: 96px; max-height: 66px; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 35, 10, .35)); }
 .tray-count { position: absolute; right: -9px; bottom: -9px; min-width: 32px; height: 32px; padding: 0 6px; border-radius: 16px; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #d9483b, #9c1f18 70%); color: #fde9d3; font: 19px/1 var(--book); box-shadow: 0 2px 4px rgba(60, 10, 5, .4); }
 .tray-piece.is-spent { opacity: .38; filter: grayscale(.8); cursor: not-allowed; }
+/* The quiver: shown in the margin, loosed in play by clicking where to shoot. */
+.tray-piece.quiver-token { cursor: help; border-style: solid; border-color: rgba(125, 24, 18, .35); }
+.tray-piece.quiver-token:hover { transform: none; }
+.quiver-token .sheaf { width: 58px; height: 58px; }
+.quiver-left { display: inline-flex; align-items: center; gap: 6px; font: italic 19px var(--book); color: var(--vermilion-deep); }
+.quiver-left .sheaf { width: 30px; height: 30px; }
+.quiver-left.is-empty { color: var(--ink-faint); }
+.scene.can-shoot { cursor: crosshair; }
 .ink-tools { display: flex; gap: 2px; margin-left: auto; }
 .ink-tool { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #3b2a1d; transition: background .15s, transform .15s, color .15s; }
 .ink-tool .ink-icon { stroke-width: 2.1; }

@@ -68,6 +68,8 @@ export function validateManuscript(value: unknown): Manuscript {
   if(d.scene !== undefined) validateScene(d.scene, d);
   return d;
 }
+/** The most arrows a folio's quiver may hold. */
+export const MAX_ARROWS = 12;
 function validateScene(scene: unknown, page: Manuscript) {
   const bad = () => { throw new Error('This file contains unsupported play settings.'); };
   if(!scene || typeof scene !== 'object' || Array.isArray(scene)) bad();
@@ -75,6 +77,7 @@ function validateScene(scene: unknown, page: Manuscript) {
   if(s.sky !== undefined && !['day','dawn','dusk','night','none'].includes(s.sky as string)) bad();
   if(s.waterY !== undefined && s.waterY !== null && !numeric(s.waterY, 0, page.height)) bad();
   if(s.brief !== undefined && (typeof s.brief !== 'string' || s.brief.length > 4000)) bad();
+  if(s.arrows !== undefined && !(Number.isInteger(s.arrows) && (s.arrows as number) >= 0 && (s.arrows as number) <= MAX_ARROWS)) bad();
   if(s.spawn !== undefined) { const p = s.spawn as { x: unknown; y: unknown }; if(!p || !numeric(p.x, -10000, 10000) || !numeric(p.y, -10000, 10000)) bad(); }
   if(s.letters !== undefined) {
     if(!Array.isArray(s.letters) || s.letters.length > 60) bad();

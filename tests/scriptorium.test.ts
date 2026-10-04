@@ -103,4 +103,14 @@ describe('the Scriptorium book', () => {
     (page.layers[0] as ImageLayer).motion = 'spin' as never;
     expect(() => validateManuscript(page)).toThrow(/motion/);
   });
+
+  it('keeps a folio\'s quiver and refuses an impossible one', () => {
+    const page = newFolio(1);
+    expect(page.scene?.arrows).toBeUndefined();
+    const armed: Manuscript = { ...page, scene: { ...page.scene, arrows: 3 } };
+    expect(() => validateManuscript(armed)).not.toThrow();
+    const { state } = pageToStage(armed);
+    expect(stageToPage(armed, state).scene?.arrows).toBe(3);
+    for (const arrows of [-1, 2.5, 13, '3']) expect(() => validateManuscript({ ...page, scene: { ...page.scene, arrows: arrows as number } })).toThrow(/play settings/);
+  });
 });

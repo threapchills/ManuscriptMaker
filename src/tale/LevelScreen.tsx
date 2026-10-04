@@ -9,7 +9,7 @@ import FolioStage from './stage/FolioStage';
 import type { StagePiece, StageResult, StageState } from './stage/types';
 
 export { FOLIO_W, FOLIO_H } from './stage/FolioStage';
-export interface LevelResult { letters: boolean[]; pieces: number; time: number; deaths: number }
+export interface LevelResult { letters: boolean[]; pieces: number; /** Arrows loosed. */ arrows?: number; time: number; deaths: number }
 
 const BUCKET: Record<ScenePiece['layer'], number> = { far: 0, mid: 1, ground: 2, front: 4 };
 const fromScene = (p: ScenePiece): StagePiece => ({
@@ -43,7 +43,7 @@ export default function LevelScreen({ level, record, traveller, onPieces, onComp
   const onChange = useCallback((s: StageState) => onPieces(s.pieces.filter(p => !p.fixed).map(toPlaced)), [onPieces]);
   const onWin = useCallback((r: StageResult) => {
     setRecordBefore(recordRef.current);
-    onComplete({ letters: r.letters, pieces: r.pieces, time: r.time, deaths: r.deaths });
+    onComplete({ letters: r.letters, pieces: r.pieces, arrows: r.arrows ?? 0, time: r.time, deaths: r.deaths });
   }, [onComplete]);
   // New pieces take the tray's role for their kind.
   const tray = level.tray;
@@ -53,10 +53,10 @@ export default function LevelScreen({ level, record, traveller, onPieces, onComp
     brief={level.brief} briefTone={level.numeral % 2 ? 'red' : 'blue'}
     sky={level.sky} skySeed={level.numeral * 13} waterY={level.waterY}
     initial={initial} onChange={onChange}
-    traveller={traveller} tray={tray} scaleRange={SCALE_RANGE} hints={level.hints}
+    traveller={traveller} tray={tray} quiver={level.quiver} scaleRange={SCALE_RANGE} hints={level.hints}
     lettersKept={record.letters}
     onWin={onWin}
-    card={(result, controls) => <Explicit level={level} result={{ letters: result.letters, pieces: result.pieces, time: result.time, deaths: result.deaths }} record={recordBefore}
+    card={(result, controls) => <Explicit level={level} result={{ letters: result.letters, pieces: result.pieces, arrows: result.arrows ?? 0, time: result.time, deaths: result.deaths }} record={recordBefore}
       onNext={onNext} nextTitle={nextTitle} onAgain={controls.again} onBuild={controls.build} onContents={onContents} />}
     onContents={onContents}
   />;

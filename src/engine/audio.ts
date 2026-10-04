@@ -7,7 +7,8 @@ import type { Material } from './field';
  */
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
-  | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open';
+  | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
+  | 'loose' | 'thunk' | 'clink' | 'plop';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -272,6 +273,27 @@ class AudioEngine {
         break;
       case 'rotate':
         this.noiseBurst({ gain: .03, decay: .03, type: 'bandpass', freq: 2800, q: 3, pan, wet: 0 });
+        break;
+      case 'loose':
+        // The bowstring's low twang, then the arrow's whisper away.
+        this.pluck(vary(98, .03), .2, now, { bright: .35, pan, rate: .6 });
+        this.tone({ freq: vary(150), to: 90, type: 'triangle', gain: .07, decay: .09, pan, wet: .05 });
+        this.noiseBurst({ at: now + .02, gain: .05, attack: .03, decay: .28, type: 'bandpass', freq: 2600, q: .9, sweepTo: 900, pan, wet: .15 });
+        break;
+      case 'thunk': {
+        const soft = o.material === 'hay' || o.material === 'leaves' || o.material === 'grass' || o.material === 'earth';
+        this.tone({ freq: vary(soft ? 140 : 220), to: soft ? 70 : 110, type: 'triangle', gain: .16, decay: soft ? .07 : .1, pan, wet: .08 });
+        this.noiseBurst({ gain: soft ? .06 : .09, decay: .05, type: 'lowpass', freq: soft ? 900 : 1800, pan, wet: .08 });
+        if (!soft) this.tone({ at: now + .01, freq: vary(520, .1), to: 480, type: 'sine', gain: .03, decay: .16, pan, wet: .2 });
+        break;
+      }
+      case 'clink':
+        this.bell(vary(1900, .05), .05, now, .35, .25);
+        this.noiseBurst({ gain: .05, decay: .03, type: 'highpass', freq: 3800, pan, wet: .1 });
+        break;
+      case 'plop':
+        this.tone({ freq: vary(420), to: 980, type: 'sine', gain: .07, attack: .005, decay: .09, pan, wet: .25 });
+        this.noiseBurst({ gain: .05, decay: .12, type: 'bandpass', freq: 900, q: .8, pan, wet: .25 });
         break;
     }
   }

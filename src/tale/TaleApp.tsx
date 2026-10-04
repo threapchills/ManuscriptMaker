@@ -57,7 +57,7 @@ export default function TaleApp({ onScriptorium, onClose }: { onScriptorium: () 
           updateRecord(level.id, r => ({
             ...r, done: true, plays: r.plays + 1,
             letters: r.letters.map((v, i) => v || !!result.letters[i]),
-            frugal: r.frugal || result.pieces <= level.par,
+            frugal: r.frugal || result.pieces + (result.arrows ?? 0) <= level.par,
             bestTime: r.bestTime === undefined ? result.time : Math.min(r.bestTime, result.time),
           }));
           setTale(t => ({ ...t, unlocked: Math.max(t.unlocked, Math.min(LEVELS.length - 1, screen.index + 1)) }));

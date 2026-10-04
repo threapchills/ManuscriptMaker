@@ -124,6 +124,41 @@ try {
   assert.equal(own.gameRole, 'solid');
   await page.keyboard.press('Delete');
 
+  // A quiver: an arrow loosed in play sticks in a crate's wooden face as a foothold.
+  await page.getByRole('button', { name: 'Ground', exact: true }).click();
+  await page.getByLabel('Find a piece').fill('crate');
+  await drag(page.getByRole('button', { name: /Wooden crate\. Drag/ }), { x: at.x(330), y: at.y(520) });
+  await page.getByLabel('Find a piece').fill('');
+  await page.getByRole('button', { name: /sky, stream and words/ }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'One arrow more' }).click();
+  await page.getByRole('button', { name: /sky, stream and words/ }).click();
+  saved = await book();
+  assert.equal(saved.pages[0].scene.arrows, 3, 'the quiver is kept with the folio');
+  await expect(page.locator('.quiver-token')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(500);
+  const crateFace = saved.pages[0].layers.at(-1);
+  await page.mouse.move(at.x(crateFace.x + 8), at.y(515), { steps: 3 });
+  await page.mouse.down(); await page.mouse.up();
+  await page.waitForTimeout(900);
+  const quiver = () => page.evaluate(() => { const s = window.__playSession; return { left: s.quiver, arrows: s.arrows.map(a => ({ state: a.state, foothold: !!a.hit?.foothold, material: a.hit?.material })) }; });
+  let shot = await quiver();
+  assert.equal(shot.left, 2, 'loosing an arrow takes it from the quiver');
+  assert.deepEqual(shot.arrows, [{ state: 'stuck', foothold: true, material: 'wood' }], 'an arrow into the crate’s face sticks as a foothold');
+  await expect(page.locator('.quiver-left')).toContainText('ii left');
+  await page.screenshot({ path: '.local/scriptorium-arrow.png' });
+  await page.keyboard.press('r');
+  await page.waitForTimeout(300);
+  shot = await quiver();
+  assert.equal(shot.left, 3, 'beginning again refills the quiver');
+  assert.equal(shot.arrows.length, 0, 'and pulls the arrows out');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await page.mouse.click(at.x(crateFace.x + crateFace.width / 2), at.y(crateFace.y + crateFace.height / 2));
+  await page.keyboard.press('Delete');
+  saved = await book();
+  assert.equal(saved.pages[0].layers.some(l => l.id === crateFace.id), false, 'the crate goes back to the cabinet');
+
   // The folio's own sky, stream and name.
   await page.getByRole('button', { name: /sky, stream and words/ }).click();
   await page.getByRole('button', { name: 'Night', exact: true }).click();
@@ -195,5 +230,5 @@ try {
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit, old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, a quiver and an arrow foothold, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit, old desk reachable, no runtime errors');
 } finally { await browser.close(); }

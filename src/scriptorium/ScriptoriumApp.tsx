@@ -238,11 +238,12 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, onWalke
     brief={brief} briefTone={index % 2 ? 'blue' : 'red'}
     sky={sky} skySeed={skySeedOf(page)} paper={page.paper} waterY={waterY}
     initial={initial} onChange={onChange}
-    traveller={traveller}
-    headerExtra={<FolioSettings sky={sky} waterY={waterY} height={page.height} brief={scene.brief ?? DEFAULT_BRIEF}
+    traveller={traveller} quiver={scene.arrows ?? 0}
+    headerExtra={<FolioSettings sky={sky} waterY={waterY} height={page.height} brief={scene.brief ?? DEFAULT_BRIEF} arrows={scene.arrows ?? 0}
       onSky={value => onUpdate(id, p => ({ ...p, scene: { ...p.scene, sky: value } }))}
       onWater={y => onUpdate(id, p => ({ ...p, scene: { ...p.scene, waterY: y } }))}
-      onBrief={text => onUpdate(id, p => ({ ...p, scene: { ...p.scene, brief: text.slice(0, 4000) } }))} />}
+      onBrief={text => onUpdate(id, p => ({ ...p, scene: { ...p.scene, brief: text.slice(0, 4000) } }))}
+      onArrows={count => onUpdate(id, p => ({ ...p, scene: { ...p.scene, arrows: count } }))} />}
     hints={firstTime ? FIRST_HINTS : undefined}
     onPlay={() => storage.set(HINTS_KEY, '1')}
     onWin={() => onWalked(id)}

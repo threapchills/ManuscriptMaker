@@ -21,9 +21,11 @@ Each folio presses up to three seals: the road walked, every gilded letter gathe
 
 **Controls:** ← → or A/D walk · Space leaps (hold it to leap higher) · ↑ ↓ climb a ladder · R begins again · Esc returns to building · L shows the scribe's lens, which outlines solid ground. On touch screens a pad appears during play, with climbing buttons whenever a ladder is on the page. Progress is saved in this browser.
 
+**Archery:** a folio may offer a few arrows in its margin. In play, rest the pointer where you want to shoot to see the arrow's arc, and click to loose it. An arrow that strikes wood or earth roughly level sticks fast and makes a foothold you can stand on; stone turns arrows aside and water swallows them. Arrows count toward a folio's par like pieces, and beginning again refills the quiver. The tale's first chapter needs none; archery folios are being written.
+
 ## Make your own folios: the scriptorium
 
-Choose **The scriptorium** on the cover. Its folios use the same stage as the tale with everything unlocked: the whole cabinet of art (ground, dwellings, nature, sky, beasts, folk, marks), pictures of your own, gilded letters, passages of writing, and a role for every picture (ground, ledge, scenery, peril, ladder, goal, or the traveller). Give each folio a sky and a stream, play any page or the whole book in order, and save or open the book as a file. Pages from the old desk can be brought in.
+Choose **The scriptorium** on the cover. Its folios use the same stage as the tale with everything unlocked: the whole cabinet of art (ground, dwellings, nature, sky, beasts, folk, marks), pictures of your own, gilded letters, passages of writing, and a role for every picture (ground, ledge, scenery, peril, ladder, goal, or the traveller). Give each folio a sky, a stream and a quiver of arrows, play any page or the whole book in order, and save or open the book as a file. Pages from the old desk can be brought in.
 
 ## The old illuminator's desk
 
@@ -64,7 +66,7 @@ Pushing `main` tests, builds and deploys the site through GitHub Actions.
 - `src/tale/`: the tale's cover, tailor, contents, folio screen and Explicit card; `levels.ts` holds the folios as data, with measured walkable surfaces.
 - `src/tale/stage/`: the folio stage shared by the tale and the scriptorium, and the cabinet of pieces.
 - `src/scriptorium/`: the scriptorium's book of folios, its settings, and conversion to and from project pages.
-- `src/engine/`: play. Collision is rasterised from each picture's painted pixels; a fixed-step controller, per-asset physics, the puppet, synthesised sound and music, and the reachability solver used by the checks.
+- `src/engine/`: play. Collision is rasterised from each picture's painted pixels; a fixed-step controller, per-asset physics, archery, the puppet, synthesised sound and music, and the reachability solver used by the checks.
 - `src/App.tsx`, `src/ManuscriptCanvas.tsx`, `src/TextEditor.tsx`, `src/text.ts`, `src/document.ts`, `src/project.ts`, `src/export.ts`: the old illuminator's desk.
 - `src/assets.ts`, `src/generated-assets.json` and `public/assets/`: the art catalog. Sheet originals, prompts and manifests live in `art-source/`; see `docs/ART_PIPELINE.md`.
 - `scripts/`: the browser checks and the level harness. `docs/`: the product vision (`GAME_VISION.md`) and the agents' handover notes.

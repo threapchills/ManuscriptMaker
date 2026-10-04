@@ -15,11 +15,13 @@ export default function Explicit({ level, result, record, onNext, nextTitle, onA
 }) {
   const letters = result.letters.filter(Boolean).length;
   const allLetters = letters === 3 || record.letters.every(Boolean);
-  const frugal = result.pieces <= level.par || record.frugal;
+  const spent = result.pieces + (result.arrows ?? 0);
+  const frugal = spent <= level.par || record.frugal;
+  const used = [result.pieces || !result.arrows ? `${result.pieces} ${result.pieces === 1 ? 'piece' : 'pieces'}` : '', result.arrows ? `${result.arrows} ${result.arrows === 1 ? 'arrow' : 'arrows'}` : ''].filter(Boolean).join(' and ');
   const seals = [
     { earned: true, fresh: !record.done, title: 'The road is walked', note: level.reached ?? 'You reached the signpost.' },
     { earned: allLetters, fresh: letters === 3 && !record.letters.every(Boolean), title: 'Every gilded letter', note: letters === 3 ? 'All three gathered.' : allLetters ? 'Gathered on an earlier walk.' : `${letters} of 3 this time.` },
-    { earned: frugal, fresh: result.pieces <= level.par && !record.frugal, title: 'A frugal scribe', note: level.par === 0 ? 'No pieces needed.' : `${result.pieces} ${result.pieces === 1 ? 'piece' : 'pieces'} used · par ${level.par}.` },
+    { earned: frugal, fresh: spent <= level.par && !record.frugal, title: 'A frugal scribe', note: level.par === 0 && !level.quiver ? 'No pieces needed.' : `${used} used · par ${level.par}.` },
   ];
   useEffect(() => {
     const timers = seals.map((s, i) => window.setTimeout(() => { if (s.earned) audio.play('seal'); }, 520 + i * 420));

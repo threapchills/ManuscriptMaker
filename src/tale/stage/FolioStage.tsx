@@ -72,6 +72,8 @@ export interface FolioStageProps {
   onChange: (state: StageState) => void;
   /** Scriptorium powers: every piece editable, roles, letters and the start. */
   free?: boolean;
+  /** Arrows in the quiver for each run: loosed in play by clicking where to shoot. */
+  quiver?: number;
   traveller: Traveller | null;
   tray?: TrayItem[];
   scaleRange?: [number, number];
@@ -105,6 +107,8 @@ export default function FolioStage(props: FolioStageProps) {
   const [ghost, setGhost] = useState<{ pick: LibraryPick; x: number; y: number; over: boolean } | null>(null);
   const [lettersNow, setLettersNow] = useState<boolean[]>([]);
   const [falls, setFalls] = useState(0);
+  const quiver = props.quiver ?? 0;
+  const [arrows, setArrows] = useState({ left: quiver, loosed: 0 });
   const [result, setResult] = useState<StageResult | null>(null);
   const [showCard, setShowCard] = useState(false);
   const [settling, setSettling] = useState<string | null>(null);
@@ -151,8 +155,9 @@ export default function FolioStage(props: FolioStageProps) {
 
   const specFor = useCallback((s: StageState, imgs: Map<string, LoadedImage>) => {
     const field = buildStageField(s.pieces, W, H, props.waterY, imgs);
-    return stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller });
-  }, [W, H, props.waterY, props.traveller]);
+    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller });
+    return spec && { ...spec, quiver };
+  }, [W, H, props.waterY, props.traveller, quiver]);
 
   const winRef = useRef<(s: PlaySession) => void>(() => undefined);
   useEffect(() => {
@@ -168,6 +173,7 @@ export default function FolioStage(props: FolioStageProps) {
           if (e.type === 'win') winRef.current(s);
         }
       },
+      onArrows: (left, loosed) => setArrows({ left, loosed }),
     });
     session.frozen = true;
     setPlayerId(spec.playerId);
@@ -332,6 +338,11 @@ export default function FolioStage(props: FolioStageProps) {
   const pickSpawn = (x: number, y: number) => free && !playerId && Math.abs(x - stateRef.current.spawn.x) < 30 * unit && y < stateRef.current.spawn.y + 6 && y > stateRef.current.spawn.y - AVATAR_HEIGHT * unit;
 
   const onScenePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (mode === 'play' && event.button === 0) {
+      const { x, y } = toScene(event.clientX, event.clientY);
+      if (sessionRef.current?.loose(x, y)) event.preventDefault();
+      return;
+    }
     if (mode !== 'build' || event.button !== 0) return;
     audio.unlock();
     const { x, y } = toScene(event.clientX, event.clientY);
@@ -360,6 +371,7 @@ export default function FolioStage(props: FolioStageProps) {
     audio.play('lift');
   };
   const onScenePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (modeRef.current === 'play' && sessionRef.current) { const { x, y } = toScene(event.clientX, event.clientY); sessionRef.current.aimAt = { x, y }; }
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId) return;
     const { x, y } = toScene(event.clientX, event.clientY);
@@ -478,7 +490,7 @@ export default function FolioStage(props: FolioStageProps) {
     setMode('play'); audio.play('respawn');
   }, []);
   winRef.current = (s: PlaySession) => {
-    const r: StageResult = { letters: [...s.world.collected], letterCount: stateRef.current.letters.length, pieces: placedCount, time: (performance.now() - startedAt.current) / 1000, deaths: s.world.deaths };
+    const r: StageResult = { letters: [...s.world.collected], letterCount: stateRef.current.letters.length, pieces: placedCount, arrows: s.loosed, time: (performance.now() - startedAt.current) / 1000, deaths: s.world.deaths };
     setMode('won'); setResult(r);
     props.onWin(r);
     window.setTimeout(() => setShowCard(true), 950);
@@ -622,8 +634,9 @@ export default function FolioStage(props: FolioStageProps) {
 
   const miniature = (place: CSSProperties) => <div className="miniature" ref={shakeRef} style={{ ...place, width: frameW, height: frameH }}>
     <GildedFrame width={frameW} height={frameH} band={compact ? COMPACT_BAND : undefined} />
-    <div ref={sceneRef} className={`scene${lens ? ' has-lens' : ''} paper-${props.paper ?? 'vellum'}`} style={{ width: W, height: H, transform: shown !== 1 ? `scale(${shown})` : undefined, transformOrigin: '0 0' }}
-      onPointerDown={onScenePointerDown} onPointerMove={onScenePointerMove} onPointerUp={onScenePointerUp} onPointerCancel={onScenePointerUp}>
+    <div ref={sceneRef} className={`scene${lens ? ' has-lens' : ''}${mode === 'play' && arrows.left > 0 ? ' can-shoot' : ''} paper-${props.paper ?? 'vellum'}`} style={{ width: W, height: H, transform: shown !== 1 ? `scale(${shown})` : undefined, transformOrigin: '0 0' }}
+      onPointerDown={onScenePointerDown} onPointerMove={onScenePointerMove} onPointerUp={onScenePointerUp} onPointerCancel={onScenePointerUp}
+      onPointerLeave={() => { if (sessionRef.current) sessionRef.current.aimAt = null; }}>
       {props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={W} height={H} />}
       {back.map(renderPiece)}
       <canvas ref={overlayRef} className="scene-overlay" aria-hidden="true" />
@@ -655,7 +668,11 @@ export default function FolioStage(props: FolioStageProps) {
             <span className="tray-count">{left > 0 ? toRoman(left).toLowerCase() : '—'}</span>
           </button>;
         })}
-      </div> : props.emptyMargin ?? <p className="margin-note">No pieces are needed here. Press <b>Play</b> and walk the road.</p>}
+      </div> : quiver ? null : props.emptyMargin ?? <p className="margin-note">No pieces are needed here. Press <b>Play</b> and walk the road.</p>}
+      {quiver > 0 && <div className="tray-piece quiver-token" title="Arrows in the quiver: in play, click where to loose one" aria-label={`${quiver} ${quiver === 1 ? 'arrow' : 'arrows'} in the quiver, loosed in play by clicking where to shoot`}>
+        <Sheaf />
+        <span className="tray-count">{toRoman(quiver).toLowerCase()}</span>
+      </div>}
       <div className="ink-tools">
         {tool('undo', 'Undo (Ctrl Z)', undo, !history.current.length)}
         {tool('redo', 'Redo (Ctrl Y)', redo, !future.current.length)}
@@ -663,7 +680,8 @@ export default function FolioStage(props: FolioStageProps) {
         {!free && tool('sweep', 'Clear your pieces', () => { if (placedCount) { commit(withPieces(stateRef.current, stateRef.current.pieces.filter(p => p.fixed))); setSelection(null); audio.play('drop'); } }, !placedCount)}
       </div>
     </> : <div className="play-notes">
-      {!(compact && touch) && <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>}
+      {!(compact && touch) && <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>}{quiver > 0 && <> · <b>click</b> to loose an arrow</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>}
+      {quiver > 0 && <span className={`quiver-left${arrows.left ? '' : ' is-empty'}`} aria-live="polite"><Sheaf />{arrows.left ? `${toRoman(arrows.left).toLowerCase()} left` : 'the quiver is empty'}</span>}
       <div className="ink-tools">
         {tool('restart', 'Begin again (R)', restart)}
         {tool('lens', 'Scribe’s lens (L)', () => setLens(v => !v), false, lens)}
@@ -747,6 +765,19 @@ export default function FolioStage(props: FolioStageProps) {
     {ghostBlock}
     {touchPad}
   </div>;
+}
+
+/** Three arrows bound as a sheaf: the quiver's mark in the margin. */
+function Sheaf() {
+  return <svg className="sheaf" viewBox="0 0 64 64" aria-hidden="true">
+    {[-24, 0, 24].map(turn => <g key={turn} transform={`rotate(${turn} 32 34)`}>
+      <line x1="32" y1="58" x2="32" y2="10" stroke="#3a2412" strokeWidth="4.2" strokeLinecap="round" />
+      <line x1="32" y1="58" x2="32" y2="10" stroke="#c99a5b" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M32 3 L37 13 L27 13 Z" fill="#42474f" />
+      <path d="M32 50 L38 60 L32 56 Z" fill="#b3261e" /><path d="M32 50 L26 60 L32 56 Z" fill="#f4ecd8" stroke="#8a7a60" strokeWidth=".6" />
+    </g>)}
+    <rect x="25" y="36" width="14" height="5" rx="2" fill="#7d1812" />
+  </svg>;
 }
 
 /** Unrotated fractions within a piece's box, for passages and loose picking. */

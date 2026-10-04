@@ -14,7 +14,11 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] `test:chapter`: the later folios in a real browser (margin drag, touch climbing on a phone, the finale to the end of the book).
 - [x] Compact phone folio layout: a column on upright phones (picture spans the width, tools docked, touch pad below the picture); sideways phones keep the folio with touch buttons in the gutters and finger-sized handles.
 - [ ] The tale's cover, contents and tailor, and the scriptorium's contents, on an upright phone.
-- [ ] Archery, named by the user on 2026-10-04 as the next mechanic. Confirm what arrows do before building; then Chapter II.
+- [x] Archery, part one (named by the user on 2026-10-04; design confirmed the same day): point to aim with the mouse, arrows from the margin counted by the frugal seal, footholds where a level arrow sticks in wood or earth, stone turns arrows aside, water swallows them; a quiver setting in the Scriptorium.
+- [ ] Archery, Chapter II: folios that teach arrow footholds, proved by the solver once the level harness can simulate shots.
+- [ ] Archery, part two: targets that work things (switches, doors, drawbridges).
+- [ ] Archery, part three: perils and beasts.
+- [ ] Archery on touch: a way to see the shot before loosing it (the user put PC first; mobile is not a priority).
 - [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).
 
 ## Playable manuscript direction — new top product priority
@@ -34,7 +38,7 @@ The product has two separate experiences: **Manuscript sandbox mode** for free b
 - [x] Add 32 original scene objects and 32 original modular character parts from two reviewed 8×4 sheets. Offer new-game character construction plus four pre-built characters; use the selected sprite as the player on campaign pages.
 - [ ] Allow reopening and editing an existing custom character, propagating changes safely to campaign pages.
 - [ ] Add progression, reset/retry, accessibility, touch usability and performance checks before calling any guided level complete.
-- [ ] Later design enemies, archery, and flying and ask which order matters most. For now completion is checkpoint traversal with walking/jumping; no extra construction constraint.
+- [ ] Later design enemies, archery, and flying and ask which order matters most. Archery came first (2026-10-04; footholds built, targets and beasts to follow); ask which of enemies and flying comes next. Completion is still checkpoint traversal; no extra construction constraint.
 
 ## Release checkpoint — highest priority
 
