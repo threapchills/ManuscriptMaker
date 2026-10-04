@@ -39,7 +39,7 @@ export default function LevelScreen({ level, record, traveller, onPieces, onComp
     const fixed = level.scene.map(fromScene).sort((a, b) => BUCKET[level.scene.find(p => p.key === a.id)!.layer] - BUCKET[level.scene.find(p => p.key === b.id)!.layer]);
     const behind = fixed.filter(p => !p.front), front = fixed.filter(p => p.front);
     const placed = record.pieces.map(p => ({ id: p.id, kind: 'image' as const, src: srcOf(p.asset), asset: p.asset, x: p.x, y: p.y, width: p.width, height: p.height, rotation: p.rotation, flipX: p.flipX, flipY: p.flipY, role: roleOfPlaced(level, p.asset) }));
-    return { pieces: [...behind, ...placed, fromScene(level.goal), ...front], letters: level.letters.map((l, i) => ({ id: `${level.id}-l${i}`, ...l })), spawn: level.spawn, targets: level.targets };
+    return { pieces: [...behind, ...placed, fromScene(level.goal), ...front], letters: level.letters.map((l, i) => ({ id: `${level.id}-l${i}`, ...l })), spawn: level.spawn, targets: level.targets, beasts: level.beasts };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
   const onChange = useCallback((s: StageState) => onPieces(s.pieces.filter(p => !p.fixed).map(toPlaced)), [onPieces]);

@@ -19,7 +19,7 @@ import { music } from '../../engine/music';
 import { ASSETS } from '../../assets';
 import type { StageLetter, StagePiece, StageResult, StageState } from './types';
 import { ROLE_LABELS, localPoint, posed } from './types';
-import { AVATAR_HEIGHT, buildStageField, loadStageImages, srcOf, stageSpec } from './world';
+import { AVATAR_HEIGHT, WOLF_PARTS, buildStageField, loadStageImages, srcOf, stageSpec } from './world';
 import Library from './Library';
 import type { LibraryPick } from './Library';
 import PassageEditor from './PassageEditor';
@@ -144,7 +144,8 @@ export default function FolioStage(props: FolioStageProps) {
   // ——— pictures ———
   useEffect(() => {
     let cancelled = false;
-    void loadStageImages(stateRef.current.pieces, props.traveller, (props.tray ?? []).map(t => srcOf(t.asset))).then(map => { if (!cancelled) setImages(map); });
+    const beastParts = stateRef.current.beasts?.length ? Object.values(WOLF_PARTS).map(srcOf) : [];
+    void loadStageImages(stateRef.current.pieces, props.traveller, [...(props.tray ?? []).map(t => srcOf(t.asset)), ...beastParts]).then(map => { if (!cancelled) setImages(map); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.stageKey, props.traveller]);
@@ -160,7 +161,7 @@ export default function FolioStage(props: FolioStageProps) {
 
   const specFor = useCallback((s: StageState, imgs: Map<string, LoadedImage>) => {
     const field = buildStageField(s.pieces, W, H, props.waterY, imgs);
-    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller, targets: s.targets });
+    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller, targets: s.targets, beasts: s.beasts });
     return spec && { ...spec, quiver };
   }, [W, H, props.waterY, props.traveller, quiver]);
 

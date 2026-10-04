@@ -49,6 +49,8 @@ export interface LevelDef {
   quiver?: number;
   /** Butts to shoot at; a struck one sets the scene pieces it works moving. */
   targets?: Array<{ id: string; x: number; y: number; kind?: 'butt' | 'bell'; /** Hidden until this target is struck. */ after?: string }>;
+  /** Beasts keeping ground: their touch sends the traveller back; an arrow drives them off. */
+  beasts?: Array<{ id: string; kind: 'wolf'; x0: number; x1: number; y: number }>;
 }
 
 
@@ -644,6 +646,59 @@ const folio11: LevelDef = {
   ],
 };
 
+// ——— Folio XII: the grey wolf ———
+// The end of the second book. A timber palisade about 222 high, climbed on an
+// arrow as at the barred gate; beyond it a grey wolf keeps the road before
+// the abbey door. From the road the palisade hides him; from its top an arrow
+// sends him running. (A bold leap over a charging wolf may also serve.)
+const f12Wall = [...f7Rows(470), ...f7Rows(590)];
+const f12Top = topOf(f12Wall[1]);
+const folio12: LevelDef = {
+  id: 'folio-12', numeral: 12, title: 'The Grey Wolf',
+  brief: 'The abbey at the greenwood’s end, and a grey wolf keeping the road before its door. No arrow will wound him, but one will send him running. Climb the palisade, and see him off from above.',
+  sky: 'dusk',
+  scene: [
+    piece('moon-silver', 1080, 50, 74, { layer: 'far', anim: 'bob', opacity: .9 }),
+    piece('cloud-bank', 140, 100, 300, { layer: 'far', anim: 'drift', opacity: .7 }),
+    piece('cloud-curl', 760, 70, 150, { layer: 'far', anim: 'drift', opacity: .7 }),
+    piece('hills-blue', -60, 330, 800, { layer: 'far', opacity: .85, filter: 'saturate(.7) brightness(.85)' }),
+    piece('hills-blue', 600, 344, 760, { layer: 'far', opacity: .8, flipX: true, filter: 'saturate(.7) brightness(.85)' }),
+    piece('pine-grove', 820, 310, 300, { layer: 'far', filter: 'brightness(.85)' }),
+    piece('forest-line', -20, 404, 660, { layer: 'far', filter: 'brightness(.85)' }),
+    piece('forest-line', 620, 410, 700, { layer: 'far', flipX: true, filter: 'brightness(.85)' }),
+    standing('pine-single', 60, 565, 92, { layer: 'mid' }),
+    standing('leafy-grove', 250, 568, 220, { layer: 'mid', filter: 'brightness(.9)' }),
+    // The abbey's west wall, its door and a window over it.
+    standing('wall-stone-straight', 1180, 562, 240, { layer: 'mid' }),
+    standing('wall-stone-straight', 1180, 562 - 98, 240, { layer: 'mid' }),
+    standing('wall-stone-straight', 1180, 562 - 196, 240, { layer: 'mid' }),
+    standing('window-gothic', 1180, 330, 60, { layer: 'mid' }),
+    standing('roof-gable-red', 1180, 562 - 280, 250, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    ...f12Wall,
+    standing('wildflowers', 160, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 760, 570, 70, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 1050, 570, 76, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('door-oak', 1180, 562, 92, { role: 'goal', layer: 'ground' }),
+  reached: 'You knocked at the abbey door.',
+  // V is free; A needs the palisade climbed; T lies on the wolf's own ground.
+  letters: [{ x: 300, y: 400, glyph: 'V' }, { x: 530, y: f12Top - 80, glyph: 'A' }, { x: 930, y: 515, glyph: 'T' }],
+  beasts: [{ id: 'wolf', kind: 'wolf', x0: 790, x1: 1060, y: 562 }],
+  tray: [],
+  quiver: 3,
+  par: 2,
+  hints: [
+    { x: 530, y: f12Top - 30, text: 'too high to leap', mode: 'build', point: 'down' },
+    { x: 900, y: 380, text: 'he keeps the road', mode: 'build', point: 'down' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -675,10 +730,8 @@ export const BOOKS: BookDef[] = [
     intro: 'From the armoury of the keep the traveller takes a short bow and a quiver, and turns toward the greenwood. Where the way climbs past any leap, loose an arrow into timber or earth and stand upon its shaft.',
     motto: 'FORTES FORTUNA IUVAT',
     explicit: { rubric: 'Explicit liber secundus', line: 'The second book is ended. Fortes fortuna iuvat.' },
-    levels: [folio7, folio8, folio9, folio10, folio11],
-    coming: [
-      { numeral: 12, title: 'The Grey Wolf' },
-    ],
+    levels: [folio7, folio8, folio9, folio10, folio11, folio12],
+    coming: [],
   },
 ];
 

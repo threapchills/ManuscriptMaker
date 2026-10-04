@@ -8,7 +8,7 @@ import type { Material } from './field';
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
   | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
-  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle';
+  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'yelp' | 'bite';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -301,6 +301,21 @@ class AudioEngine {
         this.bell(vary(392 * 2.4, .01), .045, now + .005, 1.8, .6);
         this.bell(vary(196, .01), .06, now, 3.6, .5);
         this.noiseBurst({ gain: .06, decay: .03, type: 'bandpass', freq: 2200, q: 1.2, pan, wet: .2 });
+        break;
+      case 'growl':
+        // A low rumble in the throat, rising.
+        this.tone({ freq: vary(68), to: 92, type: 'sawtooth', gain: .06, attack: .06, decay: .5, pan, wet: .15 });
+        this.noiseBurst({ gain: .05, attack: .05, decay: .45, type: 'bandpass', freq: 320, q: 2.5, pan, wet: .15 });
+        break;
+      case 'yelp':
+        // A startled yip, and away.
+        this.tone({ freq: vary(780), to: 1180, type: 'triangle', gain: .09, attack: .005, decay: .12, pan, wet: .2 });
+        this.tone({ at: now + .1, freq: vary(980), to: 620, type: 'triangle', gain: .06, decay: .14, pan, wet: .2 });
+        break;
+      case 'bite':
+        // A snap of jaws and a tumble.
+        this.noiseBurst({ gain: .12, decay: .04, type: 'highpass', freq: 2600, pan, wet: .1 });
+        this.tone({ at: now + .03, freq: vary(150), to: 70, type: 'square', gain: .05, decay: .16, pan, wet: .15 });
         break;
       case 'works':
         // Chains paying out and old timber groaning.

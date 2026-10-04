@@ -37,6 +37,8 @@ export interface Arrow {
 export type ArrowEvent =
   | { type: 'stick'; x: number; y: number; material?: Material; foothold: boolean }
   | { type: 'target'; id: string; x: number; y: number }
+  /** It struck a beast's hide and glanced off; `dx` is the way it was flying. */
+  | { type: 'beast'; id: string; x: number; y: number; dx: number }
   | { type: 'glance'; x: number; y: number; material?: Material }
   | { type: 'sink'; x: number; y: number }
   | { type: 'gone' };
@@ -96,7 +98,7 @@ const strikeAt = (f: Field, x: number, y: number) => {
 const flightStep = (f: Field, unit: number) => f.cell / (1920 * unit);
 
 /** Fly an arrow on for `dt` seconds. Returns what happened, if anything did. Targets already struck should be left out of `page.targets`. */
-export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number; height: number; unit: number; waterY?: number; targets?: Target[] }): ArrowEvent | null {
+export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number; height: number; unit: number; waterY?: number; targets?: Target[]; beasts?: Array<{ id: string; x: number; y: number; width: number; height: number }> }): ArrowEvent | null {
   a.age += dt;
   if (a.state !== 'flying') {
     if (a.state === 'glancing') { a.vy += ARROW.gravity * page.unit * dt; a.x += a.vx * dt; a.y += a.vy * dt; if (a.age > .7 || a.y > page.height + 40) a.state = 'gone'; }
@@ -119,6 +121,14 @@ export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number;
         a.hit = { x: a.x, y: a.y, dx: a.vx / len, dy: a.vy / len, material: 'wood', foothold: false, target: target.id };
         return { type: 'target', id: target.id, x: a.x, y: a.y };
       }
+    }
+    const beast = page.beasts?.find(r => a.x >= r.x && a.x <= r.x + r.width && a.y >= r.y && a.y <= r.y + r.height);
+    if (beast) {
+      // No arrow wounds a beast here: it glances off the hide, and the beast takes fright.
+      const dx = Math.sign(a.vx) || 1;
+      a.state = 'glancing'; a.age = 0;
+      a.vx = -a.vx * .2; a.vy = -Math.abs(a.vy) * .3 - 200 * page.unit;
+      return { type: 'beast', id: beast.id, x: a.x, y: a.y, dx };
     }
     const at = strikeAt(f, a.x, a.y);
     if (!at.wall) continue;
@@ -160,7 +170,7 @@ export function addFoothold(f: Field, a: Arrow, unit = 1): boolean {
 }
 
 /** Where a shot would go, for the dotted aiming line: the path, and how it ends. */
-export function trajectory(from: { x: number; y: number }, to: { x: number; y: number }, f: Field, page: { width: number; height: number; unit: number; waterY?: number; targets?: Target[] }, seconds = 1.6): { points: Array<[number, number]>; end: ArrowEvent | null } {
+export function trajectory(from: { x: number; y: number }, to: { x: number; y: number }, f: Field, page: Parameters<typeof stepArrow>[3], seconds = 1.6): { points: Array<[number, number]>; end: ArrowEvent | null } {
   const a = loose(from, to, page.unit);
   const points: Array<[number, number]> = [[a.x, a.y]];
   const dt = 1 / 90;
@@ -263,6 +273,11 @@ export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof tra
       const t = i * Math.PI / 4 + time * .8;
       c.beginPath(); c.moveTo(ex + Math.cos(t) * r * 1.2, ey + Math.sin(t) * r * 1.2); c.lineTo(ex + Math.cos(t) * r * 1.55, ey + Math.sin(t) * r * 1.55); c.stroke();
     }
+  } else if (end?.type === 'beast') {
+    const r = 15 * unit * (1 + .12 * Math.sin(time * 8));
+    c.strokeStyle = 'rgba(179, 38, 30, .9)'; c.lineWidth = 3 * unit;
+    c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(ex, ey, r * .45, 0, Math.PI * 2); c.stroke();
   } else if (end?.type === 'stick') {
     c.strokeStyle = 'rgba(110, 82, 48, .8)';
     c.beginPath(); c.arc(ex, ey, 7 * unit, 0, Math.PI * 2); c.stroke();

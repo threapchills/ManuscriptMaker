@@ -10,7 +10,8 @@ import { buildRig } from '../../engine/puppet';
 import type { SessionSpec } from '../../engine/session';
 import { ASSETS } from '../../assets';
 import type { Traveller } from '../save';
-import type { StageLetter, StagePiece, StageTarget } from './types';
+import type { StageBeast, StageLetter, StagePiece, StageTarget } from './types';
+import type { BeastRig } from '../../engine/beasts';
 import { posed } from './types';
 
 export const srcOf = (asset: string) => ASSETS.find(a => a.id === asset)?.src ?? '';
@@ -81,11 +82,19 @@ export function stageAvatar(pieces: StagePiece[], images: Map<string, LoadedImag
   };
 }
 
+/** The bestiary parts a wolf is drawn from. */
+export const WOLF_PARTS = { head: 'beast-head-wolf', body: 'beast-body-wolf', leg: 'beast-leg-wolf', tail: 'beast-tail-fox' } as const;
+const wolfRig = (images: Map<string, LoadedImage>): BeastRig | null => {
+  const part = (id: string) => images.get(srcOf(id))?.image;
+  const head = part(WOLF_PARTS.head), body = part(WOLF_PARTS.body), leg = part(WOLF_PARTS.leg), tail = part(WOLF_PARTS.tail);
+  return head && body && leg && tail ? { head, body, leg, tail } : null;
+};
+
 export function stageSpec(o: {
   pieces: StagePiece[]; letters: StageLetter[]; spawn: { x: number; y: number };
   width: number; height: number; waterY?: number; field: Field;
   images: Map<string, LoadedImage>; traveller: Traveller | null;
-  targets?: StageTarget[];
+  targets?: StageTarget[]; beasts?: StageBeast[];
 }): (SessionSpec & { playerId?: string }) | null {
   const unit = Math.max(.6, Math.min(2, o.height / 720));
   const who = stageAvatar(o.pieces, o.images, o.traveller, o.spawn, unit);
@@ -98,6 +107,7 @@ export function stageSpec(o: {
     water: o.waterY !== undefined ? { y: o.waterY } : undefined,
     sink: 4 * unit,
     targets: o.targets?.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind, after: t.after })),
+    beasts: o.beasts?.flatMap(b => { const rig = wolfRig(o.images); return rig ? [{ id: b.id, kind: b.kind, x0: b.x0, x1: b.x1, y: b.y, rig }] : []; }),
     playerId: who.playerId,
   };
 }

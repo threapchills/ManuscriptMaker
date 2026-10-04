@@ -6,7 +6,9 @@ import { drawAvatar } from './puppet';
 import { Particles } from './particles';
 import type { InputController } from './input';
 import type { Collectible, Rect, World, WorldEvent } from './world';
-import { advanceWorld, createWorld, drawnFeet } from './world';
+import { advanceWorld, bodyRect, createWorld, drawnFeet, perish } from './world';
+import type { Beast, BeastRig, BeastSpec } from './beasts';
+import { beastRect, drawBeast, makeBeast, startle, stepBeast } from './beasts';
 import { audio } from './audio';
 import type { Arrow, Target } from './archery';
 import { addFoothold, bowPoint, drawAim, drawArrow, drawTarget, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
@@ -31,6 +33,8 @@ export interface SessionSpec {
   quiver?: number;
   /** Butts to shoot at; each sets something on the page working. */
   targets?: Target[];
+  /** Beasts keeping ground, with the pictures they are drawn from. */
+  beasts?: Array<BeastSpec & { rig: BeastRig }>;
 }
 
 export interface SessionCallbacks {
@@ -73,6 +77,8 @@ export class PlaySession {
   private baseField: Field;
   /** Targets struck this run, and when. */
   struck = new Map<string, number>();
+  /** The beasts as they move this run. */
+  beasts: Beast[] = [];
 
   constructor(spec: SessionSpec, private input: InputController, private callbacks: SessionCallbacks = {}) {
     this.spec = spec;
@@ -80,6 +86,7 @@ export class PlaySession {
     this.platforms = snapshotPlatforms(spec.field);
     this.baseField = spec.field;
     this.quiver = spec.quiver ?? 0;
+    this.beasts = (spec.beasts ?? []).map(makeBeast);
     this.paintLetters();
     // Letters are drawn in blackletter; repaint once the face has arrived.
     void document.fonts?.load?.('40px "UnifrakturMaguntia"').then(() => this.paintLetters()).catch(() => undefined);
@@ -104,6 +111,7 @@ export class PlaySession {
     this.platforms = snapshotPlatforms(spec.field);
     this.baseField = spec.field;
     this.struck.clear();
+    this.beasts = (spec.beasts ?? []).map(makeBeast);
     this.refillQuiver();
     if (lettersChanged) this.paintLetters();
   }
@@ -173,6 +181,7 @@ export class PlaySession {
     if (this.arrows.some(a => a.hit?.foothold)) { restorePlatforms(this.baseField, this.platforms); this.lensImage = null; }
     if (this.spec.field !== this.baseField) { this.spec = { ...this.spec, field: this.baseField }; this.lensImage = null; }
     this.struck.clear();
+    this.beasts = (this.spec.beasts ?? []).map(makeBeast);
     this.world = createWorld({ ...this.world.spec, field: this.baseField });
     this.particles = new Particles();
     this.collectedAt = [];
@@ -208,6 +217,26 @@ export class PlaySession {
     }
     this.particles.update(dt);
     this.flyArrows(dt);
+    if (!this.frozen) this.moveBeasts(dt);
+  }
+
+  /** Beasts keep their ground and run at a traveller who comes onto it; their touch sends them back. */
+  private moveBeasts(dt: number): void {
+    if (!this.beasts.length) return;
+    const { unit } = this.spec, world = this.world;
+    const feet = world.phase === 'playing' ? drawnFeet(world, 1) : null;
+    for (const beast of this.beasts) {
+      const was = beast.state;
+      stepBeast(beast, dt, feet, unit, this.spec.pageWidth);
+      if (beast.state === 'chase' && was === 'patrol') audio.play('growl', { pan: (beast.x / this.spec.pageWidth - .5) * 1.2 });
+      const hide = beastRect(beast, unit);
+      if (!hide || beast.state === 'fleeing' || world.phase !== 'playing') continue;
+      const r = bodyRect(world);
+      if (r.x < hide.x + hide.width && r.x + r.width > hide.x && r.y < hide.y + hide.height && r.y + r.height > hide.y) {
+        const caught = perish(world, 'beast');
+        if (caught) this.handle([caught]);
+      }
+    }
   }
 
   private flyArrows(dt: number): void {
@@ -218,7 +247,13 @@ export class PlaySession {
     for (const a of this.arrows) {
       const e = stepArrow(a, this.spec.field, dt, page);
       if (!e || e.type === 'gone') continue;
-      if (e.type === 'target') {
+      if (e.type === 'beast') {
+        const beast = this.beasts.find(b => b.spec.id === e.id);
+        if (beast) startle(beast, e.dx);
+        this.particles.emit('dust', e.x, e.y, 8, .7, unit);
+        audio.play('yelp', { pan: pan(e.x) });
+        page.beasts = page.beasts.filter(b => b.id !== e.id);
+      } else if (e.type === 'target') {
         this.struck.set(e.id, this.time);
         page.targets = page.targets.filter(t => t.id !== e.id);
         this.particles.emit('spark', e.x, e.y, 16, .9, unit);
@@ -241,7 +276,8 @@ export class PlaySession {
 
   /** The page as an arrow sees it: its size, its water, and the targets not yet struck. */
   private arrowPage() {
-    return { width: this.spec.pageWidth, height: this.spec.pageHeight, unit: this.spec.unit, waterY: this.spec.water?.y, targets: openTargets(this.spec.targets, this.struck) };
+    const beasts = this.beasts.filter(b => b.state === 'patrol' || b.state === 'chase').map(b => ({ id: b.spec.id, ...beastRect(b, this.spec.unit)! }));
+    return { width: this.spec.pageWidth, height: this.spec.pageHeight, unit: this.spec.unit, waterY: this.spec.water?.y, targets: openTargets(this.spec.targets, this.struck), beasts };
   }
 
   private handle(events: WorldEvent[]): void {
@@ -273,7 +309,8 @@ export class PlaySession {
         this.particles.emit('petal', e.x, e.y - this.spec.avatarHeight * .8, 26, 1.4, unit);
         audio.play('win');
       } else if (e.type === 'death') {
-        if (e.cause === 'hazard') { this.particles.emit('splash', e.x, e.y - 20 * unit, 26, 1, unit); audio.play('splash', { pan: pan(e.x) }); }
+        if (e.cause === 'beast') { this.particles.emit('ink', e.x, e.y - 40 * unit, 22, 1, unit); audio.play('bite', { pan: pan(e.x) }); }
+        else if (e.cause === 'hazard') { this.particles.emit('splash', e.x, e.y - 20 * unit, 26, 1, unit); audio.play('splash', { pan: pan(e.x) }); }
         else { this.particles.emit('ink', e.x, Math.min(e.y, this.spec.pageHeight - 4), 26, 1, unit); audio.play('fall', { pan: pan(e.x) }); }
         this.callbacks.onShake?.(5);
       } else if (e.type === 'respawn') {
@@ -380,6 +417,7 @@ export class PlaySession {
       drawTarget(context, t, unit, this.time, this.struck.has(t.id) ? this.time - this.struck.get(t.id)! : -1);
       context.restore();
     }
+    for (const beast of this.beasts) { const rig = spec.beasts?.find(s => s.id === beast.spec.id)?.rig; if (rig) drawBeast(context, beast, rig, unit); }
     for (const a of this.arrows) drawArrow(context, a, unit);
 
     // The traveller.

@@ -69,7 +69,12 @@ export interface StageState {
   spawn: { x: number; y: number };
   /** Butts to shoot at, which set pieces working. */
   targets?: StageTarget[];
+  /** Beasts keeping ground. */
+  beasts?: StageBeast[];
 }
+
+/** A beast keeping a stretch of ground (by its centre) on the ground at `y`. */
+export interface StageBeast { id: string; kind: 'wolf'; x0: number; x1: number; y: number }
 
 export interface StageResult { letters: boolean[]; letterCount: number; pieces: number; /** Arrows loosed on the winning run. */ arrows?: number; time: number; deaths: number }
 

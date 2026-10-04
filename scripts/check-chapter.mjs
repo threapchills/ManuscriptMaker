@@ -46,13 +46,13 @@ const saved = async page => { await page.waitForTimeout(450); return page.evalua
  * ahead), for a leap that needs every unit; otherwise it leaps as soon as the
  * ground ahead falls away, which carries it onto ramps and over joints.
  */
-async function walkRight(page, { edge = false, ms = 20000 } = {}) {
+async function walkRight(page, { edge = false, ms = 20000, until } = {}) {
   await page.keyboard.down('ArrowRight');
   const began = Date.now();
   let leapt = 0;
   while (Date.now() - began < ms) {
-    const p = await page.evaluate(() => { const s = window.__playSession; return { ...s.probe(34), brink: s.probe(12).gap }; });
-    if (p.phase === 'won') break;
+    const p = await page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { ...s.probe(34), brink: s.probe(12).gap, feet: b.y + b.h }; });
+    if (p.phase === 'won' || (until && p.grounded && until(p))) break;
     if (p.grounded && ((edge ? p.brink : !p.support) || p.wall || (p.stuck && Date.now() - began > 500)) && Date.now() - leapt > 500) {
       leapt = Date.now();
       await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
@@ -316,9 +316,51 @@ try {
   await expect(page.getByRole('dialog')).toContainText('Here endeth the eleventh folio', { timeout: 5000 });
   await expect(page.getByRole('dialog')).toContainText('You crossed the drawbridge into the keep’s yard.');
   await expect(page.getByRole('dialog')).toContainText('2 arrows used · par 2');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-drawbridge.png' });
 
+  // ——— Folio XII: up the palisade on an arrow, the wolf sent running from its top, the abbey door ———
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Grey Wolf' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession && window.__playSession.beasts.length === 1, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  const yard = await page.locator('.scene').boundingBox();
+  const aimAt = async (x, y) => {
+    const at = { x: yard.x + x * yard.width / 1280, y: yard.y + y * yard.height / 720 };
+    await page.mouse.move(at.x, at.y);
+    await page.waitForTimeout(250);
+    await page.mouse.click(at.x, at.y);
+  };
+  await aimAt(409, 470);
+  await page.waitForFunction(() => window.__playSession.arrows.some(a => a.hit?.foothold), null, { timeout: 4000 });
+  await page.mouse.move(yard.x + 20, yard.y + 20);
+  // Forward to the far edge of the top: from further back, a shot down at a wolf close beneath runs into the palisade's own timber.
+  await walkRight(page, { until: p => p.feet < 350 && p.x >= 600 });
+  assert.ok(await page.evaluate(() => { const b = window.__playSession.world.body; return b.y + b.h < 350 && window.__playSession.beasts[0].state !== 'gone'; }), 'the traveller stands on the palisade, and the wolf still keeps the road');
+  const wolf = await page.evaluate(() => { const b = window.__playSession.beasts[0]; return { x: b.x, y: b.spec.y - 50 }; });
+  await aimAt(wolf.x, wolf.y);
+  await page.waitForFunction(() => ['fleeing', 'gone'].includes(window.__playSession.beasts[0].state), null, { timeout: 4000 }).catch(async error => {
+    console.log('the wolf did not flee:', JSON.stringify(await page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { feet: [b.x + b.w / 2, b.y + b.h], phase: s.world.phase, wolf: s.beasts.map(w => [Math.round(w.x), w.state]), arrows: s.arrows.map(a => [a.state, a.hit && [Math.round(a.hit.x), Math.round(a.hit.y)]]), quiver: s.quiver }; })), 'aimed at', JSON.stringify(wolf));
+    await page.screenshot({ path: '.local/chapter-wolf-failed.png' });
+    throw error;
+  });
+  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'gone', null, { timeout: 6000 });
+  await page.mouse.move(yard.x + 20, yard.y + 20);
+  await walkRight(page);
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the twelfth folio', { timeout: 5000 });
+  await expect(page.getByRole('dialog')).toContainText('You knocked at the abbey door.');
+  await expect(page.getByRole('dialog')).toContainText('2 arrows used · par 2');
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the second book');
+  await page.screenshot({ path: '.local/chapter-wolf.png' });
+  await page.getByRole('button', { name: /To the contents/ }).click();
+  await expect(page.getByText('Explicit liber secundus')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.leaf-turn')).toHaveCount(0, { timeout: 3000 });
+  const gilded2 = await page.locator('.motto-letter.is-found').count();
+  const gathered2 = Object.entries((await saved(page)).folios).filter(([id]) => Number(id.split('-')[1]) >= 7).reduce((n, [, r]) => n + r.letters.filter(Boolean).length, 0);
+  assert.ok(gathered2 >= 6 && gilded2 === gathered2, `the second book's motto gilds every letter gathered on its walk (${gilded2} gilded, ${gathered2} gathered)`);
+  await page.screenshot({ path: '.local/chapter-book-two-ended.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, and Folio XI crossed by the butt and the bell the drawbridge hid, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf sent running from the palisade to end the second book, no runtime errors');
 } finally { await browser.close(); }

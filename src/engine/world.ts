@@ -28,7 +28,7 @@ export interface WorldEvent {
   strength?: number;
   material?: Material;
   index?: number;
-  cause?: 'fall' | 'hazard';
+  cause?: 'fall' | 'hazard' | 'beast';
 }
 
 export interface World {
@@ -119,6 +119,14 @@ export function stepWorld(world: World, input: ControlInput, dt = STEP): WorldEv
     events.push({ type: 'death', x: feet.x, y: Math.min(feet.y, spec.pageHeight), cause: fell ? 'fall' : 'hazard' });
   }
   return events;
+}
+
+/** Caught (by a beast): the traveller tumbles and comes back to the start, as from a peril. */
+export function perish(world: World, cause: 'fall' | 'hazard' | 'beast'): WorldEvent | null {
+  if (world.phase !== 'playing') return null;
+  const feet = feetOf(world.body, world.spec.field);
+  world.phase = 'dying'; world.phaseTime = 0; world.deaths++;
+  return { type: 'death', x: feet.x, y: Math.min(feet.y, world.spec.pageHeight), cause };
 }
 
 /**

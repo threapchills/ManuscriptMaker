@@ -2,7 +2,7 @@
 // lets a simple reactive traveller try to walk it, with and without pieces.
 import { LEVELS, SCALE_RANGE, TRAY_WIDTH, ground, standing, topOf } from '../../src/tale/levels';
 import type { LevelDef } from '../../src/tale/levels';
-import { buildLevelField, goalRect, loadLevelImages } from '../../src/tale/levelWorld';
+import { beastGround, buildLevelField, goalRect, loadLevelImages } from '../../src/tale/levelWorld';
 import type { PlacedPiece } from '../../src/tale/save';
 import { createWorld, stepWorld, STEP } from '../../src/engine/world';
 import { makeBody, scaleTuning, stepBody, TUNING } from '../../src/engine/controller';
@@ -138,7 +138,7 @@ export async function tryBuilt(index: number, specs: Spec[], seconds = 20) { ret
 export async function solveLevel(index: number, pieces: PlacedPiece[] = []) {
   const level: LevelDef = LEVELS[index];
   const images = await loadLevelImages(level, traveller);
-  const field = buildLevelField(level, pieces, images);
+  const field = buildLevelField(level, pieces, images, undefined, undefined, true);
   const began = performance.now();
   const r = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals: [goalRect(level, images)] });
   return { id: level.id, solved: r.solved, nodes: r.nodes, steps: r.steps, ms: Math.round(performance.now() - began), highest: Math.round(r.highest), furthest: Math.round(r.furthest), path: r.path, trail: r.trail };
@@ -170,11 +170,11 @@ type Shot = { from: [number, number]; at: [number, number] };
 const PAGE = (waterY?: number) => ({ width: 1280, height: 720, unit: 1, waterY });
 
 /** Loose an arrow from where the traveller stands, exactly as play does; any foothold is laid into the field. */
-function shootFrom(field: Field, feet: { x: number; y: number }, at: { x: number; y: number }, waterY?: number, targets: Target[] = []): { event: ArrowEvent | null; arrow: Arrow } {
+function shootFrom(field: Field, feet: { x: number; y: number }, at: { x: number; y: number }, waterY?: number, targets: Target[] = [], beasts: Array<{ id: string; x: number; y: number; width: number; height: number }> = []): { event: ArrowEvent | null; arrow: Arrow } {
   const facing = at.x < feet.x ? -1 : 1;
   const arrow = loose(bowPoint(feet, AVATAR_HEIGHT, facing), at);
   for (let t = 0; t < 5; t += STEP) {
-    const event = stepArrow(arrow, field, STEP, { ...PAGE(waterY), targets });
+    const event = stepArrow(arrow, field, STEP, { ...PAGE(waterY), targets, beasts });
     if (!event) continue;
     if (event.type === 'stick' && event.foothold) addFoothold(field, arrow);
     return { event, arrow };
@@ -198,7 +198,9 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
   const level: LevelDef = LEVELS[index];
   const images = await loadLevelImages(level, traveller);
   const pieces = buildPieces(specs);
-  let field = buildLevelField(level, pieces, images);
+  // Beasts keep their ground as a peril until an arrow drives them off.
+  const gone = new Set<string>();
+  let field = buildLevelField(level, pieces, images, undefined, gone, true);
   // Targets struck so far, and the footholds made, to lay again when a struck target moves something.
   const struck = new Set<string>();
   const steps: Arrow[] = [];
@@ -207,12 +209,14 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
     const [fx, fy] = shot.from;
     const spot = placesOn(level, field).filter(p => Math.abs(p.y - fy) <= 10).sort((a, b) => Math.hypot(a.x - fx, a.y - fy) - Math.hypot(b.x - fx, b.y - fy))[0];
     if (!spot || Math.abs(spot.x - fx) > 14) return { id: level.id, solved: false, failed: `nowhere to stand near ${fx},${fy}`, loosed };
-    const { event, arrow } = shootFrom(field, spot, { x: shot.at[0], y: shot.at[1] }, level.waterY, openTargets(level.targets, struck));
+    // A beast is somewhere along its round when the arrow arrives: a shot through its ground can find it.
+    const beasts = (level.beasts ?? []).filter(b => !gone.has(b.id)).map(b => ({ id: b.id, ...beastGround(b) }));
+    const { event, arrow } = shootFrom(field, spot, { x: shot.at[0], y: shot.at[1] }, level.waterY, openTargets(level.targets, struck), beasts);
     loosed.push({ from: { x: spot.x, y: spot.y }, event });
-    if (event?.type === 'target') {
-      // Whatever it works comes to rest; the page is walked as it then stands.
-      struck.add(event.id);
-      field = buildLevelField(level, pieces, images, struck);
+    if (event?.type === 'target' || event?.type === 'beast') {
+      // Whatever it works comes to rest, or the beast runs off; the page is walked as it then stands.
+      (event.type === 'target' ? struck : gone).add(event.id);
+      field = buildLevelField(level, pieces, images, struck, gone, true);
       for (const a of steps) addFoothold(field, a);
       continue;
     }

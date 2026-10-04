@@ -6,6 +6,7 @@ import { pageBounds, rasterizeField } from '../engine/rasterize';
 import type { LoadedImage } from '../engine/images';
 import { loadImages } from '../engine/images';
 import { piecePhysics } from '../engine/assetPhysics';
+import { WOLF } from '../engine/beasts';
 import { buildRig } from '../engine/puppet';
 import type { Rig } from '../engine/puppet';
 import type { SessionSpec } from '../engine/session';
@@ -38,7 +39,15 @@ export function roleOfPlaced(level: LevelDef, asset: string) {
 }
 
 /** Collision for the folio as it stands: fixed scene, the player's pieces, and the water. */
-export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: Map<string, LoadedImage>, struck?: { has: (id: string) => boolean }): Field {
+/** The ground a beast keeps, as the solver must fear it: its hide anywhere along its round. */
+export const beastGround = (b: NonNullable<LevelDef['beasts']>[number]) => ({ x: b.x0 - WOLF.width / 2, y: b.y - WOLF.height, width: b.x1 - b.x0 + WOLF.width, height: WOLF.height });
+
+/**
+ * Collision for the folio as it stands. `struck` targets have moved what they
+ * work; beasts not yet `gone` keep their ground as a peril, for the level
+ * checks (in play they move, and are drawn rather than laid in the field).
+ */
+export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: Map<string, LoadedImage>, struck?: { has: (id: string) => boolean }, gone?: { has: (id: string) => boolean }, withBeasts = false): Field {
   const colliders: Collider[] = [];
   const add = (p: ScenePiece | PlacedPiece, kind: 'solid' | 'platform' | 'ladder' | 'hazard') => {
     const image = images.get(srcOf(p.asset));
@@ -47,6 +56,8 @@ export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: 
   for (const q of level.scene) { const p = posed(q, struck); if (p.role === 'solid' || p.role === 'platform' || p.role === 'ladder' || p.role === 'hazard') add(p, p.role); }
   for (const p of pieces) add(p, roleOfPlaced(level, p.asset));
   const field = rasterizeField(SCENE_W, SCENE_H, colliders);
+  if (withBeasts) for (const b of level.beasts ?? []) if (!gone?.has(b.id)) { const g = beastGround(b); fillRect(field, 'hazard', g.x, g.y, g.width, g.height); }
+  if (withBeasts && level.beasts?.length) finalizeField(field);
   if (level.waterY !== undefined) {
     // The stream takes you once you are properly in it, not when your toes touch.
     fillRect(field, 'hazard', 0, level.waterY + 18, SCENE_W, SCENE_H - level.waterY);

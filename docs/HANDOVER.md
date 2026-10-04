@@ -74,7 +74,25 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
 
   A sticks to a leap over the moat; I and U need the way in. Whether a stair of arrows can climb the raised bridge itself is not proved either way: its curved timber mostly fails the upright-face test. `test:chapter` plays it with the mouse and keyboard. `test:levels` runs its foothold search and Folio VIII's in two extra pages, and takes about two and a half minutes.
 - **Checks run before pushing Folio XI**: `npm test` (188), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
-- **Next**: perils and beasts for Folio XII, which closes the second book; then the scriptorium: placing targets, and giving pieces a resting pose or a hinge for when a target is struck.
+- **Beasts** (archery, part three; the user's third choice), in `src/engine/beasts.ts`:
+  - **Behaviour.** A grey wolf (`BeastSpec { id, kind: 'wolf', x0, x1, y }`) walks its round on the ground at `y`, pausing at either end. When the traveller comes onto that ground within 300, it runs at them at 230, never leaving its round. Its touch sends the traveller back to the start, as a peril does (`perish(world, 'beast')` in `world.ts`; the `bite` sound).
+  - **Arrows.** An arrow does not wound it: the arrow glances off its hide (`ArrowEvent` `beast`) and the wolf takes fright (`startle`), fleeing off the page away from the shot and fading. The aiming line marks a beast with a red ring. Sounds are `growl` when it gives chase and `yelp` when startled.
+  - **Drawing.** The wolf is drawn on the play canvas from the bestiary parts (`WOLF_PARTS` in `stage/world.ts`: wolf head, body and legs, with the fox's tail washed grey) and trots, runs and flees.
+  - **Data.** Beasts are `LevelDef.beasts` and `StageState.beasts`. They are reset when a run begins again but not on a tumble.
+  - **Harness.** The level harness fears a beast's whole round as a peril until an arrow is loosed through it (`beastGround`; `buildLevelField(..., withBeasts)`). A daring leap over a charging wolf is therefore not modelled; such a leap may also serve.
+- **Folio XII, *The Grey Wolf*** (the end of the second book). A timber palisade about 222 high is climbed on an arrow, as at the barred gate. Beyond it the wolf keeps the road before the abbey door. From the road the palisade hides him (an arrow sticks in its timber); from its top an arrow sends him running. Three arrows; par two. Proved:
+  - shut bare, and with the palisade climbed but the wolf still on the road;
+  - passed two ways.
+
+  V is free, A needs the palisade climbed, and T lies on the wolf's own ground. In the browser, a shot from the near part of the palisade's top at a wolf close beneath runs into the palisade's own timber (the aiming line shows it), so `test:chapter` shoots from near its far edge.
+- **The second book is complete.** All six folios are written, `coming` is empty, the last card says "Here endeth the second book", and the contents close with *Explicit liber secundus*. `test:chapter` plays VII to XII in order after the first book's finale, then checks the closing line and that the motto gilds every letter the walk gathered.
+- **Known limitation**: the chapter check's keyboard walkers run in real time, so their leaps are timing-sensitive. Folio VI's walk failed once in about a dozen runs while the machine was busy, and passed on every rerun.
+- **Checks run before pushing Folio XII**: `npm test` (192, including the new `tests/beasts.test.ts`), `npm run build`, `test:levels`, `test:chapter` (three passes in a row before the last fix to the motto check, and one after), `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **Next**:
+  - The scriptorium: placing targets, beasts and quivers, and giving pieces a resting pose or a hinge for when a target is struck (the stage already runs them all).
+  - The tale's cover, contents and tailor on upright phones.
+  - The maker's own pictures across the whole book.
+  - Possibly a third book, once the user has chosen what it should teach (flying was the other mechanic named).
 
 ## 2026-10-04 Claude session: Chapter I complete (Folios III–VI) and a reachability solver
 
