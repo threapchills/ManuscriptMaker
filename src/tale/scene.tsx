@@ -35,6 +35,19 @@ export function Sky({ kind, seed, width = 1280, height = 720, pixelScale }: { ki
   return <canvas ref={ref} className="scene-sky" aria-hidden="true" />;
 }
 
+/** The window's size, kept current as it is resized or turned. */
+export function useViewport(): { w: number; h: number } {
+  const read = () => typeof window === 'undefined' ? { w: 1280, h: 800 } : { w: window.innerWidth, h: window.innerHeight };
+  const [viewport, setViewport] = useState(read);
+  useLayoutEffect(() => {
+    const update = () => setViewport(v => { const n = read(); return n.w === v.w && n.h === v.h ? v : n; });
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return viewport;
+}
+
 /** Fit a fixed design size into the window, like a game resolution. */
 export function useFit(width: number, height: number, margin = 12): number {
   const [scale, setScale] = useState(1);

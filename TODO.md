@@ -12,8 +12,9 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] Chapter I complete: Folio III (The Hayloft, stacking), IV (Over the Rooftops, ladders), V (The Mill Stream, stepping stones) and VI (The Moat and the Keep, finale), each proved closed bare and solvable several ways by a search over the real physics (2026-10-04).
 - [x] Reachability solver for level checks (`src/engine/solver.ts`); masonry walls collide as blocks; touch climb buttons when a ladder is present; end-of-book Explicit and contents line.
 - [x] `test:chapter`: the later folios in a real browser (margin drag, touch climbing on a phone, the finale to the end of the book).
-- [ ] Compact phone folio layout.
-- [ ] Chapter II, with the user's choice of what comes next (enemies, archery, flying, or behaviours such as moving ledges and doors).
+- [x] Compact phone folio layout: a column on upright phones (picture spans the width, tools docked, touch pad below the picture); sideways phones keep the folio with touch buttons in the gutters and finger-sized handles.
+- [ ] The tale's cover, contents and tailor, and the scriptorium's contents, on an upright phone.
+- [ ] Archery, named by the user on 2026-10-04 as the next mechanic. Confirm what arrows do before building; then Chapter II.
 - [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).
 
 ## Playable manuscript direction — new top product priority

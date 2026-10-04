@@ -101,6 +101,49 @@ try {
   await page.screenshot({ path: '.local/chapter-phone-climb.png' });
   await page.close();
 
+  // ——— A phone held upright: the folio becomes a column ———
+  const upright = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  page = await open(upright, seed({}, 2), 2);
+  await expect(page.locator('.level-screen.is-compact')).toHaveCount(1);
+  assert.ok(await page.evaluate(() => document.body.scrollWidth) <= 390, 'the compact folio fits an upright phone');
+  let mini = await page.locator('.miniature').boundingBox();
+  assert.ok(mini.width >= 330, `the picture spans the screen (${Math.round(mini.width)} px wide)`);
+  const token = await page.locator('.tray-piece').first().boundingBox();
+  assert.ok(token.width >= 64 && token.height >= 56, 'margin pieces are finger-sized');
+  const s3 = await page.locator('.scene').boundingBox();
+  await page.mouse.move(token.x + token.width / 2, token.y + token.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(s3.x + 700 * s3.width / 1280, s3.y + 470 * s3.height / 720, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  assert.equal((await saved(page)).folios['folio-3'].pieces.length, 1, 'a piece dragged into the compact picture is saved');
+  await expect(page.locator('.piece-tools.is-docked')).toBeVisible();
+  const handle = await page.locator('.handle-rotate').boundingBox();
+  assert.ok(handle.width >= 26, `the rotate handle keeps a finger's size (${Math.round(handle.width)} px)`);
+  await page.getByRole('button', { name: /^Play/ }).first().click();
+  await expect(page.getByRole('button', { name: 'Walk right' })).toBeVisible();
+  mini = await page.locator('.miniature').boundingBox();
+  const pad = await page.locator('.touch-pad').boundingBox();
+  assert.ok(pad.y >= mini.y + mini.height, 'the touch pad sits below the picture, not over it');
+  const startX = await page.evaluate(() => window.__playSession.world.body.x);
+  const walk = await page.getByRole('button', { name: 'Walk right' }).boundingBox();
+  await page.mouse.move(walk.x + walk.width / 2, walk.y + walk.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(600); await page.mouse.up();
+  assert.ok(await page.evaluate(() => window.__playSession.world.body.x) > startX + 60, 'the touch pad walks the traveller');
+  await page.screenshot({ path: '.local/chapter-phone-upright.png' });
+  await page.close();
+
+  // ——— A phone held sideways keeps the whole folio, with its buttons in the gutters ———
+  page = await open(phone, seed({ 'folio-4': record({ pieces: ladder }) }), 3);
+  await page.getByRole('button', { name: /^Play/ }).first().click();
+  await expect(page.getByRole('button', { name: 'Leap' })).toBeVisible();
+  mini = await page.locator('.miniature').boundingBox();
+  for (const box of await page.locator('.touch-pad button').evaluateAll(bs => bs.map(b => { const r = b.getBoundingClientRect(); return { label: b.getAttribute('aria-label'), x: r.left, y: r.top, w: r.width, h: r.height }; }))) {
+    const clear = box.x + box.w <= mini.x || box.x >= mini.x + mini.width;
+    assert.ok(clear, `${box.label} stays beside the picture, not over it`);
+  }
+  await page.close();
+
   // ——— The finale, walked to the end of the first book ———
   const ramp = await piecesFor([{ ramp: 'plank-walkway', from: [326, 562], to: [598, 471] }, { ramp: 'plank-walkway', from: [594, 472], to: [784, 350] }]);
   const earlier = Object.fromEntries([1, 2, 3, 4, 5].map(n => [`folio-${n}`, record({ done: true, letters: [true, true, true], frugal: true, plays: 1 })]));
@@ -134,5 +177,5 @@ try {
   await page.screenshot({ path: '.local/chapter-ended.png' });
 
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the finale walked to the end of the first book, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, no runtime errors');
 } finally { await browser.close(); }

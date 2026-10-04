@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import type { GameRole, SkySetting } from '../../types';
 import type { Hint, TrayItem } from '../levels';
 import { TRAY_WIDTH } from '../levels';
 import type { Traveller } from '../save';
-import { SceneLayer, Sky, useFit, InkWriting } from '../scene';
+import { SceneLayer, Sky, useFit, useViewport, InkWriting } from '../scene';
 import { DropCap, GildedFrame, InkIcon, Ribbon, WaxSeal, toRoman } from '../ornaments';
 import type { IconName } from '../ornaments';
 import SoundToggles from '../SoundToggles';
@@ -26,6 +26,10 @@ import PassageEditor from './PassageEditor';
 import { readPicture } from './upload';
 
 export const FOLIO_W = 1520, FOLIO_H = 1010;
+/** Below this scale an upright screen gets the compact column instead of the whole folio. */
+const COMPACT_BELOW = .6;
+/** The gilded frame's band in the compact column, slimmer than the folio's. */
+const COMPACT_BAND = 12;
 const BOX_X = 120, BOX_Y = 150, BOX_W = 1280, BOX_H = 720;
 
 type Mode = 'build' | 'play' | 'won';
@@ -86,6 +90,7 @@ export interface FolioStageProps {
 export default function FolioStage(props: FolioStageProps) {
   const { width: W, height: H, free = false } = props;
   const fit = useFit(FOLIO_W, FOLIO_H, 8);
+  const viewport = useViewport();
   const sceneScale = Math.min(BOX_W / W, BOX_H / H);
   const [images, setImages] = useState<Map<string, LoadedImage> | null>(null);
   const [state, setState] = useState<StageState>(props.initial);
@@ -542,147 +547,205 @@ export default function FolioStage(props: FolioStageProps) {
     const anim = free && p.role !== 'scenery' ? undefined : p.anim;
     return <SceneLayer key={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
   };
-  /** Below the piece when there is room, else above it, always on the page. */
-  const toolsTop = (p: StagePiece) => {
-    const tall = !free ? 56 : p.kind === 'image' ? (p.role === 'scenery' ? 152 : 108) : 56;
+  /**
+   * Below the piece when there is room, else above it, always on the page.
+   * `grow` is the toolbar's enlargement and `reach` how far the rotate handle
+   * stands above the piece, so a toolbar above never covers the handle.
+   */
+  const toolsTop = (p: StagePiece, grow = 1, reach = 85) => {
+    const tall = (!free ? 56 : p.kind === 'image' ? (p.role === 'scenery' ? 152 : 108) : 56) * grow;
     const below = p.y + p.height + 18;
-    const top = below + tall <= H - 6 ? below : p.y - tall - 18;
-    return clamp(top, 8, H - tall - 6);
+    const top = below + tall <= H - 6 ? below : p.y - reach - tall;
+    return clamp(top, 8, Math.max(8, H - tall - 6));
   };
   const back = state.pieces.filter(p => !p.front), front = state.pieces.filter(p => p.front);
-  const frameW = W * sceneScale, frameH = H * sceneScale;
 
-  return <div className={`tale-screen level-screen mode-${mode}${touch ? ' has-touch' : ''}${free ? ' is-free' : ''}`}>
+  // ——— layout ———
+  // The folio is a fixed design scaled to the window. On a narrow upright
+  // screen that leaves the picture a quarter of the screen's width, so there
+  // the folio becomes a column instead: the picture spans the screen, and the
+  // margin, the seal and the touch pad sit below it, never over it.
+  const fitFull = Math.min((viewport.w - 16) / FOLIO_W, (viewport.h - 16) / FOLIO_H);
+  const compact = viewport.h > viewport.w && fitFull < COMPACT_BELOW;
+  const compactScale = Math.max(.1, (viewport.w - 24 - COMPACT_BAND * 2) / W);
+  const shown = compact ? compactScale : sceneScale;
+  const frameW = W * shown, frameH = H * shown;
+  /** Screen pixels per scene unit, so a dragged piece looks the size it will land. */
+  const onScreen = compact ? compactScale : fit * sceneScale;
+  /** Room either side of the folio, where a phone held sideways can keep its touch buttons. */
+  const gutter = Math.max(0, (viewport.w - FOLIO_W * fit) / 2);
+  // A whole folio shrunk small (a phone held sideways) keeps its handles and
+  // piece tools at a finger's size, like the compact column does.
+  const small = !compact && onScreen < .55;
+  const grow = small ? Math.max(1, .9 / onScreen) : 1;
+  const contents = () => { audio.play('page'); props.onContents(); };
+
+  const titleBlock = <div className="folio-title">
+    <span className="rubric">{props.rubric}</span>
+    {props.onTitle && editingTitle
+      ? <input className="folio-title-input" autoFocus defaultValue={props.title} maxLength={80} aria-label="Folio title"
+        onBlur={e => { props.onTitle?.(e.currentTarget.value.trim() || props.title); setEditingTitle(false); }}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingTitle(false); }} />
+      : <h1 className={props.onTitle ? 'is-editable' : ''} onClick={() => props.onTitle && mode === 'build' && setEditingTitle(true)} title={props.onTitle ? 'Click to rename this folio' : undefined}>{props.title}</h1>}
+  </div>;
+  const lettersBlock = state.letters.length > 0 && <div className="folio-letters" aria-label={`Gilded letters: ${lettersShown.filter(Boolean).length} of ${state.letters.length}`}>
+    <span className="rubric small">Gilded letters</span>
+    <div>{state.letters.slice(0, 8).map((l, i) => <span key={l.id} className={`letter-slot${lettersShown[i] ? ' is-found' : ''}`}><b>{lettersShown[i] ? l.glyph : ''}</b></span>)}</div>
+  </div>;
+  const pieceTools = sel && mode === 'build' && <>
+    <div className="piece-tools-row">
+      <span className="piece-name">{nameOf(sel)}</span>
+      {sel.kind === 'text' && tool('pen', 'Write the words', () => setEditingText(v => v === sel.id ? null : sel.id), false, editingText === sel.id)}
+      {tool('rotate', 'Turn (Q / E)', () => transform(sel.id, p => ({ rotation: clamp(p.rotation - 15, -180, 180) })))}
+      {tool('flip', 'Flip (F)', () => transform(sel.id, p => ({ flipX: !p.flipX })))}
+      {tool('back', 'Send behind ([)', () => reorder(sel.id, -1))}
+      {tool('front', 'Bring forward (])', () => reorder(sel.id, 1))}
+      {free && tool('copy', 'Duplicate (Ctrl D)', duplicateSelected)}
+      {tool('bin', 'Return to the margin (Delete)', removeSelected)}
+    </div>
+    {free && sel.kind === 'image' && <div className="role-row" role="radiogroup" aria-label="What this piece does">
+      {(['solid', 'platform', 'scenery', 'hazard', 'ladder', 'goal', 'player'] as GameRole[]).map(role => <button type="button" role="radio" aria-checked={sel.role === role} key={role} className={`role-chip role-chip--${role}${sel.role === role ? ' is-chosen' : ''}`} title={`${ROLE_LABELS[role].name}: ${ROLE_LABELS[role].note}`} onClick={() => setRole(sel.id, role)}>{ROLE_LABELS[role].name}</button>)}
+      <button type="button" className={`role-chip role-chip--depth${sel.front ? ' is-chosen' : ''}`} title="Draw in front of the traveller" onClick={() => transform(sel.id, p => ({ front: !p.front }))}>{sel.front ? 'In front' : 'Behind'}</button>
+    </div>}
+    {free && sel.kind === 'image' && sel.role === 'scenery' && <div className="role-row motion-row" role="radiogroup" aria-label="How this piece moves">
+      <span className="motion-label">Motion</span>
+      {MOTIONS.map(m => <button type="button" role="radio" aria-checked={(sel.anim ?? null) === m.id} key={m.label} className={`role-chip motion-chip${(sel.anim ?? null) === m.id ? ' is-chosen' : ''}`} title={m.note} onClick={() => transform(sel.id, () => ({ anim: m.id ?? undefined }))}>{m.label}</button>)}
+    </div>}
+  </>;
+  const letterTools = selLetter && mode === 'build' && <div className="piece-tools-row">
+    <span className="piece-name">Gilded letter</span>
+    <input className="letter-glyph-input" value={selLetter.glyph} maxLength={1} aria-label="Letter" onChange={e => { const g = e.target.value.toUpperCase().slice(-1); if (g) commit({ ...stateRef.current, letters: stateRef.current.letters.map(l => l.id === selLetter.id ? { ...l, glyph: g } : l) }); }} />
+    {tool('bin', 'Remove the letter (Delete)', removeSelected)}
+  </div>;
+  const passageEditor = (left: number, top: number) => editingText && sel?.kind === 'text' && sel.text && mode === 'build' && <PassageEditor style={sel.text} left={left} top={top}
+    onChange={text => commit(withPieces(stateRef.current, stateRef.current.pieces.map(q => q.id === sel.id ? { ...q, text } : q)))} onClose={() => setEditingText(null)} />;
+
+  const miniature = (place: CSSProperties) => <div className="miniature" ref={shakeRef} style={{ ...place, width: frameW, height: frameH }}>
+    <GildedFrame width={frameW} height={frameH} band={compact ? COMPACT_BAND : undefined} />
+    <div ref={sceneRef} className={`scene${lens ? ' has-lens' : ''} paper-${props.paper ?? 'vellum'}`} style={{ width: W, height: H, transform: shown !== 1 ? `scale(${shown})` : undefined, transformOrigin: '0 0' }}
+      onPointerDown={onScenePointerDown} onPointerMove={onScenePointerMove} onPointerUp={onScenePointerUp} onPointerCancel={onScenePointerUp}>
+      {props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={W} height={H} />}
+      {back.map(renderPiece)}
+      <canvas ref={overlayRef} className="scene-overlay" aria-hidden="true" />
+      {front.map(renderPiece)}
+      {(props.hints ?? []).filter(h => h.mode === 'both' || h.mode === (mode === 'build' ? 'build' : 'play')).map((h, i) => <div key={`${mode}-${i}`} className={`marginal-hint point-${h.point ?? 'down'}`} style={{ left: h.x, top: h.y, animationDelay: `${.6 + i * .5}s` }}><span className="manicule">☞</span>{h.text}</div>)}
+      {sel && mode === 'build' && <div className="selection" style={{ left: sel.x, top: sel.y, width: sel.width, height: sel.height, transform: `rotate(${sel.rotation}deg)` }}>
+        <button type="button" className="handle handle-rotate" aria-label="Turn the piece" onPointerDown={beginHandle('rotate')}><InkIcon name="rotate" size={18} /></button>
+        <button type="button" className="handle handle-scale" aria-label="Stretch the piece" onPointerDown={beginHandle('scale')} />
+      </div>}
+      {!compact && sel && pieceTools && <div className="piece-tools" style={{ left: clamp(sel.x + sel.width / 2, Math.min(W / 2, 250 * grow), Math.max(W / 2, W - 250 * grow)), top: toolsTop(sel, grow, small ? 85 * .8 / onScreen : 85) }} onPointerDown={e => e.stopPropagation()}>{pieceTools}</div>}
+      {!compact && selLetter && letterTools && <div className="piece-tools" style={{ left: clamp(selLetter.x, 150, W - 150), top: clamp(selLetter.y + 40 * unit, 10, H - 60) }} onPointerDown={e => e.stopPropagation()}>{letterTools}</div>}
+      {!compact && sel && passageEditor(clamp(sel.x, 10, W - 470), clamp(sel.y + sel.height + 80, 10, H - 330))}
+      {!images && <div className="scene-loading"><span>The scribe prepares the page…</span></div>}
+      {notice && <div className="stage-notice" role="status">{notice}</div>}
+    </div>
+  </div>;
+
+  const brief = (dropCap: number) => (!free || mode !== 'build') && <div className="folio-brief">
+    <DropCap letter={briefFirst || 'H'} size={dropCap} tone={props.briefTone ?? 'red'} />
+    <p><InkWriting key={props.stageKey + props.brief} text={briefRest} speed={60} delay={450} /></p>
+  </div>;
+  const margin = <div className="folio-margin">
+    {mode === 'build' ? <>
+      {free ? <Library onPick={startDrag} onUpload={file => void upload(file)} uploads={uploads} /> : props.tray?.length ? <div className="tray" aria-label="Pieces in the margin">
+        {props.tray.map(t => {
+          const left = remaining?.[t.asset] ?? 0;
+          return <button type="button" key={t.asset} className={`tray-piece${left <= 0 ? ' is-spent' : ''}`} onPointerDown={startDrag({ kind: 'piece', asset: t.asset, role: t.role })} onPointerEnter={() => audio.play('tick')} aria-label={`${t.name}: ${left} left. Drag into the picture.`} title={`${t.name} · drag into the picture`}>
+            <img src={srcOf(t.asset)} alt="" draggable={false} />
+            <span className="tray-count">{left > 0 ? toRoman(left).toLowerCase() : '—'}</span>
+          </button>;
+        })}
+      </div> : props.emptyMargin ?? <p className="margin-note">No pieces are needed here. Press <b>Play</b> and walk the road.</p>}
+      <div className="ink-tools">
+        {tool('undo', 'Undo (Ctrl Z)', undo, !history.current.length)}
+        {tool('redo', 'Redo (Ctrl Y)', redo, !future.current.length)}
+        {tool('lens', 'Scribe’s lens: show solid ground (L)', () => setLens(v => !v), false, lens)}
+        {!free && tool('sweep', 'Clear your pieces', () => { if (placedCount) { commit(withPieces(stateRef.current, stateRef.current.pieces.filter(p => p.fixed))); setSelection(null); audio.play('drop'); } }, !placedCount)}
+      </div>
+    </> : <div className="play-notes">
+      {!(compact && touch) && <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>}
+      <div className="ink-tools">
+        {tool('restart', 'Begin again (R)', restart)}
+        {tool('lens', 'Scribe’s lens (L)', () => setLens(v => !v), false, lens)}
+      </div>
+      {free && !state.pieces.some(p => p.role === 'goal') && <p className="margin-note no-goal">No <b>Goal</b> yet, so this road never ends.</p>}
+      {falls > 0 && <span className="fall-count">{falls === 1 ? 'One tumble' : `${toRoman(falls).toLowerCase()} tumbles`}</span>}
+    </div>}
+  </div>;
+  const seal = (size: number) => <button type="button" className="seal-button" onClick={() => mode === 'build' ? void play() : build()} onPointerEnter={() => audio.play('tick')} aria-label={mode === 'build' ? 'Play (Enter)' : 'Return to building (Esc)'}>
+    <WaxSeal glyph={mode === 'build' ? 'play' : 'quill'} color={mode === 'build' ? 'red' : 'blue'} size={size} seed={mode === 'build' ? 5 : 9} />
+    <span>{mode === 'build' ? 'Play' : 'Build'}</span>
+  </button>;
+  const card = showCard && result && props.card?.(result, { again: restart, build });
+  const ghostBlock = ghost && <div className={`drag-ghost${ghost.over ? ' is-over' : ''}`} style={{ left: ghost.x, top: ghost.y, width: (ghost.pick.kind === 'piece' ? (ghost.pick.width ?? TRAY_WIDTH[ghost.pick.asset] ?? 160) : 90) * onScreen }}>
+    {ghost.pick.kind === 'piece' ? <img src={ghost.pick.src ?? srcOf(ghost.pick.asset)} alt="" /> : <span className="ghost-marker">{ghost.pick.kind === 'letter' ? 'A' : '¶'}</span>}
+  </div>;
+  const touchPad = mode === 'play' && <div className="touch-pad" aria-hidden={!touch}>
+    <div>
+      <button type="button" aria-label="Walk left" onPointerDown={touchHold('left')} onPointerUp={touchRelease('left')} onPointerCancel={touchRelease('left')}><InkIcon name="left" size={34} /></button>
+      <button type="button" aria-label="Walk right" onPointerDown={touchHold('right')} onPointerUp={touchRelease('right')} onPointerCancel={touchRelease('right')}><InkIcon name="right" size={34} /></button>
+    </div>
+    <div className="touch-pad-right">
+      {hasLadder && <div className="touch-climb">
+        <button type="button" aria-label="Climb up" onPointerDown={touchHold('up')} onPointerUp={touchRelease('up')} onPointerCancel={touchRelease('up')}><InkIcon name="up" size={28} /></button>
+        <button type="button" aria-label="Climb down" onPointerDown={touchHold('down')} onPointerUp={touchRelease('down')} onPointerCancel={touchRelease('down')}><InkIcon name="down" size={28} /></button>
+      </div>}
+      <button type="button" className="touch-jump" aria-label="Leap" onPointerDown={touchHold('jump')} onPointerUp={touchRelease('jump')} onPointerCancel={touchRelease('jump')}><InkIcon name="up" size={36} /><span>Leap</span></button>
+    </div>
+  </div>;
+  const screenClass = `tale-screen level-screen mode-${mode}${touch ? ' has-touch' : ''}${free ? ' is-free' : ''}`;
+
+  if (compact) {
+    const cardScale = Math.min(1, (viewport.w - 16) / 820, (viewport.h - 24) / 660);
+    return <div className={`${screenClass} is-compact`} style={{ '--inv': String(1 / compactScale), '--card': String(cardScale) } as CSSProperties}>
+      <div className="desk-light" aria-hidden="true" />
+      <div className="compact-folio">
+        <div className="vellum-sheet" aria-hidden="true" />
+        <header className="compact-head">
+          <button type="button" className="compact-contents" onClick={contents}><InkIcon name="book" size={17} /> {props.contentsLabel ?? 'Contents'}</button>
+          {props.headerExtra}
+          <SoundToggles className="folio-settings" />
+        </header>
+        <div className="compact-title">{titleBlock}{lettersBlock}</div>
+        {miniature({ position: 'relative', margin: `${COMPACT_BAND + 4}px 0` })}
+        {(pieceTools || letterTools || (sel && passageEditor(0, 0))) && <div className="compact-dock" onPointerDown={e => e.stopPropagation()}>
+          {pieceTools && <div className="piece-tools is-docked">{pieceTools}</div>}
+          {letterTools && <div className="piece-tools is-docked">{letterTools}</div>}
+          {sel && passageEditor(0, 0)}
+        </div>}
+        <div className={`compact-foot${free ? ' has-library' : ''}`}>{margin}{seal(84)}</div>
+        {touchPad}
+        {brief(46)}
+      </div>
+      {card}
+      {ghostBlock}
+    </div>;
+  }
+
+  return <div className={`${screenClass}${gutter >= 100 ? ' has-gutters' : ''}${small ? ' is-small' : ''}`} style={{ '--gutter': `${gutter}px`, '--inv': String(1 / onScreen), '--grow': String(grow) } as CSSProperties}>
     <div className="desk-light" aria-hidden="true" />
     <div className="folio-stage" style={{ width: FOLIO_W * fit, height: FOLIO_H * fit }}>
       <div className="folio" style={{ transform: `scale(${fit})` }}>
         <div className="vellum-sheet" aria-hidden="true" />
-        <Ribbon label={props.contentsLabel ?? 'Contents'} onClick={() => { audio.play('page'); props.onContents(); }} />
+        <Ribbon label={props.contentsLabel ?? 'Contents'} onClick={contents} />
         {[['left', 196], ['left', 532], ['right', 196], ['right', 532]].map(([side, top], i) => <img key={i} className={`margin-vine margin-vine--${side}${i % 2 ? ' is-turned' : ''}`} style={{ top: top as number }} src={srcOf('blue-vine')} alt="" aria-hidden="true" />)}
-
         <header className="folio-head">
-          <div className="folio-title">
-            <span className="rubric">{props.rubric}</span>
-            {props.onTitle && editingTitle
-              ? <input className="folio-title-input" autoFocus defaultValue={props.title} maxLength={80} aria-label="Folio title"
-                onBlur={e => { props.onTitle?.(e.currentTarget.value.trim() || props.title); setEditingTitle(false); }}
-                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingTitle(false); }} />
-              : <h1 className={props.onTitle ? 'is-editable' : ''} onClick={() => props.onTitle && mode === 'build' && setEditingTitle(true)} title={props.onTitle ? 'Click to rename this folio' : undefined}>{props.title}</h1>}
-          </div>
-          {state.letters.length > 0 && <div className="folio-letters" aria-label={`Gilded letters: ${lettersShown.filter(Boolean).length} of ${state.letters.length}`}>
-            <span className="rubric small">Gilded letters</span>
-            <div>{state.letters.slice(0, 8).map((l, i) => <span key={l.id} className={`letter-slot${lettersShown[i] ? ' is-found' : ''}`}><b>{lettersShown[i] ? l.glyph : ''}</b></span>)}</div>
-          </div>}
+          {titleBlock}
+          {lettersBlock}
           {props.headerExtra}
           <SoundToggles className="folio-settings" />
         </header>
-
-        <div className="miniature" ref={shakeRef} style={{ left: BOX_X + (BOX_W - frameW) / 2, top: BOX_Y + (BOX_H - frameH) / 2, width: frameW, height: frameH }}>
-          <GildedFrame width={frameW} height={frameH} />
-          <div ref={sceneRef} className={`scene${lens ? ' has-lens' : ''} paper-${props.paper ?? 'vellum'}`} style={{ width: W, height: H, transform: sceneScale !== 1 ? `scale(${sceneScale})` : undefined, transformOrigin: '0 0' }}
-            onPointerDown={onScenePointerDown} onPointerMove={onScenePointerMove} onPointerUp={onScenePointerUp} onPointerCancel={onScenePointerUp}>
-            {props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={W} height={H} />}
-            {back.map(renderPiece)}
-            <canvas ref={overlayRef} className="scene-overlay" aria-hidden="true" />
-            {front.map(renderPiece)}
-            {(props.hints ?? []).filter(h => h.mode === 'both' || h.mode === (mode === 'build' ? 'build' : 'play')).map((h, i) => <div key={`${mode}-${i}`} className={`marginal-hint point-${h.point ?? 'down'}`} style={{ left: h.x, top: h.y, animationDelay: `${.6 + i * .5}s` }}><span className="manicule">☞</span>{h.text}</div>)}
-            {sel && mode === 'build' && <div className="selection" style={{ left: sel.x, top: sel.y, width: sel.width, height: sel.height, transform: `rotate(${sel.rotation}deg)` }}>
-              <button type="button" className="handle handle-rotate" aria-label="Turn the piece" onPointerDown={beginHandle('rotate')}><InkIcon name="rotate" size={18} /></button>
-              <button type="button" className="handle handle-scale" aria-label="Stretch the piece" onPointerDown={beginHandle('scale')} />
-            </div>}
-            {sel && mode === 'build' && <div className="piece-tools" style={{ left: clamp(sel.x + sel.width / 2, 250, W - 250), top: toolsTop(sel) }} onPointerDown={e => e.stopPropagation()}>
-              <div className="piece-tools-row">
-                <span className="piece-name">{nameOf(sel)}</span>
-                {sel.kind === 'text' && tool('pen', 'Write the words', () => setEditingText(v => v === sel.id ? null : sel.id), false, editingText === sel.id)}
-                {tool('rotate', 'Turn (Q / E)', () => transform(sel.id, p => ({ rotation: clamp(p.rotation - 15, -180, 180) })))}
-                {tool('flip', 'Flip (F)', () => transform(sel.id, p => ({ flipX: !p.flipX })))}
-                {tool('back', 'Send behind ([)', () => reorder(sel.id, -1))}
-                {tool('front', 'Bring forward (])', () => reorder(sel.id, 1))}
-                {free && tool('copy', 'Duplicate (Ctrl D)', duplicateSelected)}
-                {tool('bin', 'Return to the margin (Delete)', removeSelected)}
-              </div>
-              {free && sel.kind === 'image' && <div className="role-row" role="radiogroup" aria-label="What this piece does">
-                {(['solid', 'platform', 'scenery', 'hazard', 'ladder', 'goal', 'player'] as GameRole[]).map(role => <button type="button" role="radio" aria-checked={sel.role === role} key={role} className={`role-chip role-chip--${role}${sel.role === role ? ' is-chosen' : ''}`} title={`${ROLE_LABELS[role].name}: ${ROLE_LABELS[role].note}`} onClick={() => setRole(sel.id, role)}>{ROLE_LABELS[role].name}</button>)}
-                <button type="button" className={`role-chip role-chip--depth${sel.front ? ' is-chosen' : ''}`} title="Draw in front of the traveller" onClick={() => transform(sel.id, p => ({ front: !p.front }))}>{sel.front ? 'In front' : 'Behind'}</button>
-              </div>}
-              {free && sel.kind === 'image' && sel.role === 'scenery' && <div className="role-row motion-row" role="radiogroup" aria-label="How this piece moves">
-                <span className="motion-label">Motion</span>
-                {MOTIONS.map(m => <button type="button" role="radio" aria-checked={(sel.anim ?? null) === m.id} key={m.label} className={`role-chip motion-chip${(sel.anim ?? null) === m.id ? ' is-chosen' : ''}`} title={m.note} onClick={() => transform(sel.id, () => ({ anim: m.id ?? undefined }))}>{m.label}</button>)}
-              </div>}
-            </div>}
-            {selLetter && mode === 'build' && <div className="piece-tools" style={{ left: clamp(selLetter.x, 150, W - 150), top: clamp(selLetter.y + 40 * unit, 10, H - 60) }} onPointerDown={e => e.stopPropagation()}>
-              <div className="piece-tools-row">
-                <span className="piece-name">Gilded letter</span>
-                <input className="letter-glyph-input" value={selLetter.glyph} maxLength={1} aria-label="Letter" onChange={e => { const g = e.target.value.toUpperCase().slice(-1); if (g) commit({ ...stateRef.current, letters: stateRef.current.letters.map(l => l.id === selLetter.id ? { ...l, glyph: g } : l) }); }} />
-                {tool('bin', 'Remove the letter (Delete)', removeSelected)}
-              </div>
-            </div>}
-            {editingText && sel?.kind === 'text' && sel.text && mode === 'build' && <PassageEditor style={sel.text} left={clamp(sel.x, 10, W - 470)} top={clamp(sel.y + sel.height + 80, 10, H - 330)}
-              onChange={text => commit(withPieces(stateRef.current, stateRef.current.pieces.map(q => q.id === sel.id ? { ...q, text } : q)))} onClose={() => setEditingText(null)} />}
-            {!images && <div className="scene-loading"><span>The scribe prepares the page…</span></div>}
-            {notice && <div className="stage-notice" role="status">{notice}</div>}
-          </div>
-        </div>
-
+        {miniature({ left: BOX_X + (BOX_W - frameW) / 2, top: BOX_Y + (BOX_H - frameH) / 2 })}
         <footer className={`folio-foot${free ? ' has-library' : ''}`}>
-          {(!free || mode !== 'build') && <div className="folio-brief">
-            <DropCap letter={briefFirst || 'H'} size={70} tone={props.briefTone ?? 'red'} />
-            <p><InkWriting key={props.stageKey + props.brief} text={briefRest} speed={60} delay={450} /></p>
-          </div>}
-          <div className="folio-margin">
-            {mode === 'build' ? <>
-              {free ? <Library onPick={startDrag} onUpload={file => void upload(file)} uploads={uploads} /> : props.tray?.length ? <div className="tray" aria-label="Pieces in the margin">
-                {props.tray.map(t => {
-                  const left = remaining?.[t.asset] ?? 0;
-                  return <button type="button" key={t.asset} className={`tray-piece${left <= 0 ? ' is-spent' : ''}`} onPointerDown={startDrag({ kind: 'piece', asset: t.asset, role: t.role })} onPointerEnter={() => audio.play('tick')} aria-label={`${t.name}: ${left} left. Drag into the picture.`} title={`${t.name} · drag into the picture`}>
-                    <img src={srcOf(t.asset)} alt="" draggable={false} />
-                    <span className="tray-count">{left > 0 ? toRoman(left).toLowerCase() : '—'}</span>
-                  </button>;
-                })}
-              </div> : props.emptyMargin ?? <p className="margin-note">No pieces are needed here. Press <b>Play</b> and walk the road.</p>}
-              <div className="ink-tools">
-                {tool('undo', 'Undo (Ctrl Z)', undo, !history.current.length)}
-                {tool('redo', 'Redo (Ctrl Y)', redo, !future.current.length)}
-                {tool('lens', 'Scribe’s lens: show solid ground (L)', () => setLens(v => !v), false, lens)}
-                {!free && tool('sweep', 'Clear your pieces', () => { if (placedCount) { commit(withPieces(stateRef.current, stateRef.current.pieces.filter(p => p.fixed))); setSelection(null); audio.play('drop'); } }, !placedCount)}
-              </div>
-            </> : <div className="play-notes">
-              <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>
-              <div className="ink-tools">
-                {tool('restart', 'Begin again (R)', restart)}
-                {tool('lens', 'Scribe’s lens (L)', () => setLens(v => !v), false, lens)}
-              </div>
-              {free && !state.pieces.some(p => p.role === 'goal') && <p className="margin-note no-goal">No <b>Goal</b> yet, so this road never ends.</p>}
-              {falls > 0 && <span className="fall-count">{falls === 1 ? 'One tumble' : `${toRoman(falls).toLowerCase()} tumbles`}</span>}
-            </div>}
-          </div>
-          <button type="button" className="seal-button" onClick={() => mode === 'build' ? void play() : build()} onPointerEnter={() => audio.play('tick')} aria-label={mode === 'build' ? 'Play (Enter)' : 'Return to building (Esc)'}>
-            <WaxSeal glyph={mode === 'build' ? 'play' : 'quill'} color={mode === 'build' ? 'red' : 'blue'} size={124} seed={mode === 'build' ? 5 : 9} />
-            <span>{mode === 'build' ? 'Play' : 'Build'}</span>
-          </button>
+          {brief(70)}
+          {margin}
+          {seal(124)}
         </footer>
-
-        {showCard && result && props.card?.(result, { again: restart, build })}
+        {card}
       </div>
     </div>
-
-    {ghost && <div className={`drag-ghost${ghost.over ? ' is-over' : ''}`} style={{ left: ghost.x, top: ghost.y, width: (ghost.pick.kind === 'piece' ? (ghost.pick.width ?? TRAY_WIDTH[ghost.pick.asset] ?? 160) : 90) * fit * sceneScale }}>
-      {ghost.pick.kind === 'piece' ? <img src={ghost.pick.src ?? srcOf(ghost.pick.asset)} alt="" /> : <span className="ghost-marker">{ghost.pick.kind === 'letter' ? 'A' : '¶'}</span>}
-    </div>}
-
-    {mode === 'play' && <div className="touch-pad" aria-hidden={!touch}>
-      <div>
-        <button type="button" aria-label="Walk left" onPointerDown={touchHold('left')} onPointerUp={touchRelease('left')} onPointerCancel={touchRelease('left')}><InkIcon name="left" size={34} /></button>
-        <button type="button" aria-label="Walk right" onPointerDown={touchHold('right')} onPointerUp={touchRelease('right')} onPointerCancel={touchRelease('right')}><InkIcon name="right" size={34} /></button>
-      </div>
-      <div>
-        {hasLadder && <div className="touch-climb">
-          <button type="button" aria-label="Climb up" onPointerDown={touchHold('up')} onPointerUp={touchRelease('up')} onPointerCancel={touchRelease('up')}><InkIcon name="up" size={28} /></button>
-          <button type="button" aria-label="Climb down" onPointerDown={touchHold('down')} onPointerUp={touchRelease('down')} onPointerCancel={touchRelease('down')}><InkIcon name="down" size={28} /></button>
-        </div>}
-        <button type="button" className="touch-jump" aria-label="Leap" onPointerDown={touchHold('jump')} onPointerUp={touchRelease('jump')} onPointerCancel={touchRelease('jump')}><InkIcon name="up" size={36} /><span>Leap</span></button>
-      </div>
-    </div>}
+    {ghostBlock}
+    {touchPad}
   </div>;
 }
 
