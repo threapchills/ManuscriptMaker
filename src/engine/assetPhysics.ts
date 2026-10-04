@@ -66,3 +66,18 @@ export const ASSET_PHYSICS: Record<string, AssetPhysics> = {
 };
 
 export const physicsFor = (assetId?: string): AssetPhysics => (assetId && ASSET_PHYSICS[assetId]) || {};
+
+/**
+ * Earthen pieces traced as plain blocks, for a level that builds a sheer bank
+ * from several of them: their grassy tops and rounded corners would otherwise
+ * leave a ledge at every joint. Traced to the painted body's sides.
+ */
+const BLOCKS: Record<string, Array<[number, number]>> = {
+  'earth-ledge-long': [[.05, .14], [.95, .14], [.95, .92], [.05, .92]],
+  'earth-ledge-short': [[.08, .135], [.92, .135], [.92, .91], [.08, .91]],
+};
+/** The physics of a piece, as a plain block when its level asks for one. */
+export const piecePhysics = (assetId: string | undefined, block?: boolean): AssetPhysics => {
+  const physics = physicsFor(assetId);
+  return block && assetId && BLOCKS[assetId] ? { ...physics, polygon: BLOCKS[assetId] } : physics;
+};

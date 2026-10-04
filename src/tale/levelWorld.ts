@@ -5,7 +5,7 @@ import type { Collider } from '../engine/rasterize';
 import { pageBounds, rasterizeField } from '../engine/rasterize';
 import type { LoadedImage } from '../engine/images';
 import { loadImages } from '../engine/images';
-import { physicsFor } from '../engine/assetPhysics';
+import { piecePhysics } from '../engine/assetPhysics';
 import { buildRig } from '../engine/puppet';
 import type { Rig } from '../engine/puppet';
 import type { SessionSpec } from '../engine/session';
@@ -41,7 +41,7 @@ export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: 
   const colliders: Collider[] = [];
   const add = (p: ScenePiece | PlacedPiece, kind: 'solid' | 'platform' | 'ladder' | 'hazard') => {
     const image = images.get(srcOf(p.asset));
-    if (image) colliders.push({ placement: placementOfPiece(p), image, kind, physics: physicsFor(p.asset) });
+    if (image) colliders.push({ placement: placementOfPiece(p), image, kind, physics: piecePhysics(p.asset, (p as ScenePiece).block) });
   };
   for (const p of level.scene) if (p.role === 'solid' || p.role === 'platform' || p.role === 'ladder' || p.role === 'hazard') add(p, p.role);
   for (const p of pieces) add(p, roleOfPlaced(level, p.asset));

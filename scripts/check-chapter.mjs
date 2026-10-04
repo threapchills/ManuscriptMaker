@@ -39,6 +39,29 @@ async function open(context, tale, index) {
 }
 const saved = async page => { await page.waitForTimeout(450); return page.evaluate(key => JSON.parse(localStorage.getItem(key) || 'null'), KEY); };
 
+/**
+ * Walk right with the keyboard like a plain player, holding Space for a full
+ * leap at a wall, when stuck, and where the way ahead fails. `edge: true` waits
+ * for the very brink of a real gap (nothing to stand on within 24 below, just
+ * ahead), for a leap that needs every unit; otherwise it leaps as soon as the
+ * ground ahead falls away, which carries it onto ramps and over joints.
+ */
+async function walkRight(page, { edge = false, ms = 20000 } = {}) {
+  await page.keyboard.down('ArrowRight');
+  const began = Date.now();
+  let leapt = 0;
+  while (Date.now() - began < ms) {
+    const p = await page.evaluate(() => { const s = window.__playSession; return { ...s.probe(34), brink: s.probe(12).gap }; });
+    if (p.phase === 'won') break;
+    if (p.grounded && ((edge ? p.brink : !p.support) || p.wall || (p.stuck && Date.now() - began > 500)) && Date.now() - leapt > 500) {
+      leapt = Date.now();
+      await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
+    }
+    await page.waitForTimeout(8);
+  }
+  await page.keyboard.up('ArrowRight');
+}
+
 try {
   // ——— The contents lists the whole chapter; the margin drags into Folio III ———
   const desk = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -150,19 +173,7 @@ try {
   page = await open(desk, seed({ ...earlier, 'folio-6': record({ pieces: ramp }) }), 5);
   await expect(page.getByRole('heading', { name: 'The Moat and the Keep' })).toBeVisible();
   await page.keyboard.press('Enter');
-  await page.keyboard.down('ArrowRight');
-  const began = Date.now();
-  let lastLeap = 0;
-  while (Date.now() - began < 20000) {
-    const p = await page.evaluate(() => window.__playSession.probe(34));
-    if (p.phase === 'won') break;
-    if (p.grounded && (!p.support || p.wall || (p.stuck && Date.now() - began > 500)) && Date.now() - lastLeap > 500) {
-      lastLeap = Date.now();
-      await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
-    }
-    await page.waitForTimeout(8);
-  }
-  await page.keyboard.up('ArrowRight');
+  await walkRight(page);
   await expect(page.getByRole('dialog')).toContainText('Here endeth the sixth folio', { timeout: 5000 });
   await expect(page.getByRole('dialog')).toContainText('Here endeth the first book');
   await expect(page.getByRole('dialog')).toContainText('You passed beneath the portcullis.');
@@ -181,7 +192,7 @@ try {
   await page.locator('.leaf-corner--next').click();
   await expect(page.getByRole('heading', { name: 'The Greenwood' })).toBeVisible({ timeout: 5000 });
   await expect(page.locator('.folio-row').first()).toBeEnabled();
-  await expect(page.locator('.folio-row.is-coming')).toHaveCount(5);
+  await expect(page.locator('.folio-row')).toHaveCount(6);
   await page.locator('.folio-row').first().click();
   await expect(page.getByRole('heading', { name: 'The Barred Gate' })).toBeVisible({ timeout: 8000 });
   await page.waitForFunction(() => !!window.__playSession, null, { timeout: 10000 });
@@ -199,26 +210,68 @@ try {
   assert.ok(struck.foothold && struck.material === 'wood', 'an arrow aimed at the gate sticks in the timber as a foothold');
   await expect(page.locator('.quiver-left')).toContainText('ii left');
   await page.mouse.move(gate.x + 20, gate.y + 20);
-  await page.keyboard.down('ArrowRight');
-  const climbed = Date.now();
-  let leapt = 0;
-  while (Date.now() - climbed < 20000) {
-    const p = await page.evaluate(() => window.__playSession.probe(34));
-    if (p.phase === 'won') break;
-    if (p.grounded && (!p.support || p.wall || (p.stuck && Date.now() - climbed > 500)) && Date.now() - leapt > 500) {
-      leapt = Date.now();
-      await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
-    }
-    await page.waitForTimeout(8);
-  }
-  await page.keyboard.up('ArrowRight');
+  await walkRight(page);
   await expect(page.getByRole('dialog')).toContainText('Here endeth the seventh folio', { timeout: 5000 });
   await expect(page.getByRole('dialog')).toContainText('1 arrow used · par 1');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-barred-gate.png' });
   tale = await saved(page);
   assert.ok(tale.folios['folio-7'].done && tale.folios['folio-7'].frugal, 'the barred gate is recorded as done, and frugal with one arrow');
 
+  // ——— Folio VIII: two arrows planned from the near bank, then the leap and the climb ———
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The High Bank' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  const bank = await page.locator('.scene').boundingBox();
+  for (const [x, y] of [[851, 520], [851, 400]]) {
+    const at = { x: bank.x + x * bank.width / 1280, y: bank.y + y * bank.height / 720 };
+    await page.mouse.move(at.x, at.y);
+    await page.waitForTimeout(250);
+    await page.mouse.click(at.x, at.y);
+    await page.waitForTimeout(700);
+  }
+  const steps = await page.evaluate(() => window.__playSession.arrows.map(a => a.hit && { y: Math.round(a.hit.y), foothold: a.hit.foothold, material: a.hit.material }));
+  assert.deepEqual(steps.map(h => h?.foothold), [true, true], `both arrows loosed from the near bank hold in the earth (${JSON.stringify(steps)})`);
+  await page.mouse.move(bank.x + 20, bank.y + 20);
+  await walkRight(page, { edge: true });
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the eighth folio', { timeout: 5000 });
+  await expect(page.getByRole('dialog')).toContainText('2 arrows used · par 2');
+  await page.screenshot({ path: '.local/chapter-high-bank.png' });
+
+  // ——— Folio IX: a crate from the margin hung by the tower, an arrow in its timber ———
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Watchtower' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length === 2, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  const tower = await page.locator('.scene').boundingBox();
+  const token9 = await page.locator('.tray-piece').first().boundingBox();
+  await page.mouse.move(token9.x + token9.width / 2, token9.y + token9.height / 2);
+  await page.mouse.down();
+  const hang = { x: tower.x + 750 * tower.width / 1280, y: tower.y + 453 * tower.height / 720 };
+  await page.mouse.move(hang.x - 40, hang.y + 30, { steps: 5 });
+  await page.mouse.move(hang.x, hang.y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  tale = await saved(page);
+  assert.equal(tale.folios['folio-9'].pieces.length, 1, 'the crate hung by the tower is saved');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  const timber = { x: tower.x + 787 * tower.width / 1280, y: tower.y + 280 * tower.height / 720 };
+  await page.mouse.move(timber.x, timber.y);
+  await page.waitForTimeout(250);
+  await page.mouse.click(timber.x, timber.y);
+  await page.waitForFunction(() => window.__playSession.arrows.some(a => a.state === 'stuck'), null, { timeout: 4000 });
+  assert.ok(await page.evaluate(() => window.__playSession.arrows[0].hit.foothold), 'an arrow loosed from the road into the tower’s timber holds');
+  await page.mouse.move(tower.x + 20, tower.y + 20);
+  await walkRight(page);
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the ninth folio', { timeout: 5000 });
+  await expect(page.getByRole('dialog')).toContainText('You reached the watch-room door.');
+  await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-watchtower.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, and Folio VII climbed by an aimed arrow, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, and Folio IX climbed by a crate from the margin and an arrow in the timber, no runtime errors');
 } finally { await browser.close(); }

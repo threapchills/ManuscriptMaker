@@ -26,6 +26,8 @@ export interface StagePiece {
   clip?: string;
   anim?: 'drift' | 'sway' | 'bob' | 'turn';
   text?: TextStyle;
+  /** A set piece that collides as a plain block. */
+  block?: boolean;
 }
 
 export interface StageLetter { id: string; x: number; y: number; glyph: string }

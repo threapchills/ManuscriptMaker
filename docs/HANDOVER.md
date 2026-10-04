@@ -25,7 +25,30 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
   - `test:levels` proves Folio VII closed without an arrow and climbed with one arrow at three heights (low, halfway, high). It also proves the brief's lesson: an arrow loosed steeply from the gate's foot sticks but makes no foothold.
   - `test:chapter` continues past the finale. The leaf corner beckons and the second book opens. Folio VII's arrow is aimed with the mouse and sticks in the timber as a foothold, and the keyboard walker climbs to the signpost. The card reads "Here endeth the seventh folio", "1 arrow used · par 1" and "More folios are being written".
 - **Checks run before pushing the second book**: `npm test` (184), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity` (0 problems), `test:scriptorium`, `test:play` and `test:browser` all pass.
-- **Next**: Folios VIII (earth banks: shots planned from afar, since an arrow loosed close under a face is too steep) and IX (footholds with pieces, and stone that turns arrows); then targets that work things (switches, doors, drawbridges) for X–XI; then perils and beasts for XII.
+- **Folio VIII, *The High Bank*** (earth). The stream has cut the far bank sheer, about 300 above the road. The bank is built of two `earth-ledge-long` pieces marked `block` (see below); the lower one is turned upside down, so the joint reads as a crack rather than a ledge of turf. The quiver holds three arrows; par is two. Proved:
+  - closed bare, and to every single arrow a traveller could loose (258 distinct reachable footholds from 212 vantage points);
+  - climbed three ways with two arrows loosed from the near bank: a step to land on after the leap, and a step above it;
+  - climbed as a stair of three arrows, each loosed level at chest height from the step below;
+  - an arrow loosed upward from the step at the bank's foot sticks but makes no foothold.
+
+  T can be had by a leap from the near bank, E only from a step in the face, S only from the top.
+- **Folio IX, *The Watchtower*** (stone and timber, with a piece). A stone tower two courses high (about 211) stands under a jettied timber storey; its top is about 414 above the road. The margin holds a crate; the quiver holds three arrows; par is two. Proved:
+  - closed bare, and to the crate alone in three placements;
+  - no arrow anywhere lifts the traveller off the road, because stone glances and the timber begins past any leap; so no number of arrows alone can;
+  - an arrow at the stone glances;
+  - climbed three ways: the crate hung out in front with an arrow loosed from it; the crate hung by the face with an arrow loosed from far back; the crate at the foot with two arrows.
+
+  F can be had by a leap from the road, O needs the crate, R only the tower's top.
+- **`block` set pieces.** `ScenePiece.block`, carried to `StagePiece.block`, makes a set piece collide as a plain block traced to its painted body (`piecePhysics` and `BLOCKS` in `assetPhysics.ts`, defined for the two earth ledges). Without it, stacked earth ledges left a ledge of turf at every joint. Chapter I's earth ledges are unchanged.
+- **More archery proofs.**
+  - `oneShotOpens(index, pieces, { region, step, above })` looses every real shot, from every resting place and from the top of a full straight leap from each, at every sampled face point in `region`. Each shot is flown by the real rules, and each distinct foothold it leaves is searched. With `above`, it asks instead whether any arrow lifts the traveller above a line at all.
+  - It skips footholds higher than any leap from any resting place could reach (about 175). That is sound, because a step that cannot be stood on changes nothing.
+  - `oneArrowOpens`, which lays footholds at any tilt, is kept but is too generous: on Folio VIII it found a foothold rising at 36° that no real shot makes.
+  - `solveShots` can aim at a letter or any point instead of the goal (`{ letter }`, `{ point }`).
+  - `test:levels` runs the long one-arrow search in a second browser context alongside the rest; the whole check takes about a minute and a half.
+- **The probe and the walker.** `PlaySession.probe` now reports `gap`: nothing to stand on within 24 below, just ahead. The chapter check's walker always leaps at a wall or when stuck. Otherwise it either leaps as soon as the ground ahead falls away, which carries it onto ramps and over joints (Folios VI, VII and IX), or waits for the very brink of a real gap (Folio VIII's long leap, where an early leap fell short). Looking only at the feet row, the old probe had seen every dip in the painted turf as a gap.
+- **Checks run before pushing Folios VIII and IX**: `npm test` (184), `npm run build`, `test:levels`, `test:chapter` (three passes in a row), `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **Next**: Folios X and XI need targets that work things (a struck target that opens a door, drops a drawbridge or rings a bell), and XII needs beasts. Each mechanic should be designed and built in the engine, the stage, the scriptorium and the harness before its folio is written.
 
 ## 2026-10-04 Claude session: Chapter I complete (Folios III–VI) and a reachability solver
 

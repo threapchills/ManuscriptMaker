@@ -20,6 +20,8 @@ export interface ScenePiece {
   filter?: string;
   clip?: string;
   fit?: 'contain' | 'fill';
+  /** Collide as a plain block (see piecePhysics), so pieces stacked into a bank leave no ledge at their joints. */
+  block?: boolean;
 }
 export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder'; name: string }
 export interface Hint { x: number; y: number; text: string; mode: 'build' | 'play' | 'both'; point?: 'left' | 'right' | 'down' }
@@ -408,6 +410,113 @@ const folio7: LevelDef = {
   ],
 };
 
+// ——— Folio VIII: the high bank ———
+// The stream has cut the far bank sheer: earth from the water to about 300
+// above the road. Nowhere to stand beneath it, and from a step against the face
+// any shot much above chest height flies too steep to bear weight. The frugal
+// way looses both arrows from this side (a step to land on after the leap, and
+// a step above it); three arrows can also climb as a stair, each loosed level
+// at chest height from the step below.
+const f8BankW = 620, f8Top = 262;
+const f8Bank = [
+  // Upside down, so the joint reads as a crack in the bank rather than a ledge of turf.
+  piece('earth-ledge-long', 820, 445, f8BankW, { role: 'solid', layer: 'ground', block: true, flipX: true, flipY: true }),
+  ground('earth-ledge-long', 820, f8Top, f8BankW, { role: 'solid', layer: 'ground', block: true }),
+];
+const folio8: LevelDef = {
+  id: 'folio-8', numeral: 8, title: 'The High Bank',
+  brief: 'The stream has cut the far bank sheer, higher than any leap. Earth takes an arrow as timber does, but an arrow loosed upward from beneath a steep face flies too steep to bear you. Plan your steps from this side of the water.',
+  sky: 'day', waterY: 606,
+  scene: [
+    piece('sun-gold', 1110, 40, 104, { layer: 'far', anim: 'turn' }),
+    piece('cloud-bank', 160, 80, 300, { layer: 'far', anim: 'drift', opacity: .9 }),
+    piece('cloud-curl', 640, 50, 160, { layer: 'far', anim: 'drift', opacity: .9 }),
+    piece('hills-blue', -60, 330, 780, { layer: 'far', opacity: .9, filter: 'saturate(.8)' }),
+    piece('hills-blue', 560, 300, 760, { layer: 'far', opacity: .85, flipX: true, filter: 'saturate(.8)' }),
+    piece('forest-line', -20, 400, 640, { layer: 'far' }),
+    piece('pine-grove', 380, 330, 300, { layer: 'far', filter: 'saturate(.85)' }),
+    piece('forest-line', 560, 424, 420, { layer: 'far', flipX: true }),
+    standing('pine-single', 64, 565, 92, { layer: 'mid' }),
+    standing('leafy-grove', 300, 566, 200, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 640, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 360),
+    ground('meadow-wide', 230, 562, 360),
+    ...f8Bank,
+    standing('pine-single', 940, f8Top + 4, 100, { layer: 'mid' }),
+    standing('leafy-grove', 1130, f8Top + 6, 230, { layer: 'mid' }),
+    standing('pond-reeds', 610, 626, 110, { layer: 'front' }),
+    standing('pond-reeds', 790, 626, 96, { layer: 'front', flipX: true }),
+    standing('wildflowers', 190, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 520, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 1010, f8Top + 6, 70, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('signpost-blank', 1196, f8Top + 4, 92, { role: 'goal', layer: 'ground' }),
+  // T is a leap from the near bank; E only from a step in the face; S only from the top.
+  letters: [{ x: 690, y: 430, glyph: 'T' }, { x: 800, y: 300, glyph: 'E' }, { x: 1040, y: 170, glyph: 'S' }],
+  tray: [],
+  quiver: 3,
+  par: 2,
+  hints: [
+    { x: 740, y: 330, text: 'too high to leap', mode: 'build', point: 'right' },
+    { x: 400, y: 470, text: 'loose from this side', mode: 'play', point: 'down' },
+  ],
+};
+
+// ——— Folio IX: the watchtower ———
+// A stone tower two courses high (about 211) under a timber storey jettied out
+// a little over it, its top about 414 above the road. Stone turns arrows, and
+// the timber begins past any leap, so arrows alone cannot climb it; one crate
+// alone lifts you only to about 300. A crate to stand on and an arrow loosed
+// level into the timber from it (or from far back) make the way.
+const f9Stone = (() => { const low = standing('wall-stone-straight', 900, 562, f4Block, { role: 'solid', layer: 'ground' }); return [low, standing('wall-stone-straight', 900, topOf(low), f4Block, { role: 'solid', layer: 'ground' })]; })();
+const f9Panel = 128;
+const f9StoneTop = topOf(f9Stone[1]);
+const f9Storey = (cx: number) => { const low = standing('wall-timber', cx, f9StoneTop, f9Panel, { role: 'solid', layer: 'ground' }); return [low, standing('wall-timber', cx, topOf(low), f9Panel, { role: 'solid', layer: 'ground' })]; };
+const f9Timber = [...f9Storey(842), ...f9Storey(958)];
+const f9Top = topOf(f9Timber[1]);
+const folio9: LevelDef = {
+  id: 'folio-9', numeral: 9, title: 'The Watchtower',
+  brief: 'Stone turns an arrow aside; only the tower’s timber will take one, and it begins higher than any leap. The margin lends you a crate besides. Climb to the watch-room door.',
+  sky: 'dusk',
+  scene: [
+    piece('moon-silver', 120, 60, 70, { layer: 'far', anim: 'bob', opacity: .85 }),
+    piece('cloud-bank', 260, 90, 300, { layer: 'far', anim: 'drift', opacity: .75 }),
+    piece('cloud-curl', 1060, 200, 150, { layer: 'far', anim: 'drift', opacity: .7 }),
+    piece('hills-blue', -60, 330, 800, { layer: 'far', opacity: .85, filter: 'saturate(.7) brightness(.85)' }),
+    piece('hills-blue', 600, 340, 760, { layer: 'far', opacity: .8, flipX: true, filter: 'saturate(.7) brightness(.85)' }),
+    piece('forest-line', -20, 404, 660, { layer: 'far', filter: 'brightness(.85)' }),
+    piece('forest-line', 640, 400, 680, { layer: 'far', flipX: true, filter: 'brightness(.85)' }),
+    standing('pine-single', 60, 565, 90, { layer: 'mid' }),
+    standing('pine-grove', 300, 568, 230, { layer: 'mid', filter: 'brightness(.92)' }),
+    standing('pine-single', 1180, 566, 104, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    ...f9Stone,
+    ...f9Timber,
+    standing('window-arrow-slit', 900, 520, 44, { layer: 'ground' }),
+    standing('window-arrow-slit', 900, 420, 44, { layer: 'ground' }),
+    standing('hedge-low', 520, 568, 130, { layer: 'front' }),
+    standing('grass-tuft', 700, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 1090, 574, 96, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('door-oak', 930, f9Top, 84, { role: 'goal', layer: 'ground' }),
+  reached: 'You reached the watch-room door.',
+  // F by a leap from the road; O only from the crate (or a step); R only from the tower's top.
+  letters: [{ x: 420, y: 400, glyph: 'F' }, { x: 650, y: 270, glyph: 'O' }, { x: 1020, y: f9Top - 56, glyph: 'R' }],
+  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate' }],
+  quiver: 3,
+  par: 2,
+  hints: [
+    { x: 760, y: 470, text: 'stone turns arrows', mode: 'build', point: 'right' },
+    { x: 740, y: f9StoneTop - 110, text: 'timber takes them', mode: 'build', point: 'right' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -439,10 +548,8 @@ export const BOOKS: BookDef[] = [
     intro: 'From the armoury of the keep the traveller takes a short bow and a quiver, and turns toward the greenwood. Where the way climbs past any leap, loose an arrow into timber or earth and stand upon its shaft.',
     motto: 'FORTES FORTUNA IUVAT',
     explicit: { rubric: 'Explicit liber secundus', line: 'The second book is ended. Fortes fortuna iuvat.' },
-    levels: [folio7],
+    levels: [folio7, folio8, folio9],
     coming: [
-      { numeral: 8, title: 'The Holloway' },
-      { numeral: 9, title: 'The Watchtower' },
       { numeral: 10, title: 'The Bell in the Oak' },
       { numeral: 11, title: 'The Drawbridge' },
       { numeral: 12, title: 'The Grey Wolf' },

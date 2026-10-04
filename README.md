@@ -17,6 +17,8 @@ Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or ta
 | V · The Mill Stream | sharing one plank and two stepping stones between two channels |
 | VI · The Moat and the Keep | finding your own way over the moat and into the keep |
 | VII · The Barred Gate | the second book's first folio: an arrow in the timber as a step over the gate |
+| VIII · The High Bank | two arrows in an earthen bank, planned from across the stream |
+| IX · The Watchtower | stone turns arrows: a crate from the margin, and an arrow in the timber above it |
 
 The second book is being written: its later folios are listed in its contents.
 

@@ -15,7 +15,7 @@ const BUCKET: Record<ScenePiece['layer'], number> = { far: 0, mid: 1, ground: 2,
 const fromScene = (p: ScenePiece): StagePiece => ({
   id: p.key, kind: 'image', src: srcOf(p.asset), asset: p.asset, x: p.x, y: p.y, width: p.width, height: p.height,
   rotation: p.rotation ?? 0, flipX: !!p.flipX, flipY: !!p.flipY, opacity: p.opacity, role: p.role, fixed: true,
-  front: p.layer === 'front', filter: p.filter, clip: p.clip, anim: p.anim, fit: p.fit,
+  front: p.layer === 'front', filter: p.filter, clip: p.clip, anim: p.anim, fit: p.fit, block: p.block,
 });
 const toPlaced = (s: StagePiece): PlacedPiece => ({ id: s.id, asset: s.asset ?? '', x: s.x, y: s.y, width: s.width, height: s.height, rotation: s.rotation, flipX: s.flipX, flipY: s.flipY });
 

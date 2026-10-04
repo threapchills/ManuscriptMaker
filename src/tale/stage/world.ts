@@ -4,7 +4,7 @@ import type { Collider, Placement } from '../../engine/rasterize';
 import { pageBounds, rasterizeField } from '../../engine/rasterize';
 import type { LoadedImage } from '../../engine/images';
 import { loadImages } from '../../engine/images';
-import { physicsFor } from '../../engine/assetPhysics';
+import { piecePhysics } from '../../engine/assetPhysics';
 import type { Avatar } from '../../engine/puppet';
 import { buildRig } from '../../engine/puppet';
 import type { SessionSpec } from '../../engine/session';
@@ -39,7 +39,7 @@ export function buildStageField(pieces: StagePiece[], width: number, height: num
     if (p.kind !== 'image' || !COLLIDING.has(p.role)) continue;
     const image = images.get(p.src);
     if (!image) continue;
-    const physics = physicsFor(p.asset);
+    const physics = piecePhysics(p.asset, p.block);
     const kind = p.role === 'solid' || p.role === 'platform' ? (physics.climbable ? 'ladder' : p.role) : p.role as 'ladder' | 'hazard';
     colliders.push({ placement: placementOf(p), image, kind, physics });
   }

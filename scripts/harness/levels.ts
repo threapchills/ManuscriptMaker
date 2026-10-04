@@ -194,7 +194,7 @@ function placesOn(level: LevelDef, field: Field) {
  * nearest `from`, which is feet, and within 14 across and 10 up or down),
  * and finally a search for the goal.
  */
-export async function solveShots(index: number, specs: Spec[], shots: Shot[]) {
+export async function solveShots(index: number, specs: Spec[], shots: Shot[], opts: { letter?: number; point?: [number, number] } = {}) {
   const level: LevelDef = LEVELS[index];
   const images = await loadLevelImages(level, traveller);
   const field = buildLevelField(level, buildPieces(specs), images);
@@ -208,7 +208,10 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[]) {
     if (!(event?.type === 'stick' && event.foothold)) return { id: level.id, solved: false, failed: `the arrow from ${spot.x},${spot.y} made no foothold (${event ? `${event.type}${'x' in event ? ` at ${Math.round(event.x)},${Math.round(event.y)}` : ''}` : 'nothing'})`, loosed };
   }
   const began = performance.now();
-  const r = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals: [goalRect(level, images)] });
+  // The goal, or one of the gilded letters (a letter is gathered when the traveller touches its disc).
+  const letter = opts.point ? { x: opts.point[0], y: opts.point[1] } : opts.letter !== undefined ? level.letters[opts.letter] : undefined;
+  const goals = letter ? [{ x: letter.x - 18, y: letter.y - 18, width: 36, height: 36 }] : [goalRect(level, images)];
+  const r = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals });
   return { id: level.id, solved: r.solved, nodes: r.nodes, ms: Math.round(performance.now() - began), highest: Math.round(r.highest), furthest: Math.round(r.furthest), path: r.path, trail: r.trail, loosed };
 }
 (window as unknown as Record<string, unknown>).solveShots = solveShots;
@@ -263,3 +266,69 @@ export async function oneArrowOpens(index: number, specs: Spec[] = [], opts: { r
   return { id: level.id, opens: false, tried, faces: faces.length, ms: Math.round(performance.now() - began) };
 }
 (window as unknown as Record<string, unknown>).oneArrowOpens = oneArrowOpens;
+
+/**
+ * Whether any one arrow a traveller could really loose would open the folio:
+ * from every resting place, and from the top of a full straight leap from
+ * each, at every sampled point of every face in `region`, each shot flown by
+ * the real rules; every distinct foothold found is then searched. Faithful
+ * where `oneArrowOpens` is generous (it lays footholds at tilts no shot can
+ * make), so it answers "can one arrow do it?" as a player would.
+ */
+export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { region?: { x0: number; x1: number; y0: number; y1: number }; step?: number; above?: number } = {}) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, buildPieces(specs), images);
+  const region = opts.region ?? { x0: 0, x1: 1280, y0: 0, y1: level.waterY ?? 720 };
+  const step = opts.step ?? 6;
+  const began = performance.now();
+  const wall = (x: number, y: number) => x >= 0 && y >= 0 && x < field.width && y < field.height && !!(field.solid[y * field.width + x] || field.platform[y * field.width + x]);
+  const targets: Array<{ x: number; y: number }> = [];
+  for (let y = Math.max(1, region.y0); y < Math.min(field.height, region.y1); y += step)
+    for (let x = Math.max(1, region.x0); x < Math.min(field.width, region.x1); x++)
+      if (wall(x, y) !== wall(x - 1, y)) targets.push({ x: wall(x, y) ? x + .5 : x - .5, y: y + .5 });
+  // Where an archer can loose from: every resting place, and the top of a full leap from it.
+  const tuning = scaleTuning(1, field.cell, TUNING);
+  const vantage: Array<{ x: number; y: number }> = [];
+  const places = placesOn(level, field);
+  // A step can only matter if it can be stood on: no leap (151, and 12 more of
+  // ledge assist) climbs more than about 165 above where it began.
+  const reach = Math.min(...places.map(p => p.y)) - 175;
+  for (const place of places) {
+    vantage.push(place);
+    const b = makeBody(field, place.x, place.y, 40, 101);
+    let top = { x: place.x, y: place.y };
+    for (let i = 0; i < 120; i++) {
+      stepBody(b, field, { x: 0, up: false, down: false, jump: i < 62, jumpPressed: i === 0 }, STEP, tuning);
+      if (b.y + b.h < top.y) top = { x: b.x + b.w / 2, y: b.y + b.h };
+    }
+    if (top.y < place.y - 20) vantage.push(top);
+  }
+  // Every distinct foothold a real shot makes, that could be stood on.
+  const footholds = new Map<string, Arrow>();
+  let unreachable = 0;
+  for (const from of vantage) for (const to of targets) {
+    const facing = to.x < from.x ? -1 : 1;
+    const arrow = loose(bowPoint(from, AVATAR_HEIGHT, facing), to);
+    let event: ArrowEvent | null = null;
+    for (let t = 0; t < 3 && !event; t += STEP) event = stepArrow(arrow, field, STEP, PAGE(level.waterY));
+    if (!(event?.type === 'stick' && event.foothold) || !arrow.hit) continue;
+    if (Math.min(arrow.hit.y, arrow.hit.y - arrow.hit.dy * (ARROW.shaft - ARROW.embed)) < reach) { unreachable++; continue; }
+    const tilt = Math.atan2(arrow.hit.dy, Math.abs(arrow.hit.dx)) * 180 / Math.PI;
+    const key = `${Math.round(arrow.hit.x / 3)}:${Math.round(arrow.hit.y / 3)}:${Math.round(tilt / 5)}`;
+    if (!footholds.has(key)) footholds.set(key, arrow);
+  }
+  const snap = snapshotPlatforms(field);
+  // The goal, or (with `above`) standing anywhere higher than that line: "can one arrow lift you at all?"
+  const goals = opts.above !== undefined ? [{ x: -100, y: -2000, width: 1480, height: 2000 + opts.above - 101 }] : [goalRect(level, images)];
+  let tried = 0;
+  for (const arrow of footholds.values()) {
+    addFoothold(field, arrow);
+    tried++;
+    const s = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals });
+    restorePlatforms(field, snap);
+    if (s.solved) return { id: level.id, opens: true, at: { x: Math.round(arrow.hit!.x), y: Math.round(arrow.hit!.y), tilt: Math.round(Math.atan2(arrow.hit!.dy, Math.abs(arrow.hit!.dx)) * 180 / Math.PI) }, path: s.path, trail: s.trail, tried, unreachable, vantage: vantage.length, targets: targets.length, ms: Math.round(performance.now() - began) };
+  }
+  return { id: level.id, opens: false, tried, unreachable, vantage: vantage.length, targets: targets.length, ms: Math.round(performance.now() - began) };
+}
+(window as unknown as Record<string, unknown>).oneShotOpens = oneShotOpens;

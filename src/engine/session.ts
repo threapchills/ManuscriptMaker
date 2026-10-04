@@ -123,11 +123,16 @@ export class PlaySession {
   }
 
   /** What lies just ahead of the traveller: used by automated playtests. */
-  probe(ahead = 30): { x: number; grounded: boolean; phase: string; support: boolean; wall: boolean; stuck: boolean } {
+  probe(ahead = 30): { x: number; grounded: boolean; phase: string; support: boolean; gap: boolean; wall: boolean; stuck: boolean } {
     const b = this.world.body, f = this.spec.field, d = Math.round(ahead / f.cell) * b.facing;
+    const groundAt = (row: number) => solidRow(f, row, b.x + d, b.w) || platformRow(f, row, b.x + d, b.w);
+    let gap = true;
+    for (let r = 0; r <= Math.round(24 / f.cell) && gap; r++) if (groundAt(b.y + b.h + r)) gap = false;
     return {
       x: (b.x + b.w / 2) * f.cell, grounded: b.grounded, phase: this.world.phase,
-      support: solidRow(f, b.y + b.h, b.x + d, b.w) || platformRow(f, b.y + b.h, b.x + d, b.w),
+      support: groundAt(b.y + b.h),
+      // Nothing to stand on within 24 below, ahead: a real edge, not a dip in the turf.
+      gap,
       wall: solidIn(f, b.x + Math.sign(d) * 12, b.y, b.w, b.h - 20),
       stuck: b.grounded && Math.abs(b.vx) < 60,
     };
