@@ -36,8 +36,12 @@ export const ASSET_PHYSICS: Record<string, AssetPhysics> = {
   'stump-old': { material: 'wood' },
   'fence-wood': { material: 'wood' },
   'hedge-low': { material: 'leaves' },
-  'wall-stone-straight': { material: 'stone' },
-  'wall-brick-straight': { material: 'stone' },
+  // Masonry is walked as the block it is. Traced to the innermost edge of the
+  // painted courses, so blocks stacked on one another meet flush: their
+  // rounded corners otherwise left a toehold at every joint, and a sheer wall
+  // could be climbed a course at a time.
+  'wall-stone-straight': { material: 'stone', polygon: [[.042, .074], [.958, .074], [.958, .915], [.042, .915]] },
+  'wall-brick-straight': { material: 'stone', polygon: [[.065, .06], [.946, .06], [.946, .94], [.065, .94]] },
   'wall-stone-ruined': { material: 'stone' },
   'wall-crenellation': { material: 'stone' },
   'wall-moss': { material: 'stone' },

@@ -1,12 +1,18 @@
 // Browser harness: builds each folio's real collision from its artwork and
 // lets a simple reactive traveller try to walk it, with and without pieces.
-import { LEVELS } from '../../src/tale/levels';
+import { LEVELS, ground, standing, topOf } from '../../src/tale/levels';
 import type { LevelDef } from '../../src/tale/levels';
 import { buildLevelField, goalRect, loadLevelImages } from '../../src/tale/levelWorld';
 import type { PlacedPiece } from '../../src/tale/save';
 import { createWorld, stepWorld, STEP } from '../../src/engine/world';
+import { makeBody, scaleTuning, stepBody, TUNING } from '../../src/engine/controller';
+import { solve } from '../../src/engine/solver';
 import type { World } from '../../src/engine/world';
 import { solidIn, platformRow, solidRow } from '../../src/engine/field';
+import { ASSETS } from '../../src/assets';
+import { physicsFor } from '../../src/engine/assetPhysics';
+import { rasterizeField } from '../../src/engine/rasterize';
+import { loadImage } from '../../src/engine/images';
 import type { ControlInput } from '../../src/engine/controller';
 
 const traveller = { name: 'Bot', design: { parts: { Head: 'char-head-hare', Body: 'char-body-blue', Arms: 'char-arms-blue', Legs: 'char-legs-boots' }, offsets: {} } };
@@ -60,3 +66,91 @@ export async function traceLevel(index: number, from: number, to: number, pieces
   return out;
 }
 (window as unknown as Record<string, unknown>).traceLevel = traceLevel;
+
+/**
+ * Where an asset's walkable top and painted base really lie, from its own
+ * rasterised collision. Fractions of the drawn height, measured over the
+ * middle 80% of its width so chimneys and rounded corners do not skew them.
+ */
+export async function measureAsset(id: string, width = 200, kind: 'solid' | 'platform' | 'ladder' = 'solid') {
+  const asset = ASSETS.find(a => a.id === id);
+  if (!asset) throw new Error(`No asset ${id}`);
+  const image = await loadImage(asset.src);
+  const height = width * asset.height / asset.width;
+  const x = 400, y = 200;
+  const field = rasterizeField(1280, 720, [{ placement: { x, y, width, height, rotation: 0, flipX: false, flipY: false, fit: 'contain' }, image, kind, physics: physicsFor(id) }]);
+  const mask = kind === 'platform' ? field.platform : kind === 'ladder' ? field.ladder : field.solid;
+  const tops: number[] = [];
+  let bottom = 0;
+  for (let cx = Math.round(x + width * .1); cx < x + width * .9; cx++) {
+    let top = -1;
+    for (let cy = 0; cy < field.height; cy++) if (mask[cy * field.width + cx]) { if (top < 0) top = cy; bottom = Math.max(bottom, cy); }
+    if (top >= 0) tops.push(top);
+  }
+  tops.sort((a, b) => a - b);
+  const f = (v: number) => +((v - y) / height).toFixed(3);
+  return { id, width: Math.round(width), height: Math.round(height), topMin: f(tops[0]), topMedian: f(tops[Math.floor(tops.length / 2)]), topMax: f(tops[tops.length - 1]), bottom: +((bottom + 1 - y) / height).toFixed(3) };
+}
+(window as unknown as Record<string, unknown>).measureAsset = measureAsset;
+
+/**
+ * Solutions written the way a player thinks of them. Each spec places one
+ * piece; `on` refers to an earlier piece by index.
+ *   { stand, cx, base, w }   its painted base rests on `base`
+ *   { stack, cx, on, w }     its base rests on the walkable top of piece `on`
+ *   { top, cx, y, w }        its walkable top lies at `y` (a floating step)
+ *   { ramp, from, to }       a plank whose upper face runs from one point to another
+ */
+type Spec = { stand?: string; stack?: string; top?: string; ramp?: string; cx?: number; base?: number; on?: number; y?: number; w?: number; from?: [number, number]; to?: [number, number]; flipX?: boolean };
+export function buildPieces(specs: Spec[]): PlacedPiece[] {
+  const out: PlacedPiece[] = [];
+  const make = (asset: string, p: { x: number; y: number; width: number; height: number }, rotation = 0, flipX = false): PlacedPiece => ({ id: `${asset}-${out.length}`, asset, x: p.x, y: p.y, width: p.width, height: p.height, rotation, flipX, flipY: false });
+  for (const s of specs) {
+    if (s.stand) out.push(make(s.stand, standing(s.stand, s.cx!, s.base!, s.w!), 0, !!s.flipX));
+    else if (s.stack) out.push(make(s.stack, standing(s.stack, s.cx!, topOf(out[s.on!] as never), s.w!), 0, !!s.flipX));
+    else if (s.top) out.push(make(s.top, ground(s.top, s.cx! - s.w! / 2, s.y!, s.w!), 0, !!s.flipX));
+    else if (s.ramp) {
+      const [x0, y0] = s.from!, [x1, y1] = s.to!;
+      const asset = s.ramp, a = ASSETS.find(q => q.id === asset)!;
+      const length = Math.hypot(x1 - x0, y1 - y0), height = length * a.height / a.width, angle = Math.atan2(y1 - y0, x1 - x0);
+      // The walking line sits `lift` above the plank's centre line, along its normal.
+      const lift = (.5 - .102) * height, nx = Math.sin(angle), ny = -Math.cos(angle);
+      const cx = (x0 + x1) / 2 - nx * lift, cy = (y0 + y1) / 2 - ny * lift;
+      out.push(make(asset, { x: cx - length / 2, y: cy - height / 2, width: length, height }, angle * 180 / Math.PI));
+    }
+  }
+  return out;
+}
+export async function tryBuilt(index: number, specs: Spec[], seconds = 20) { return tryLevel(index, buildPieces(specs), seconds); }
+(window as unknown as Record<string, unknown>).tryBuilt = tryBuilt;
+(window as unknown as Record<string, unknown>).buildPieces = buildPieces;
+
+/** Whether the real physics can carry the traveller from the start to the goal, by search rather than by a fixed script. */
+export async function solveLevel(index: number, pieces: PlacedPiece[] = []) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, pieces, images);
+  const began = performance.now();
+  const r = solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals: [goalRect(level, images)] });
+  return { id: level.id, solved: r.solved, nodes: r.nodes, steps: r.steps, ms: Math.round(performance.now() - began), highest: Math.round(r.highest), furthest: Math.round(r.furthest), path: r.path, trail: r.trail };
+}
+export async function solveBuilt(index: number, specs: Spec[]) { return solveLevel(index, buildPieces(specs)); }
+(window as unknown as Record<string, unknown>).solveBuilt = solveBuilt;
+(window as unknown as Record<string, unknown>).solveLevel = solveLevel;
+
+/** Debugging aid: step one manoeuvre from a resting place and report the path, every few steps. */
+export async function traceFrom(index: number, specs: Spec[], feet: { x: number; y: number }, segs: Array<{ steps: number; x: number; jump?: boolean; press?: boolean; up?: boolean }>, every = 4) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, buildPieces(specs), images);
+  const tuning = scaleTuning(1, field.cell, TUNING);
+  const b = makeBody(field, feet.x, feet.y, 40, 101);
+  const out: string[] = [];
+  let n = 0;
+  for (const seg of segs) for (let i = 0; i < seg.steps; i++) {
+    const ev = stepBody(b, field, { x: seg.x, up: !!seg.up, down: false, jump: !!seg.jump, jumpPressed: !!seg.press && i === 0 }, STEP, tuning);
+    if (n++ % every === 0 || ev.walled || ev.bonked || ev.landed) out.push(`#${n} feet ${b.x + b.w / 2},${b.y + b.h} vx ${Math.round(b.vx)} vy ${Math.round(b.vy)}${b.grounded ? ' grounded' : ''}${ev.walled ? ' WALLED' : ''}${ev.bonked ? ' BONK' : ''}${ev.landed ? ' LANDED' : ''}`);
+  }
+  return out;
+}
+(window as unknown as Record<string, unknown>).traceFrom = traceFrom;

@@ -1,15 +1,17 @@
 # Manuscript project ToDos
 
-Last updated: 2026-09-24. This file records the user's requested direction, including messages sent during implementation. `docs/GAME_VISION.md` is the full playable-manuscript brief; `docs/HANDOVER.md` records the concrete implementation state.
+Last updated: 2026-10-04. This file records the user's requested direction, including messages sent during implementation. `docs/GAME_VISION.md` is the full playable-manuscript brief; `docs/HANDOVER.md` records the concrete implementation state.
 
-## 2026-09-24 Claude session (see HANDOVER)
+## 2026-09-24 and 2026-10-04 Claude sessions (see HANDOVER)
 
 - [x] Solid pixel-true physics; fall-through through bridge railings fixed; solidity sweep and engine tests.
 - [x] Bespoke illuminated game shell: title cover, contents spread, tailor, folio level screen, Explicit seals, page turns, music and SFX.
 - [x] Folio I and Folio II playable and verified by automated playthrough.
 - [x] Scriptorium rebuilt on the tale's own folio stage: full cabinet, every role, motion, letters, words, sky and stream, templates, book contents with miniatures, play the whole book, file save/open, old desk kept at `#desk`.
 - [x] `test:play` mobile Restart failure fixed (tale CSS class collision with the classic desk).
-- [ ] Folios III–VI; compact phone folio layout.
+- [x] Folio III (The Hayloft, stacking) and Folio IV (Over the Rooftops, ladders), each proved closed bare and solvable several ways by a search over the real physics (2026-10-04).
+- [x] Reachability solver for level checks (`src/engine/solver.ts`); masonry walls collide as blocks; touch climb buttons when a ladder is present.
+- [ ] Folios V–VI; compact phone folio layout; Folios III–IV in the end-to-end tale walk.
 - [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).
 
 ## Playable manuscript direction — new top product priority

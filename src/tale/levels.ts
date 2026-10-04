@@ -50,11 +50,14 @@ const natural = (id: string) => {
 };
 /** Where the walkable top sits within each artwork, as a fraction of its height. */
 const SURFACE: Record<string, number> = {
-  'meadow-wide': .17, 'meadow-short': .17, 'earth-ledge-long': .14, 'earth-ledge-short': .135, 'stone-walkway': .145,
-  'plank-walkway': .107, 'crate-wood': .07, 'hay-bale': .105, 'wall-stone-straight': .08, 'bridge-arch': .076,
+  'meadow-wide': .17, 'meadow-short': .17, 'earth-ledge-long': .14, 'earth-ledge-short': .135, 'stone-walkway': .145, 'wall-stone-straight': .074,
+  'plank-walkway': .107, 'crate-wood': .07, 'hay-bale': .105, 'bridge-arch': .076,
   'hedge-low': .1, 'stump-old': .07, 'boulder': .06,
+  // Measured from each piece's own rasterised collision (scripts/harness measureAsset).
+  'wall-timber': .05, 'wall-brick-straight': .06, 'roof-chimney': .053, 'column-stone': .036, 'stairs-ladder': .038,
 };
-const BOTTOM: Record<string, number> = { 'stump-old': .92, 'signpost-blank': .94, 'boulder': .93, 'hay-bale': .9, 'crate-wood': .94, 'hedge-low': .92, 'fence-wood': .92, 'pine-single': .97, 'leafy-grove': .96, 'pine-grove': .96, 'cottage-stone': .95, 'cottage-timber': .95, 'farmhouse-thatch': .95, 'wildflowers': .9, 'grass-tuft': .92, 'door-oak': .96 };
+const BOTTOM: Record<string, number> = { 'stump-old': .92, 'signpost-blank': .94, 'boulder': .93, 'hay-bale': .9, 'crate-wood': .94, 'hedge-low': .92, 'fence-wood': .92, 'pine-single': .97, 'leafy-grove': .96, 'pine-grove': .96, 'cottage-stone': .958, 'cottage-timber': .966, 'farmhouse-thatch': .962, 'wildflowers': .9, 'grass-tuft': .92, 'door-oak': .96,
+  'wall-timber': .955, 'wall-brick-straight': .94, 'wall-stone-straight': .915, 'roof-chimney': .953, 'column-stone': .964, 'stairs-stone': .97, 'stairs-ladder': .961, 'door-portcullis': .964 };
 
 let serial = 0;
 type Extra = Partial<Omit<ScenePiece, 'asset' | 'x' | 'y' | 'width' | 'height'>>;
@@ -157,12 +160,118 @@ const folio2: LevelDef = {
   ],
 };
 
-export const LEVELS: LevelDef[] = [folio1, folio2];
+// ——— Folio III: the hayloft ———
+// The hay door is 300 above the yard. The best leap clears about 160 (see
+// tests/solver.test.ts), so the loft cannot be reached bare; two crates
+// stacked give 164 and a leap does the rest. The plank's splayed legs make its
+// ends short ramps about 30 below the deck, which is why the loft sits at 300
+// rather than 270: one crate and a perfect leap reached it at 270. Floating steps and a leaning plank
+// also work, which is the point: the margin offers pieces, not one answer.
+// The loft ledge is solid on purpose. As a one-way ledge it could be leapt up
+// through, and a traveller rising beneath it could strike the door from below
+// without ever standing in the loft (the solver in src/engine/solver.ts found
+// exactly that with a single crate).
+const LOFT = 300;
+const f3LoftY = 562 - LOFT;
+const folio3: LevelDef = {
+  id: 'folio-3', numeral: 3, title: 'The Hayloft',
+  brief: 'The hay door is far above the yard, higher than any leap. Heap the crates and bales into steps, stacked or hanging in the air as you please, then press Play and climb in.',
+  sky: 'day',
+  scene: [
+    piece('sun-gold', 90, 46, 112, { layer: 'far', anim: 'turn' }),
+    piece('cloud-bank', 330, 84, 290, { layer: 'far', anim: 'drift', opacity: .92 }),
+    piece('cloud-curl', 700, 40, 160, { layer: 'far', anim: 'drift', opacity: .9 }),
+    piece('castle', 300, 226, 170, { layer: 'far', opacity: .5, filter: 'saturate(.55) blur(.4px)' }),
+    piece('hills-blue', -40, 330, 760, { layer: 'far', opacity: .9, filter: 'saturate(.8)' }),
+    piece('hills-blue', 620, 350, 720, { layer: 'far', opacity: .85, flipX: true, filter: 'saturate(.8)' }),
+    piece('forest-line', -20, 402, 560, { layer: 'far' }),
+    piece('forest-line', 700, 410, 600, { layer: 'far', flipX: true }),
+    standing('leafy-grove', 170, 566, 200, { layer: 'mid' }),
+    standing('pine-single', 56, 565, 88, { layer: 'mid' }),
+    standing('farmhouse-thatch', 1040, 568, 470, { layer: 'mid' }),
+    standing('fence-wood', 520, 566, 150, { layer: 'mid' }),
+    // Earth beneath the meadows, so the page is solid to its foot.
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    ground('plank-walkway', 774, f3LoftY, 250),
+    standing('wildflowers', 262, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 600, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 940, 570, 76, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 1190, 574, 96, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  // Well inside the ledge, so the door cannot be touched by leaping past either end.
+  goal: standing('door-oak', 930, f3LoftY, 92, { role: 'goal', layer: 'ground' }),
+  letters: [{ x: 440, y: 400, glyph: 'G' }, { x: 704, y: 336, glyph: 'A' }, { x: 820, y: f3LoftY - 70, glyph: 'V' }],
+  tray: [
+    { asset: 'crate-wood', count: 2, role: 'solid', name: 'Crate' },
+    { asset: 'hay-bale', count: 2, role: 'solid', name: 'Hay bale' },
+  ],
+  par: 2,
+  hints: [
+    { x: 640, y: 206, text: 'too high to leap', mode: 'build', point: 'down' },
+    { x: 640, y: 446, text: 'make a stair', mode: 'build', point: 'down' },
+  ],
+};
+
+// ——— Folio IV: over the rooftops ———
+// The lane ends at a town wall about 210 high, sheer stone with no footholds
+// (masonry is traced as blocks in assetPhysics): past any leap, so a ladder is
+// the way up. Houses stand on the wall, walked over exactly as painted; beyond
+// them the canal is 340 wide, wider than the longest running leap (about 300).
+const f4Block = 220;
+/** Two courses of stone; blocks set 202 apart so their traced faces meet. */
+const f4Rows = (cx: number) => { const low = standing('wall-stone-straight', cx, 562, f4Block, { role: 'solid', layer: 'ground' }); return [low, standing('wall-stone-straight', cx, topOf(low), f4Block, { role: 'solid', layer: 'ground' })]; };
+const f4WallA = [...f4Rows(350), ...f4Rows(552)];
+const f4WallB = [...f4Rows(1094), ...f4Rows(1296)];
+const f4Top = topOf(f4WallA[1]);
+const folio4: LevelDef = {
+  id: 'folio-4', numeral: 4, title: 'Over the Rooftops',
+  brief: 'The lane ends at the town wall, and past the rooftops a canal runs deep. Set a ladder to the wall and hold ↑ to climb, go over the roofs, then lay a way across the water to the signpost.',
+  sky: 'dusk', waterY: 604,
+  scene: [
+    piece('moon-silver', 1110, 44, 66, { layer: 'far', anim: 'bob' }),
+    piece('stars-three', 880, 36, 96, { layer: 'far', opacity: .9 }),
+    piece('stars-three', 120, 70, 80, { layer: 'far', opacity: .8, flipX: true }),
+    piece('cloud-curl', 520, 70, 150, { layer: 'far', anim: 'drift', opacity: .7 }),
+    piece('hills-blue', -40, 340, 760, { layer: 'far', opacity: .85, filter: 'saturate(.7) brightness(.8)' }),
+    piece('hills-blue', 620, 352, 720, { layer: 'far', opacity: .8, flipX: true, filter: 'saturate(.7) brightness(.8)' }),
+    piece('castle', 790, 150, 250, { layer: 'far', opacity: .7, filter: 'saturate(.65) brightness(.85)' }),
+    piece('forest-line', -20, 410, 560, { layer: 'far', filter: 'brightness(.8)' }),
+    piece('forest-line', 700, 416, 600, { layer: 'far', flipX: true, filter: 'brightness(.8)' }),
+    standing('pine-single', 60, 565, 90, { layer: 'mid' }),
+    standing('leafy-grove', 1210, f4Top + 6, 170, { layer: 'mid', filter: 'brightness(.85)' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 420),
+    ground('meadow-wide', 330, 562, 360),
+    ground('earth-ledge-long', 980, 562, 320),
+    ...f4WallA, ...f4WallB,
+    standing('cottage-stone', 352, f4Top, 172, { role: 'solid', layer: 'ground' }),
+    standing('farmhouse-thatch', 548, f4Top, 176, { role: 'solid', layer: 'ground' }),
+    standing('grass-tuft', 190, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 110, 574, 90, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 90, y: 562 },
+  goal: standing('signpost-blank', 1150, f4Top, 86, { role: 'goal', layer: 'ground' }),
+  letters: [{ x: 214, y: 340, glyph: 'I' }, { x: 352, y: 100, glyph: 'T' }, { x: 823, y: f4Top - 52, glyph: 'A' }],
+  tray: [
+    { asset: 'stairs-ladder', count: 2, role: 'ladder', name: 'Ladder' },
+    { asset: 'plank-walkway', count: 1, role: 'platform', name: 'Plank' },
+  ],
+  par: 2,
+  hints: [
+    { x: 170, y: 300, text: 'too high to leap', mode: 'build', point: 'down' },
+    { x: 823, y: 470, text: 'too wide to leap', mode: 'build', point: 'down' },
+  ],
+};
+
+export const LEVELS: LevelDef[] = [folio1, folio2, folio3, folio4];
 
 /** Folios still being written, shown in the contents so the road ahead is visible. */
 export const COMING: Array<{ numeral: number; title: string }> = [
-  { numeral: 3, title: 'The Hayloft' },
-  { numeral: 4, title: 'Over the Rooftops' },
   { numeral: 5, title: 'The Mill Stream' },
   { numeral: 6, title: 'The Moat and the Keep' },
 ];

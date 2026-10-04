@@ -516,8 +516,11 @@ export default function FolioStage(props: FolioStageProps) {
     return () => { detach(); window.removeEventListener('keydown', onKey); input.reset(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [play, build, restart, undo, redo]);
-  const touchHold = (button: 'left' | 'right' | 'jump') => (event: ReactPointerEvent<HTMLButtonElement>) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setTouch(true); audio.unlock(); inputRef.current.setTouch(button, true); };
-  const touchRelease = (button: 'left' | 'right' | 'jump') => () => inputRef.current.setTouch(button, false);
+  type TouchButton = 'left' | 'right' | 'jump' | 'up' | 'down';
+  const touchHold = (button: TouchButton) => (event: ReactPointerEvent<HTMLButtonElement>) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setTouch(true); audio.unlock(); inputRef.current.setTouch(button, true); };
+  const touchRelease = (button: TouchButton) => () => inputRef.current.setTouch(button, false);
+  // A ladder on the page brings climbing buttons to the touch pad and a word to the margin.
+  const hasLadder = state.pieces.some(p => p.kind === 'image' && p.role === 'ladder');
 
   const sel = selection?.kind === 'piece' ? state.pieces.find(p => p.id === selection.id) : undefined;
   const selLetter = selection?.kind === 'letter' ? state.letters.find(l => l.id === selection.id) : undefined;
@@ -644,7 +647,7 @@ export default function FolioStage(props: FolioStageProps) {
                 {!free && tool('sweep', 'Clear your pieces', () => { if (placedCount) { commit(withPieces(stateRef.current, stateRef.current.pieces.filter(p => p.fixed))); setSelection(null); audio.play('drop'); } }, !placedCount)}
               </div>
             </> : <div className="play-notes">
-              <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap · <b>R</b> begin again · <b>Esc</b> return to building</p>
+              <p className="margin-note"><b>← →</b> walk · <b>Space</b> leap{hasLadder && <> · <b>↑ ↓</b> climb</>} · <b>R</b> begin again · <b>Esc</b> return to building</p>
               <div className="ink-tools">
                 {tool('restart', 'Begin again (R)', restart)}
                 {tool('lens', 'Scribe’s lens (L)', () => setLens(v => !v), false, lens)}
@@ -672,7 +675,13 @@ export default function FolioStage(props: FolioStageProps) {
         <button type="button" aria-label="Walk left" onPointerDown={touchHold('left')} onPointerUp={touchRelease('left')} onPointerCancel={touchRelease('left')}><InkIcon name="left" size={34} /></button>
         <button type="button" aria-label="Walk right" onPointerDown={touchHold('right')} onPointerUp={touchRelease('right')} onPointerCancel={touchRelease('right')}><InkIcon name="right" size={34} /></button>
       </div>
-      <button type="button" className="touch-jump" aria-label="Leap" onPointerDown={touchHold('jump')} onPointerUp={touchRelease('jump')} onPointerCancel={touchRelease('jump')}><InkIcon name="up" size={36} /><span>Leap</span></button>
+      <div>
+        {hasLadder && <div className="touch-climb">
+          <button type="button" aria-label="Climb up" onPointerDown={touchHold('up')} onPointerUp={touchRelease('up')} onPointerCancel={touchRelease('up')}><InkIcon name="up" size={28} /></button>
+          <button type="button" aria-label="Climb down" onPointerDown={touchHold('down')} onPointerUp={touchRelease('down')} onPointerCancel={touchRelease('down')}><InkIcon name="down" size={28} /></button>
+        </div>}
+        <button type="button" className="touch-jump" aria-label="Leap" onPointerDown={touchHold('jump')} onPointerUp={touchRelease('jump')} onPointerCancel={touchRelease('jump')}><InkIcon name="up" size={36} /><span>Leap</span></button>
+      </div>
     </div>}
   </div>;
 }
