@@ -8,8 +8,8 @@ import type { InputController } from './input';
 import type { Collectible, Rect, World, WorldEvent } from './world';
 import { advanceWorld, createWorld, drawnFeet } from './world';
 import { audio } from './audio';
-import type { Arrow } from './archery';
-import { addFoothold, bowPoint, drawAim, drawArrow, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
+import type { Arrow, Target } from './archery';
+import { addFoothold, bowPoint, drawAim, drawArrow, drawTarget, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
 
 export interface SessionSpec {
   field: Field;
@@ -29,6 +29,8 @@ export interface SessionSpec {
   water?: { y: number };
   /** Arrows in the quiver for each run. */
   quiver?: number;
+  /** Butts to shoot at; each sets something on the page working. */
+  targets?: Target[];
 }
 
 export interface SessionCallbacks {
@@ -36,6 +38,8 @@ export interface SessionCallbacks {
   onShake?: (amount: number) => void;
   /** Arrows left in the quiver, and loosed so far this run. */
   onArrows?: (left: number, loosed: number) => void;
+  /** A target was struck: whatever it works should begin to move. */
+  onStrike?: (id: string) => void;
 }
 
 /** Everything a running playtest needs: physics, feel, particles and drawing. */
@@ -65,11 +69,16 @@ export class PlaySession {
   private bowAt = -10;
   /** The walkable masks before any arrow, to wipe footholds away when a run begins again. */
   private platforms: ReturnType<typeof snapshotPlatforms>;
+  /** The collision a run begins with, before anything a target works has moved. */
+  private baseField: Field;
+  /** Targets struck this run, and when. */
+  struck = new Map<string, number>();
 
   constructor(spec: SessionSpec, private input: InputController, private callbacks: SessionCallbacks = {}) {
     this.spec = spec;
     this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
     this.platforms = snapshotPlatforms(spec.field);
+    this.baseField = spec.field;
     this.quiver = spec.quiver ?? 0;
     this.paintLetters();
     // Letters are drawn in blackletter; repaint once the face has arrived.
@@ -93,8 +102,26 @@ export class PlaySession {
     this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
     this.collectedAt = [];
     this.platforms = snapshotPlatforms(spec.field);
+    this.baseField = spec.field;
+    this.struck.clear();
     this.refillQuiver();
     if (lettersChanged) this.paintLetters();
+  }
+
+  /**
+   * Something a target worked has come to rest: walk on the page as it now
+   * stands, keeping the traveller where they are and every foothold already
+   * made. A traveller the moved piece came down on is lifted clear.
+   */
+  swapField(field: Field): void {
+    for (const a of this.arrows) if (a.hit?.foothold) addFoothold(field, a, this.spec.unit);
+    this.spec = { ...this.spec, field };
+    this.world.spec.field = field;
+    this.lensImage = null;
+    const b = this.world.body;
+    if (solidIn(field, b.x, b.y, b.w, b.h)) {
+      for (let up = 1; up < Math.round(200 / field.cell); up++) if (!solidIn(field, b.x, b.y - up, b.w, b.h)) { b.y -= up; b.vy = 0; break; }
+    }
   }
 
   private refillQuiver(): void {
@@ -143,8 +170,10 @@ export class PlaySession {
   }
 
   restart(): void {
-    if (this.arrows.some(a => a.hit?.foothold)) { restorePlatforms(this.spec.field, this.platforms); this.lensImage = null; }
-    this.world = createWorld({ ...this.world.spec });
+    if (this.arrows.some(a => a.hit?.foothold)) { restorePlatforms(this.baseField, this.platforms); this.lensImage = null; }
+    if (this.spec.field !== this.baseField) { this.spec = { ...this.spec, field: this.baseField }; this.lensImage = null; }
+    this.struck.clear();
+    this.world = createWorld({ ...this.world.spec, field: this.baseField });
     this.particles = new Particles();
     this.collectedAt = [];
     this.squash = 0; this.stretch = 0;
@@ -184,12 +213,18 @@ export class PlaySession {
   private flyArrows(dt: number): void {
     if (!this.arrows.length) return;
     const { unit } = this.spec;
-    const page = { width: this.spec.pageWidth, height: this.spec.pageHeight, unit, waterY: this.spec.water?.y };
+    const page = this.arrowPage();
     const pan = (x: number) => (x / this.spec.pageWidth - .5) * 1.2;
     for (const a of this.arrows) {
       const e = stepArrow(a, this.spec.field, dt, page);
       if (!e || e.type === 'gone') continue;
-      if (e.type === 'stick') {
+      if (e.type === 'target') {
+        this.struck.set(e.id, this.time);
+        page.targets = page.targets.filter(t => t.id !== e.id);
+        this.particles.emit('spark', e.x, e.y, 16, .9, unit);
+        audio.play((this.spec.targets ?? []).find(t => t.id === e.id)?.kind === 'bell' ? 'toll' : 'strike', { pan: pan(e.x) });
+        this.callbacks.onStrike?.(e.id);
+      } else if (e.type === 'stick') {
         if (e.foothold && addFoothold(this.spec.field, a, unit)) this.lensImage = null;
         this.particles.emit('dust', e.x, e.y, 5, .5, unit);
         audio.play('thunk', { material: e.material, pan: pan(e.x) });
@@ -202,6 +237,11 @@ export class PlaySession {
       }
     }
     this.arrows = this.arrows.filter(a => a.state !== 'gone');
+  }
+
+  /** The page as an arrow sees it: its size, its water, and the targets not yet struck. */
+  private arrowPage() {
+    return { width: this.spec.pageWidth, height: this.spec.pageHeight, unit: this.spec.unit, waterY: this.spec.water?.y, targets: (this.spec.targets ?? []).filter(t => !this.struck.has(t.id)) };
   }
 
   private handle(events: WorldEvent[]): void {
@@ -331,6 +371,7 @@ export class PlaySession {
       }
     }
 
+    for (const t of spec.targets ?? []) drawTarget(context, t, unit, this.time, this.struck.has(t.id) ? this.time - this.struck.get(t.id)! : -1);
     for (const a of this.arrows) drawArrow(context, a, unit);
 
     // The traveller.
@@ -360,7 +401,7 @@ export class PlaySession {
     // The dotted line of the next shot, and the bow as it is drawn and loosed.
     if (this.aimAt && !this.frozen && this.quiver > 0 && world.phase === 'playing') {
       const facing = this.aimAt.x < feet.x ? -1 : 1;
-      drawAim(context, trajectory(this.bowPoint(facing), this.aimAt, spec.field, { width: spec.pageWidth, height: spec.pageHeight, unit, waterY: spec.water?.y }), unit, this.time);
+      drawAim(context, trajectory(this.bowPoint(facing), this.aimAt, spec.field, this.arrowPage()), unit, this.time);
     }
     const sinceBow = this.time - this.bowAt;
     if (sinceBow < .45 && alpha > 0) drawBow(context, this.bowPoint(b.facing), b.facing, unit, Math.max(0, 1 - sinceBow / .45));

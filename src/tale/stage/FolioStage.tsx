@@ -18,7 +18,7 @@ import { audio } from '../../engine/audio';
 import { music } from '../../engine/music';
 import { ASSETS } from '../../assets';
 import type { StageLetter, StagePiece, StageResult, StageState } from './types';
-import { ROLE_LABELS } from './types';
+import { ROLE_LABELS, posed } from './types';
 import { AVATAR_HEIGHT, buildStageField, loadStageImages, srcOf, stageSpec } from './world';
 import Library from './Library';
 import type { LibraryPick } from './Library';
@@ -109,6 +109,11 @@ export default function FolioStage(props: FolioStageProps) {
   const [falls, setFalls] = useState(0);
   const quiver = props.quiver ?? 0;
   const [arrows, setArrows] = useState({ left: quiver, loosed: 0 });
+  /** Targets struck this run; the pieces they work are drawn where they come to rest. */
+  const [struck, setStruck] = useState<ReadonlySet<string>>(() => new Set());
+  /** Counts runs, so pieces a target moved spring back at once when a run begins again. */
+  const [run, setRun] = useState(0);
+  const working = useRef<number[]>([]);
   const [result, setResult] = useState<StageResult | null>(null);
   const [showCard, setShowCard] = useState(false);
   const [settling, setSettling] = useState<string | null>(null);
@@ -155,11 +160,33 @@ export default function FolioStage(props: FolioStageProps) {
 
   const specFor = useCallback((s: StageState, imgs: Map<string, LoadedImage>) => {
     const field = buildStageField(s.pieces, W, H, props.waterY, imgs);
-    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller });
+    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller, targets: s.targets });
     return spec && { ...spec, quiver };
   }, [W, H, props.waterY, props.traveller, quiver]);
 
   const winRef = useRef<(s: PlaySession) => void>(() => undefined);
+  /**
+   * A target struck: the pieces it works glide to where they come to rest,
+   * and once they have, the traveller walks on the page as it now stands.
+   */
+  const strikeRef = useRef<(id: string) => void>(() => undefined);
+  strikeRef.current = (id: string) => {
+    const moving = stateRef.current.pieces.filter(p => p.works?.by === id);
+    setStruck(prev => new Set(prev).add(id));
+    if (!moving.length) return;
+    audio.play('works');
+    working.current.push(window.setTimeout(() => {
+      const session = sessionRef.current;
+      if (!session || !images || !session.struck.has(id)) return;
+      session.swapField(buildStageField(stateRef.current.pieces, W, H, props.waterY, images, session.struck));
+      audio.play('settle');
+    }, WORKS_MS));
+  };
+  /** Put back everything targets moved, at once: a run is beginning again. */
+  const unwork = useCallback(() => {
+    working.current.forEach(window.clearTimeout); working.current = [];
+    setStruck(new Set()); setRun(r => r + 1);
+  }, []);
   useEffect(() => {
     if (!images) return;
     const spec = specFor(stateRef.current, images);
@@ -174,6 +201,7 @@ export default function FolioStage(props: FolioStageProps) {
         }
       },
       onArrows: (left, loosed) => setArrows({ left, loosed }),
+      onStrike: id => strikeRef.current(id),
     });
     session.frozen = true;
     setPlayerId(spec.playerId);
@@ -466,6 +494,7 @@ export default function FolioStage(props: FolioStageProps) {
     const spec = specFor(stateRef.current, imgs);
     if (!spec) return;
     session.configure(spec); setPlayerId(spec.playerId);
+    unwork();
     inputRef.current.reset();
     session.frozen = false;
     setSelection(null); setEditingText(null); setLettersNow(stateRef.current.letters.map(() => false)); setFalls(0); setResult(null); setShowCard(false);
@@ -477,14 +506,14 @@ export default function FolioStage(props: FolioStageProps) {
   }, [ensureImages, specFor]);
   const playRef = useRef(play); playRef.current = play;
   const build = useCallback(() => {
-    sessionRef.current?.restart();
+    sessionRef.current?.restart(); unwork();
     if (sessionRef.current) sessionRef.current.frozen = true;
     setMode('build'); setShowCard(false);
     audio.play('drop');
   }, []);
   const restart = useCallback(() => {
     if (modeRef.current === 'build') return;
-    sessionRef.current?.restart(); inputRef.current.reset();
+    sessionRef.current?.restart(); unwork(); inputRef.current.reset();
     setLettersNow(stateRef.current.letters.map(() => false)); setFalls(0); setShowCard(false); setResult(null);
     startedAt.current = performance.now();
     setMode('play'); audio.play('respawn');
@@ -557,6 +586,8 @@ export default function FolioStage(props: FolioStageProps) {
     if (p.role === 'player' && p.id === playerId && mode !== 'build') return null;
     const classes = [p.front ? 'front' : '', !p.fixed ? 'placed' : '', p.role === 'goal' ? 'goal' : '', sel?.id === p.id && mode === 'build' ? 'is-selected' : '', lifted === p.id ? 'is-lifted' : '', settling === p.id ? 'is-settling' : '', free && mode === 'build' && !p.fixed ? `role-${p.role}` : ''].filter(Boolean).join(' ');
     const anim = free && p.role !== 'scenery' ? undefined : p.anim;
+    // A piece a target works glides to its resting pose; a new run remounts it where it began.
+    if (p.works) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...posed(p, mode === 'build' ? undefined : struck), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works`} srcOverride={p.src} />;
     return <SceneLayer key={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
   };
   /**
@@ -766,6 +797,9 @@ export default function FolioStage(props: FolioStageProps) {
     {touchPad}
   </div>;
 }
+
+/** How long a piece a target works takes to come to rest (tale.css .has-works matches it). */
+const WORKS_MS = 900;
 
 /** Three arrows bound as a sheaf: the quiver's mark in the margin. */
 function Sheaf() {

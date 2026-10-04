@@ -164,6 +164,9 @@
 .quiver-left .sheaf { width: 30px; height: 30px; }
 .quiver-left.is-empty { color: var(--ink-faint); }
 .scene.can-shoot { cursor: crosshair; }
+/* A piece a target works glides to rest (FolioStage WORKS_MS). */
+.scene-layer.has-works { transition: left .9s cubic-bezier(.45, 0, .3, 1), top .9s cubic-bezier(.45, 0, .3, 1), transform .9s cubic-bezier(.45, 0, .3, 1); }
+@media (prefers-reduced-motion: reduce) { .scene-layer.has-works { transition-duration: .2s; } }
 .ink-tools { display: flex; gap: 2px; margin-left: auto; }
 .ink-tool { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #3b2a1d; transition: background .15s, transform .15s, color .15s; }
 .ink-tool .ink-icon { stroke-width: 2.1; }

@@ -29,16 +29,22 @@ export interface Arrow {
   state: ArrowState;
   /** Seconds since it was loosed, or since it stopped. */
   age: number;
-  /** Where it struck, and the direction it was flying (unit vector). */
-  hit?: { x: number; y: number; dx: number; dy: number; material?: Material; foothold: boolean };
+  /** Where it struck, and the direction it was flying (unit vector); `target` when it struck one. */
+  hit?: { x: number; y: number; dx: number; dy: number; material?: Material; foothold: boolean; target?: string };
   /** Flight time not yet stepped. */
   acc?: number;
 }
 export type ArrowEvent =
   | { type: 'stick'; x: number; y: number; material?: Material; foothold: boolean }
+  | { type: 'target'; id: string; x: number; y: number }
   | { type: 'glance'; x: number; y: number; material?: Material }
   | { type: 'sink'; x: number; y: number }
   | { type: 'gone' };
+
+/** A painted butt (or a bell): struck by an arrow, it sets something on the page working. */
+export interface Target { id: string; x: number; y: number; kind?: 'butt' | 'bell' }
+/** How near the centre an arrow must pass to strike a target (page units at a 720 page). */
+export const TARGET_RADIUS = 24;
 
 /** Soft things take an arrow; stone and water do not. */
 export const STICKS: Partial<Record<Material, boolean>> = { wood: true, earth: true, grass: true, hay: true, leaves: true, cloth: true };
@@ -82,8 +88,8 @@ const strikeAt = (f: Field, x: number, y: number) => {
  */
 const flightStep = (f: Field, unit: number) => f.cell / (1920 * unit);
 
-/** Fly an arrow on for `dt` seconds. Returns what happened, if anything did. */
-export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number; height: number; unit: number; waterY?: number }): ArrowEvent | null {
+/** Fly an arrow on for `dt` seconds. Returns what happened, if anything did. Targets already struck should be left out of `page.targets`. */
+export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number; height: number; unit: number; waterY?: number; targets?: Target[] }): ArrowEvent | null {
   a.age += dt;
   if (a.state !== 'flying') {
     if (a.state === 'glancing') { a.vy += ARROW.gravity * page.unit * dt; a.x += a.vx * dt; a.y += a.vy * dt; if (a.age > .7 || a.y > page.height + 40) a.state = 'gone'; }
@@ -97,6 +103,16 @@ export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number;
     a.x += a.vx * h; a.y += a.vy * h + .5 * g * h * h; a.vy += g * h;
     if (a.x < -60 || a.x > page.width + 60 || a.y > page.height + 60 || a.y < -page.height) { a.state = 'gone'; return { type: 'gone' }; }
     if (page.waterY !== undefined && a.y >= page.waterY + 4) { a.state = 'sunk'; a.age = 0; return { type: 'sink', x: a.x, y: page.waterY }; }
+    if (page.targets?.length) {
+      const reach = TARGET_RADIUS * page.unit;
+      const target = page.targets.find(t => (a.x - t.x) ** 2 + (a.y - t.y) ** 2 <= reach * reach);
+      if (target) {
+        const len = Math.hypot(a.vx, a.vy) || 1;
+        a.state = 'stuck'; a.age = 0;
+        a.hit = { x: a.x, y: a.y, dx: a.vx / len, dy: a.vy / len, material: 'wood', foothold: false, target: target.id };
+        return { type: 'target', id: target.id, x: a.x, y: a.y };
+      }
+    }
     const at = strikeAt(f, a.x, a.y);
     if (!at.wall) continue;
     const len = Math.hypot(a.vx, a.vy) || 1, dx = a.vx / len, dy = a.vy / len;
@@ -137,7 +153,7 @@ export function addFoothold(f: Field, a: Arrow, unit = 1): boolean {
 }
 
 /** Where a shot would go, for the dotted aiming line: the path, and how it ends. */
-export function trajectory(from: { x: number; y: number }, to: { x: number; y: number }, f: Field, page: { width: number; height: number; unit: number; waterY?: number }, seconds = 1.6): { points: Array<[number, number]>; end: ArrowEvent | null } {
+export function trajectory(from: { x: number; y: number }, to: { x: number; y: number }, f: Field, page: { width: number; height: number; unit: number; waterY?: number; targets?: Target[] }, seconds = 1.6): { points: Array<[number, number]>; end: ArrowEvent | null } {
   const a = loose(from, to, page.unit);
   const points: Array<[number, number]> = [[a.x, a.y]];
   const dt = 1 / 90;
@@ -232,6 +248,14 @@ export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof tra
     c.fillStyle = 'rgba(255, 214, 110, .22)'; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.fill();
     c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 2.6 * unit;
     c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
+  } else if (end?.type === 'target') {
+    const r = 16 * unit * (1 + .12 * Math.sin(time * 7));
+    c.strokeStyle = 'rgba(214, 160, 40, .95)'; c.lineWidth = 3 * unit;
+    c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
+    for (let i = 0; i < 8; i++) {
+      const t = i * Math.PI / 4 + time * .8;
+      c.beginPath(); c.moveTo(ex + Math.cos(t) * r * 1.2, ey + Math.sin(t) * r * 1.2); c.lineTo(ex + Math.cos(t) * r * 1.55, ey + Math.sin(t) * r * 1.55); c.stroke();
+    }
   } else if (end?.type === 'stick') {
     c.strokeStyle = 'rgba(110, 82, 48, .8)';
     c.beginPath(); c.arc(ex, ey, 7 * unit, 0, Math.PI * 2); c.stroke();
@@ -242,5 +266,88 @@ export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof tra
     c.strokeStyle = 'rgba(40, 80, 160, .7)';
     c.beginPath(); c.ellipse(ex, ey, 10 * unit, 3 * unit, 0, 0, Math.PI * 2); c.stroke();
   }
+  c.restore();
+}
+
+/**
+ * A butt to shoot at, painted like the margins' roundels: straw bound in a
+ * gilded hoop, rings of azure, white and vermilion about a gold heart, hung
+ * from an iron ring. Struck, it glows and swings a little.
+ */
+export function drawTarget(c: CanvasRenderingContext2D, t: Target, unit: number, time: number, struckFor: number): void {
+  if (t.kind === 'bell') { drawBell(c, t, unit, time, struckFor); return; }
+  const r = TARGET_RADIUS * unit;
+  const swing = struckFor >= 0 ? Math.sin(struckFor * 14) * Math.exp(-struckFor * 3) * .35 : Math.sin(time * 1.3 + t.x) * .03;
+  c.save();
+  c.translate(t.x, t.y - r * 1.25);
+  c.rotate(swing);
+  c.translate(0, r * 1.25);
+  if (struckFor >= 0 && struckFor < 1.6) {
+    const k = 1 - struckFor / 1.6;
+    const glow = c.createRadialGradient(0, 0, 0, 0, 0, r * 2.6);
+    glow.addColorStop(0, `rgba(255, 226, 140, ${.55 * k})`); glow.addColorStop(1, 'rgba(255, 226, 140, 0)');
+    c.fillStyle = glow; c.beginPath(); c.arc(0, 0, r * 2.6, 0, Math.PI * 2); c.fill();
+  }
+  // The iron ring it hangs from.
+  c.strokeStyle = '#3d3a38'; c.lineWidth = 2.2 * unit;
+  c.beginPath(); c.arc(0, -r * 1.12, r * .16, 0, Math.PI * 2); c.stroke();
+  c.shadowColor = 'rgba(40, 24, 10, .4)'; c.shadowBlur = 6 * unit; c.shadowOffsetY = 2 * unit;
+  const hoop = c.createLinearGradient(-r, -r, r, r);
+  hoop.addColorStop(0, '#fff0b8'); hoop.addColorStop(.4, '#e3b04b'); hoop.addColorStop(.7, '#a8741f'); hoop.addColorStop(1, '#f0cd73');
+  c.fillStyle = hoop; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
+  c.shadowColor = 'transparent';
+  const rings: Array<[number, string]> = [[.88, '#d9c27a'], [.8, '#2c4f9e'], [.6, '#f4ecd8'], [.42, '#b3261e'], [.2, '#e9bf57']];
+  for (const [k, colour] of rings) { c.fillStyle = colour; c.beginPath(); c.arc(0, 0, r * k, 0, Math.PI * 2); c.fill(); }
+  c.lineWidth = Math.max(1, 1.2 * unit); c.strokeStyle = 'rgba(43, 29, 20, .55)';
+  for (const k of [.88, .8, .6, .42, .2]) { c.beginPath(); c.arc(0, 0, r * k, 0, Math.PI * 2); c.stroke(); }
+  // Straw showing between the hoop and the face.
+  c.strokeStyle = 'rgba(150, 110, 40, .55)'; c.lineWidth = .8 * unit;
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(a) * r * .8, Math.sin(a) * r * .8); c.lineTo(Math.cos(a) * r * .88, Math.sin(a) * r * .88); c.stroke(); }
+  c.restore();
+}
+
+/** A bronze bell hung from a branch by its rope; struck, it swings and rings. */
+function drawBell(c: CanvasRenderingContext2D, t: Target, unit: number, time: number, struckFor: number): void {
+  const r = TARGET_RADIUS * unit;
+  const rope = r * 2.2;
+  const swing = struckFor >= 0 ? Math.sin(struckFor * 9) * Math.exp(-struckFor * 1.6) * .5 : Math.sin(time * 1.1 + t.x) * .04;
+  c.save();
+  c.translate(t.x, t.y - r * .8 - rope);
+  // The rope, up into the leaves.
+  c.strokeStyle = '#6b4a24'; c.lineWidth = 2.4 * unit; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(0, -r * .6); c.lineTo(0, 0); c.stroke();
+  c.rotate(swing);
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(0, rope); c.stroke();
+  c.translate(0, rope + r * .8);
+  if (struckFor >= 0 && struckFor < 2.4) {
+    const k = 1 - struckFor / 2.4;
+    const glow = c.createRadialGradient(0, 0, 0, 0, 0, r * 2.8);
+    glow.addColorStop(0, `rgba(255, 226, 140, ${.55 * k})`); glow.addColorStop(1, 'rgba(255, 226, 140, 0)');
+    c.fillStyle = glow; c.beginPath(); c.arc(0, 0, r * 2.8, 0, Math.PI * 2); c.fill();
+    // Rings of sound spreading from it.
+    c.strokeStyle = `rgba(214, 160, 40, ${.6 * k})`; c.lineWidth = 1.6 * unit;
+    for (const lag of [0, .35, .7]) { const age = struckFor - lag; if (age > 0 && age < 1.2) { c.globalAlpha = 1 - age / 1.2; c.beginPath(); c.arc(0, 0, r * (1.2 + age * 1.8), -Math.PI * .85, -Math.PI * .15); c.stroke(); } }
+    c.globalAlpha = 1;
+  }
+  // The bell: crown, waist and a flared lip, in bronze.
+  const bronze = c.createLinearGradient(-r, 0, r, 0);
+  bronze.addColorStop(0, '#8a5a1c'); bronze.addColorStop(.35, '#f2cf73'); bronze.addColorStop(.55, '#d39b35'); bronze.addColorStop(1, '#6e4514');
+  c.shadowColor = 'rgba(40, 24, 10, .4)'; c.shadowBlur = 6 * unit; c.shadowOffsetY = 2 * unit;
+  c.fillStyle = bronze;
+  c.beginPath();
+  c.moveTo(-r * .3, -r * .8);
+  c.quadraticCurveTo(-r * .62, -r * .78, -r * .62, -r * .2);
+  c.quadraticCurveTo(-r * .66, r * .45, -r * 1.02, r * .7);
+  c.lineTo(r * 1.02, r * .7);
+  c.quadraticCurveTo(r * .66, r * .45, r * .62, -r * .2);
+  c.quadraticCurveTo(r * .62, -r * .78, r * .3, -r * .8);
+  c.closePath(); c.fill();
+  c.shadowColor = 'transparent';
+  c.strokeStyle = 'rgba(60, 35, 10, .75)'; c.lineWidth = 1.4 * unit; c.stroke();
+  // Its crown loop, lip band and clapper.
+  c.beginPath(); c.arc(0, -r * .9, r * .16, Math.PI, 0); c.stroke();
+  c.strokeStyle = 'rgba(255, 236, 170, .7)'; c.lineWidth = 1.2 * unit;
+  c.beginPath(); c.moveTo(-r * .86, r * .5); c.lineTo(r * .86, r * .5); c.stroke();
+  c.fillStyle = '#3d2a14'; c.beginPath(); c.arc(Math.sin(swing * 3) * r * .25, r * .78, r * .16, 0, Math.PI * 2); c.fill();
   c.restore();
 }

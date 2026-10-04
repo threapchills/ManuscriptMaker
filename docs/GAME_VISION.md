@@ -59,7 +59,7 @@ Current prototype architecture: `src/types.ts` declares an optional `gameRole` o
 ## Open product decisions for the user
 
 - What outcomes beyond reaching the checkpoint should matter when later mechanics arrive? For v0.1, traversal alone is enough.
-- Which mechanics should follow movement first among enemies, archery, and flying? On 2026-10-04 the user named archery ("archery is a thing") and settled what arrows do, in this order: footholds, then targets that work things, then perils and beasts. Aiming is point-and-click, PC first; arrows come from each folio's margin and count toward the frugal seal. Footholds are built; the order of enemies and flying after archery is not yet set.
+- Which mechanics should follow movement first among enemies, archery, and flying? On 2026-10-04 the user named archery ("archery is a thing") and settled what arrows do, in this order: footholds, then targets that work things, then perils and beasts. Aiming is point-and-click, PC first; arrows come from each folio's margin and count toward the frugal seal. Footholds and targets are built (targets set pieces moving to a resting pose: a portcullis wound up, a ladder let down); the order of enemies and flying after archery is not yet set.
 - Should campaign scenes be copyable into the Manuscript sandbox for unrestricted creation? This has not been specified; do not assume conversion or shared saves.
 
 Do not silently settle these open points in a way that locks the product direction. Build compatible foundations and record assumptions in the handover.

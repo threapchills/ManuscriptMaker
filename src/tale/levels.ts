@@ -22,6 +22,8 @@ export interface ScenePiece {
   fit?: 'contain' | 'fill';
   /** Collide as a plain block (see piecePhysics), so pieces stacked into a bank leave no ledge at their joints. */
   block?: boolean;
+  /** Moves when the target `by` is struck, to this pose. */
+  works?: { by: string; x: number; y: number; rotation: number };
 }
 export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder'; name: string }
 export interface Hint { x: number; y: number; text: string; mode: 'build' | 'play' | 'both'; point?: 'left' | 'right' | 'down' }
@@ -44,6 +46,8 @@ export interface LevelDef {
   reached?: string;
   /** Arrows in the quiver, loosed in play; they count toward par like pieces. */
   quiver?: number;
+  /** Butts to shoot at; a struck one sets the scene pieces it works moving. */
+  targets?: Array<{ id: string; x: number; y: number; kind?: 'butt' | 'bell' }>;
 }
 
 
@@ -59,9 +63,11 @@ const SURFACE: Record<string, number> = {
   'hedge-low': .1, 'stump-old': .07, 'boulder': .06,
   // Measured from each piece's own rasterised collision (scripts/harness measureAsset).
   'wall-timber': .05, 'wall-brick-straight': .06, 'roof-chimney': .053, 'column-stone': .036, 'stairs-ladder': .038,
+  'wall-arch-opening': .07, 'wall-crenellation': .45,
 };
 const BOTTOM: Record<string, number> = { 'stump-old': .92, 'signpost-blank': .94, 'boulder': .93, 'hay-bale': .9, 'crate-wood': .94, 'hedge-low': .92, 'fence-wood': .92, 'pine-single': .97, 'leafy-grove': .96, 'pine-grove': .96, 'cottage-stone': .958, 'cottage-timber': .966, 'farmhouse-thatch': .962, 'wildflowers': .9, 'grass-tuft': .92, 'door-oak': .96,
-  'wall-timber': .955, 'wall-brick-straight': .94, 'wall-stone-straight': .915, 'roof-chimney': .953, 'column-stone': .964, 'stairs-stone': .97, 'stairs-ladder': .961, 'door-portcullis': .964 };
+  'wall-timber': .955, 'wall-brick-straight': .94, 'wall-stone-straight': .915, 'roof-chimney': .953, 'column-stone': .964, 'stairs-stone': .97, 'stairs-ladder': .961, 'door-portcullis': .964,
+  'wall-arch-opening': .96, 'wall-crenellation': .88 };
 
 let serial = 0;
 type Extra = Partial<Omit<ScenePiece, 'asset' | 'x' | 'y' | 'width' | 'height'>>;
@@ -517,6 +523,66 @@ const folio9: LevelDef = {
   ],
 };
 
+// ——— Folio X: the bell in the oak ———
+// The first target. A stone gatehouse about 245 high with battlements above;
+// its gateway is shut by a portcullis, iron that turns arrows. The bell in
+// the oak by the road wakes the gatekeeper: struck, the portcullis rises.
+// Beyond the gate a butt lets down a ladder to the battlements, for a letter.
+const f10Gate = standing('wall-arch-opening', 860, 562, 260, { role: 'solid', layer: 'ground', block: true });
+const f10Top = topOf(f10Gate);
+const f10Battlements = standing('wall-crenellation', 860, f10Top, 260, { role: 'solid', layer: 'ground' });
+const f10Portcullis = (() => {
+  const p = piece('door-portcullis', 762, 343, 197, { role: 'solid', layer: 'mid', block: true, clip: 'inset(20% 17% 3% 17%)' });
+  return { ...p, works: { by: 'bell', x: p.x, y: p.y - 125, rotation: 0 } };
+})();
+// Stowed on the wall-walk behind the parapet, out of any reach; the butt
+// beyond the gate tips it over the edge to hang down the gatehouse's face.
+const f10Ladder = (() => {
+  const w = 90, h = w * 185 / 83;
+  const p = piece('stairs-ladder', 870 - w / 2, topOf(f10Battlements) - w / 2 - h / 2, w, { role: 'ladder', layer: 'mid', rotation: 90 });
+  return { ...p, works: { by: 'butt', x: 978, y: 300 - .038 * h, rotation: 0 } };
+})();
+const folio10: LevelDef = {
+  id: 'folio-10', numeral: 10, title: 'The Bell in the Oak',
+  brief: 'The gatekeeper sleeps, and his portcullis is down: iron turns an arrow, and the walls are too high to climb. Ring the bell in the oak with an arrow, and he will wind the gate up for you.',
+  sky: 'day',
+  scene: [
+    piece('sun-gold', 1100, 50, 100, { layer: 'far', anim: 'turn' }),
+    piece('cloud-bank', 380, 70, 290, { layer: 'far', anim: 'drift', opacity: .9 }),
+    piece('cloud-curl', 900, 140, 150, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('hills-blue', -60, 330, 780, { layer: 'far', opacity: .9, filter: 'saturate(.8)' }),
+    piece('hills-blue', 600, 340, 760, { layer: 'far', opacity: .85, flipX: true, filter: 'saturate(.8)' }),
+    piece('forest-line', -20, 400, 660, { layer: 'far' }),
+    piece('forest-line', 640, 404, 680, { layer: 'far', flipX: true }),
+    standing('leafy-grove', 330, 568, 380, { layer: 'mid' }),
+    standing('pine-single', 1230, 566, 100, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    f10Portcullis,
+    f10Gate,
+    f10Battlements,
+    f10Ladder,
+    standing('wildflowers', 160, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 600, 568, 70, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 1060, 570, 76, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('signpost-blank', 1196, 566, 92, { role: 'goal', layer: 'ground' }),
+  reached: 'You passed through the gatehouse.',
+  letters: [{ x: 560, y: 400, glyph: 'T' }, { x: 860, y: 196, glyph: 'U' }, { x: 1090, y: 410, glyph: 'N' }],
+  targets: [{ id: 'bell', x: 385, y: 452, kind: 'bell' }, { id: 'butt', x: 1150, y: 240 }],
+  tray: [],
+  quiver: 3,
+  par: 1,
+  hints: [
+    { x: 690, y: 470, text: 'iron turns arrows', mode: 'build', point: 'right' },
+    { x: 385, y: 330, text: 'ring the bell', mode: 'play', point: 'down' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -548,9 +614,8 @@ export const BOOKS: BookDef[] = [
     intro: 'From the armoury of the keep the traveller takes a short bow and a quiver, and turns toward the greenwood. Where the way climbs past any leap, loose an arrow into timber or earth and stand upon its shaft.',
     motto: 'FORTES FORTUNA IUVAT',
     explicit: { rubric: 'Explicit liber secundus', line: 'The second book is ended. Fortes fortuna iuvat.' },
-    levels: [folio7, folio8, folio9],
+    levels: [folio7, folio8, folio9, folio10],
     coming: [
-      { numeral: 10, title: 'The Bell in the Oak' },
       { numeral: 11, title: 'The Drawbridge' },
       { numeral: 12, title: 'The Grey Wolf' },
     ],

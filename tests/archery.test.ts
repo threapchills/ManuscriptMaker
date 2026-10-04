@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import type { Field } from '../src/engine/field';
-import { addFoothold, aim, ARROW, footholdShape, loose, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from '../src/engine/archery';
+import { addFoothold, aim, ARROW, footholdShape, loose, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
+import { posed } from '../src/tale/stage/types';
 import type { Arrow } from '../src/engine/archery';
 import { createWorld, stepWorld } from '../src/engine/world';
 import { NO_INPUT } from '../src/engine/controller';
@@ -107,7 +108,33 @@ describe('archery', () => {
     expect(attempt().solved).toBe(false);
   }, 60_000);
 
+  it('strikes a target in its path, and passes one already struck', () => {
+    const f = field(g => fillRect(g, 'solid', 900, 200, 120, 400, 'wood'));
+    const butt = { id: 'bell', x: 640, y: 420 };
+    const a = loose({ x: 300, y: 470 }, { x: 640, y: 420 });
+    let e = null;
+    for (let i = 0; i < 400 && !e; i++) e = stepArrow(a, f, 1 / 120, { ...page, targets: [butt] });
+    expect(e).toMatchObject({ type: 'target', id: 'bell' });
+    expect(a.state).toBe('stuck');
+    expect(a.hit).toMatchObject({ target: 'bell', foothold: false });
+    // The aiming line knows the target is there too.
+    expect(trajectory({ x: 300, y: 470 }, { x: 640, y: 420 }, f, { ...page, targets: [butt] }).end?.type).toBe('target');
+    // Struck once, it is left out, and the next arrow flies on to the timber behind.
+    const b = loose({ x: 300, y: 470 }, { x: 640, y: 420 });
+    expect(fly(b, f)?.type).toBe('stick');
+  });
+
+  it('moves a piece a target works only once that target is struck', () => {
+    const portcullis = { x: 600, y: 440, rotation: 0, works: { by: 'bell', x: 600, y: 300, rotation: 0 } };
+    expect(posed(portcullis, new Set())).toBe(portcullis);
+    expect(posed(portcullis, new Set(['other']))).toBe(portcullis);
+    expect(posed(portcullis, new Set(['bell']))).toMatchObject({ x: 600, y: 300, rotation: 0 });
+    const plain = { x: 10, y: 20, rotation: 5 };
+    expect(posed(plain, new Set(['bell']))).toBe(plain);
+  });
+
   it('keeps its numbers sensible', () => {
     expect(ARROW.shaft).toBeGreaterThan(ARROW.embed + 30);
+    expect(TARGET_RADIUS).toBeGreaterThan(ARROW.ledge * 3);
   });
 });

@@ -15,7 +15,7 @@ const BUCKET: Record<ScenePiece['layer'], number> = { far: 0, mid: 1, ground: 2,
 const fromScene = (p: ScenePiece): StagePiece => ({
   id: p.key, kind: 'image', src: srcOf(p.asset), asset: p.asset, x: p.x, y: p.y, width: p.width, height: p.height,
   rotation: p.rotation ?? 0, flipX: !!p.flipX, flipY: !!p.flipY, opacity: p.opacity, role: p.role, fixed: true,
-  front: p.layer === 'front', filter: p.filter, clip: p.clip, anim: p.anim, fit: p.fit, block: p.block,
+  front: p.layer === 'front', filter: p.filter, clip: p.clip, anim: p.anim, fit: p.fit, block: p.block, works: p.works,
 });
 const toPlaced = (s: StagePiece): PlacedPiece => ({ id: s.id, asset: s.asset ?? '', x: s.x, y: s.y, width: s.width, height: s.height, rotation: s.rotation, flipX: s.flipX, flipY: s.flipY });
 
@@ -39,7 +39,7 @@ export default function LevelScreen({ level, record, traveller, onPieces, onComp
     const fixed = level.scene.map(fromScene).sort((a, b) => BUCKET[level.scene.find(p => p.key === a.id)!.layer] - BUCKET[level.scene.find(p => p.key === b.id)!.layer]);
     const behind = fixed.filter(p => !p.front), front = fixed.filter(p => p.front);
     const placed = record.pieces.map(p => ({ id: p.id, kind: 'image' as const, src: srcOf(p.asset), asset: p.asset, x: p.x, y: p.y, width: p.width, height: p.height, rotation: p.rotation, flipX: p.flipX, flipY: p.flipY, role: roleOfPlaced(level, p.asset) }));
-    return { pieces: [...behind, ...placed, fromScene(level.goal), ...front], letters: level.letters.map((l, i) => ({ id: `${level.id}-l${i}`, ...l })), spawn: level.spawn };
+    return { pieces: [...behind, ...placed, fromScene(level.goal), ...front], letters: level.letters.map((l, i) => ({ id: `${level.id}-l${i}`, ...l })), spawn: level.spawn, targets: level.targets };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
   const onChange = useCallback((s: StageState) => onPieces(s.pieces.filter(p => !p.fixed).map(toPlaced)), [onPieces]);

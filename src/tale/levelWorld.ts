@@ -12,6 +12,7 @@ import type { SessionSpec } from '../engine/session';
 import type { LevelDef, ScenePiece } from './levels';
 import { SCENE_H, SCENE_W } from './levels';
 import type { PlacedPiece, Traveller } from './save';
+import { posed } from './stage/types';
 
 export const srcOf = (asset: string) => ASSETS.find(a => a.id === asset)?.src ?? '';
 export const AVATAR_HEIGHT = 118;
@@ -37,13 +38,13 @@ export function roleOfPlaced(level: LevelDef, asset: string) {
 }
 
 /** Collision for the folio as it stands: fixed scene, the player's pieces, and the water. */
-export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: Map<string, LoadedImage>): Field {
+export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: Map<string, LoadedImage>, struck?: { has: (id: string) => boolean }): Field {
   const colliders: Collider[] = [];
   const add = (p: ScenePiece | PlacedPiece, kind: 'solid' | 'platform' | 'ladder' | 'hazard') => {
     const image = images.get(srcOf(p.asset));
     if (image) colliders.push({ placement: placementOfPiece(p), image, kind, physics: piecePhysics(p.asset, (p as ScenePiece).block) });
   };
-  for (const p of level.scene) if (p.role === 'solid' || p.role === 'platform' || p.role === 'ladder' || p.role === 'hazard') add(p, p.role);
+  for (const q of level.scene) { const p = posed(q, struck); if (p.role === 'solid' || p.role === 'platform' || p.role === 'ladder' || p.role === 'hazard') add(p, p.role); }
   for (const p of pieces) add(p, roleOfPlaced(level, p.asset));
   const field = rasterizeField(SCENE_W, SCENE_H, colliders);
   if (level.waterY !== undefined) {
@@ -72,5 +73,6 @@ export function levelSpec(level: LevelDef, field: Field, images: Map<string, Loa
     collectibles: level.letters.map(l => ({ x: l.x, y: l.y, radius: 26, glyph: l.glyph })),
     water: level.waterY !== undefined ? { y: level.waterY } : undefined,
     sink: 4,
+    targets: level.targets,
   };
 }

@@ -8,7 +8,7 @@ import type { Material } from './field';
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
   | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
-  | 'loose' | 'thunk' | 'clink' | 'plop';
+  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -287,6 +287,31 @@ class AudioEngine {
         if (!soft) this.tone({ at: now + .01, freq: vary(520, .1), to: 480, type: 'sine', gain: .03, decay: .16, pan, wet: .2 });
         break;
       }
+      case 'strike':
+        // The thud of the butt, then a bright chime: something has been set going.
+        this.tone({ freq: vary(180), to: 90, type: 'triangle', gain: .14, decay: .08, pan, wet: .08 });
+        this.noiseBurst({ gain: .08, decay: .05, type: 'lowpass', freq: 1400, pan, wet: .08 });
+        this.bell(vary(1046, .01), .07, now + .03, 1.2, .45);
+        this.bell(vary(1568, .01), .045, now + .11, 1.0, .5);
+        break;
+      case 'toll':
+        // A bronze bell: a deep hum under bright, slightly sour partials, long to die away.
+        this.bell(vary(392, .01), .12, now, 3.2, .55);
+        this.bell(vary(784 * 1.19, .01), .05, now, 2.2, .55);
+        this.bell(vary(392 * 2.4, .01), .045, now + .005, 1.8, .6);
+        this.bell(vary(196, .01), .06, now, 3.6, .5);
+        this.noiseBurst({ gain: .06, decay: .03, type: 'bandpass', freq: 2200, q: 1.2, pan, wet: .2 });
+        break;
+      case 'works':
+        // Chains paying out and old timber groaning.
+        for (let i = 0; i < 7; i++) this.noiseBurst({ at: now + i * .09 + Math.random() * .03, gain: .04, decay: .035, type: 'bandpass', freq: vary(2400, .2), q: 3, pan, wet: .2 });
+        this.tone({ freq: vary(70), to: 52, type: 'sawtooth', gain: .035, attack: .08, decay: .7, pan, wet: .3 });
+        break;
+      case 'settle':
+        // A heavy piece coming to rest.
+        this.tone({ freq: vary(90), to: 45, type: 'sine', gain: .24, decay: .22, pan, wet: .2 });
+        this.noiseBurst({ gain: .1, decay: .12, type: 'lowpass', freq: 700, pan, wet: .2 });
+        break;
       case 'clink':
         this.bell(vary(1900, .05), .05, now, .35, .25);
         this.noiseBurst({ gain: .05, decay: .03, type: 'highpass', freq: 3800, pan, wet: .1 });

@@ -10,7 +10,8 @@ import { buildRig } from '../../engine/puppet';
 import type { SessionSpec } from '../../engine/session';
 import { ASSETS } from '../../assets';
 import type { Traveller } from '../save';
-import type { StageLetter, StagePiece } from './types';
+import type { StageLetter, StagePiece, StageTarget } from './types';
+import { posed } from './types';
 
 export const srcOf = (asset: string) => ASSETS.find(a => a.id === asset)?.src ?? '';
 /** The traveller's drawn height and hitbox on a 720-tall page. */
@@ -33,9 +34,10 @@ export function loadStageImages(pieces: StagePiece[], traveller: Traveller | nul
 const COLLIDING = new Set(['solid', 'platform', 'ladder', 'hazard']);
 
 /** Collision for the stage exactly as painted, plus the stream along the bottom. */
-export function buildStageField(pieces: StagePiece[], width: number, height: number, waterY: number | undefined, images: Map<string, LoadedImage>): Field {
+export function buildStageField(pieces: StagePiece[], width: number, height: number, waterY: number | undefined, images: Map<string, LoadedImage>, struck?: { has: (id: string) => boolean }): Field {
   const colliders: Collider[] = [];
-  for (const p of pieces) {
+  for (const q of pieces) {
+    const p = posed(q, struck);
     if (p.kind !== 'image' || !COLLIDING.has(p.role)) continue;
     const image = images.get(p.src);
     if (!image) continue;
@@ -83,6 +85,7 @@ export function stageSpec(o: {
   pieces: StagePiece[]; letters: StageLetter[]; spawn: { x: number; y: number };
   width: number; height: number; waterY?: number; field: Field;
   images: Map<string, LoadedImage>; traveller: Traveller | null;
+  targets?: StageTarget[];
 }): (SessionSpec & { playerId?: string }) | null {
   const unit = Math.max(.6, Math.min(2, o.height / 720));
   const who = stageAvatar(o.pieces, o.images, o.traveller, o.spawn, unit);
@@ -94,6 +97,7 @@ export function stageSpec(o: {
     collectibles: o.letters.map(l => ({ x: l.x, y: l.y, radius: 26 * unit, glyph: l.glyph })),
     water: o.waterY !== undefined ? { y: o.waterY } : undefined,
     sink: 4 * unit,
+    targets: o.targets?.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind })),
     playerId: who.playerId,
   };
 }

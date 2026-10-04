@@ -59,6 +59,22 @@ export const ASSET_PHYSICS: Record<string, AssetPhysics> = {
   // The stone stair is walked as a ramp along its step noses.
   'stairs-stone': { material: 'stone', polygon: [[.02, .97], [.02, .8], [.05, .76], [.79, .055], [.97, .045], [.97, .97]] },
   'stairs-ladder': { material: 'wood', box: true, climbable: true },
+  // Iron bars: arrows ring off them.
+  'door-portcullis': { material: 'stone' },
+  // Masonry and carved stone that had no material: arrows glance off it, and feet sound on stone.
+  'wall-arch-opening': { material: 'stone' },
+  'arch-pointed': { material: 'stone' },
+  'arch-rounded': { material: 'stone' },
+  'window-gothic': { material: 'stone' },
+  'window-round': { material: 'stone' },
+  'window-lancet': { material: 'stone' },
+  'window-arrow-slit': { material: 'stone' },
+  'roof-chimney': { material: 'stone' },
+  'tunnel-mouth': { material: 'stone' },
+  'door-oak': { material: 'wood' },
+  'door-double': { material: 'wood' },
+  'window-shutters': { material: 'wood' },
+  'signpost-blank': { material: 'wood' },
   'cottage-timber': { material: 'wood' },
   'cottage-stone': { material: 'stone' },
   'farmhouse-thatch': { material: 'hay' },
@@ -75,6 +91,11 @@ export const physicsFor = (assetId?: string): AssetPhysics => (assetId && ASSET_
 const BLOCKS: Record<string, Array<[number, number]>> = {
   'earth-ledge-long': [[.05, .14], [.95, .14], [.95, .92], [.05, .92]],
   'earth-ledge-short': [[.08, .135], [.92, .135], [.92, .91], [.08, .91]],
+  // The grille alone, without its arch, for a portcullis set into a gateway.
+  'door-portcullis': [[.17, .2], [.83, .2], [.83, .97], [.17, .97]],
+  // A gateway seen face on, crossed in profile: only the stonework above its
+  // passage stands in the way; the road runs past the pillars.
+  'wall-arch-opening': [[.047, .07], [.943, .07], [.943, .33], [.047, .33]],
 };
 /** The physics of a piece, as a plain block when its level asks for one. */
 export const piecePhysics = (assetId: string | undefined, block?: boolean): AssetPhysics => {

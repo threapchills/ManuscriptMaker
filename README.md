@@ -19,6 +19,7 @@ Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or ta
 | VII · The Barred Gate | the second book's first folio: an arrow in the timber as a step over the gate |
 | VIII · The High Bank | two arrows in an earthen bank, planned from across the stream |
 | IX · The Watchtower | stone turns arrows: a crate from the margin, and an arrow in the timber above it |
+| X · The Bell in the Oak | ring the bell with an arrow, and the gatekeeper winds up his portcullis |
 
 The second book is being written: its later folios are listed in its contents.
 
@@ -26,7 +27,7 @@ Each folio presses up to three seals: the road walked, every gilded letter gathe
 
 **Controls:** ← → or A/D walk · Space leaps (hold it to leap higher) · ↑ ↓ climb a ladder · R begins again · Esc returns to building · L shows the scribe's lens, which outlines solid ground. On touch screens a pad appears during play, with climbing buttons whenever a ladder is on the page. Progress is saved in this browser.
 
-**Archery:** a folio may offer a few arrows in its margin. In play, rest the pointer where you want to shoot to see the arrow's arc, and click to loose it. An arrow that strikes wood or earth roughly level sticks fast and makes a foothold you can stand on; stone turns arrows aside and water swallows them. Arrows count toward a folio's par like pieces, and beginning again refills the quiver. The first book needs none; the second begins with them.
+**Archery:** a folio may offer a few arrows in its margin. In play, rest the pointer where you want to shoot to see the arrow's arc, and click to loose it. An arrow that strikes wood or earth roughly level sticks fast and makes a foothold you can stand on; stone turns arrows aside and water swallows them. Some folios hang targets, a painted butt or a bell: strike one and something on the page starts working, such as a portcullis wound up or a ladder let down. Arrows count toward a folio's par like pieces, and beginning again refills the quiver and puts everything back. The first book needs none; the second begins with them.
 
 ## Make your own folios: the scriptorium
 

@@ -269,9 +269,31 @@ try {
   await expect(page.getByRole('dialog')).toContainText('Here endeth the ninth folio', { timeout: 5000 });
   await expect(page.getByRole('dialog')).toContainText('You reached the watch-room door.');
   await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-watchtower.png' });
 
+  // ——— Folio X: the bell in the oak rung, the portcullis wound up, the gatehouse passed ———
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Bell in the Oak' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  const oak = await page.locator('.scene').boundingBox();
+  const bell = { x: oak.x + 385 * oak.width / 1280, y: oak.y + 452 * oak.height / 720 };
+  await page.mouse.move(bell.x, bell.y);
+  await page.waitForTimeout(250);
+  await page.mouse.click(bell.x, bell.y);
+  await page.waitForFunction(() => window.__playSession.struck.has('bell'), null, { timeout: 4000 });
+  // The portcullis winds up and settles before the road through the gate is open.
+  await page.waitForTimeout(1200);
+  await page.mouse.move(oak.x + 20, oak.y + 20);
+  await walkRight(page);
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the tenth folio', { timeout: 5000 });
+  await expect(page.getByRole('dialog')).toContainText('You passed through the gatehouse.');
+  await expect(page.getByRole('dialog')).toContainText('1 arrow used · par 1');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-bell.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, and Folio IX climbed by a crate from the margin and an arrow in the timber, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, and Folio X’s gate opened by ringing the bell, no runtime errors');
 } finally { await browser.close(); }
