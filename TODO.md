@@ -23,7 +23,8 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] The second book complete: Folios VII–XII, proved by the harness and played in the browser.
 - [x] Archery, part three: beasts. A grey wolf keeps a stretch of ground and sends a traveller it catches back to the start; an arrow glances off its hide and sends it running off the page. Folio XII, *The Grey Wolf*, closes the second book.
 - [ ] Archery on touch: a way to see the shot before loosing it (the user put PC first; mobile is not a priority).
-- [ ] Scriptorium next: the maker's own uploaded pictures in the cabinet; behaviours such as moving ledges, patrolling beasts, switches and doors (shared with the tale).
+- [x] The maker's own pictures in the scriptorium's cabinet, offered on every folio of the book and kept there when no folio shows them, until put away (2026-10-04).
+- [ ] Scriptorium next: behaviours such as moving ledges, switches and doors (shared with the tale). Targets that work things and the wolf already cover some of this.
 
 ## Playable manuscript direction — new top product priority
 

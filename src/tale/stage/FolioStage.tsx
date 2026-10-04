@@ -90,6 +90,9 @@ export interface FolioStageProps {
   autoPlay?: boolean;
   headerExtra?: ReactNode;
   emptyMargin?: ReactNode;
+  /** The maker's own pictures elsewhere in the book, and those kept aside, for the cabinet. */
+  pictures?: Array<{ src: string; kept: boolean }>;
+  onPutAway?: (src: string) => void;
 }
 
 export default function FolioStage(props: FolioStageProps) {
@@ -142,7 +145,11 @@ export default function FolioStage(props: FolioStageProps) {
       await addFromPick({ kind: 'piece', asset: '', src, role: 'scenery', width: 220 }, W * .5, H * .42);
     } catch (error) { say(error instanceof Error ? error.message : 'That picture could not be opened.'); }
   };
-  const uploads = useMemo(() => [...new Set(state.pieces.filter(p => p.kind === 'image' && !p.asset && p.src.startsWith('data:')).map(p => p.src))], [state.pieces]);
+  // The maker's own pictures: those on this folio first, then the rest of the book's.
+  const uploads = useMemo(() => {
+    const here = [...new Set(state.pieces.filter(p => p.kind === 'image' && !p.asset && p.src.startsWith('data:')).map(p => p.src))];
+    return [...here.map(src => ({ src, kept: false })), ...(props.pictures ?? []).filter(p => !here.includes(p.src))];
+  }, [state.pieces, props.pictures]);
 
   // ——— pictures ———
   useEffect(() => {
@@ -791,7 +798,7 @@ export default function FolioStage(props: FolioStageProps) {
   </div>;
   const margin = <div className="folio-margin">
     {mode === 'build' ? <>
-      {free ? <Library onPick={startDrag} onUpload={file => void upload(file)} uploads={uploads} /> : props.tray?.length ? <div className="tray" aria-label="Pieces in the margin">
+      {free ? <Library onPick={startDrag} onUpload={file => void upload(file)} uploads={uploads} onPutAway={props.onPutAway} /> : props.tray?.length ? <div className="tray" aria-label="Pieces in the margin">
         {props.tray.map(t => {
           const left = remaining?.[t.asset] ?? 0;
           return <button type="button" key={t.asset} className={`tray-piece${left <= 0 ? ' is-spent' : ''}`} onPointerDown={startDrag({ kind: 'piece', asset: t.asset, role: t.role })} onPointerEnter={() => audio.play('tick')} aria-label={`${t.name}: ${left} left. Drag into the picture.`} title={`${t.name} · drag into the picture`}>

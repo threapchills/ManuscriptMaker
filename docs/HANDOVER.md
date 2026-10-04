@@ -22,8 +22,15 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
   - `test:tale` opens the cover, contents and tailor on an upright phone (390×844, touch). It turns to the second book and back, and checks that a crown chosen on the phone is kept.
   - `test:scriptorium` checks, at an upright phone's width, the contents leaf, the folio column, the cabinet and the settings card, and that the Marks shelf can be reached.
 - **Checks run before pushing**: `npm test` (194), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **The maker's own pictures across the book** (pushed after the phone batch). The cabinet's Marks shelf used to list only the pictures on the folio open, so a picture brought in on one folio was not offered on the next, and vanished once its last piece was taken away.
+  - Every folio's cabinet now offers every picture of the maker's own in the book: this folio's first, then the rest in reading order (`bookPictures` in `src/scriptorium/convert.ts`; `FolioStage`'s `pictures` prop).
+  - A picture no folio shows any longer, because its last piece was taken away or its folio torn out, is kept aside with the book. This is `Project.pictures`, optional, validated as pictures carried in the book itself (`DATA_PICTURE` in `document.ts`), at most `MAX_KEPT_PICTURES` (120), the oldest let go beyond that.
+  - `keepPictures` runs on every change of pages, through `withPages` in `ScriptoriumApp`. A picture leaves the kept list as soon as a folio shows it again, so it is never carried twice; a book that never had one keeps its old shape.
+  - A kept picture shows with a dotted edge and a small × to put it away, which asks for a second press (`putPictureAway`).
+  - `validateProject` passes unknown fields through and the old desk spreads projects when it edits them, so a book opened at the old desk keeps its kept pictures.
+  - Checked: a unit test (keeping, showing again, a torn-out folio, putting away, validation), and `test:scriptorium`, where the picture taken off the first folio stays in the cabinet, is offered on the second, and is put away.
+- **Checks run before pushing the pictures**: `npm test` (195), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
 - **Next**:
-  - The maker's own pictures across the whole book: the cabinet lists only those on the current folio, so one vanishes once its last piece is removed.
   - Possibly a third book, once the user has chosen what it should teach (flying was the other mechanic named).
   - On touch, a way to see an arrow's flight before loosing it (the user put PC first).
 

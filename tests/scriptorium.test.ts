@@ -3,7 +3,7 @@ import type { ImageLayer, Manuscript, TextLayer } from '../src/types';
 import { validateManuscript } from '../src/document';
 import { validateProject } from '../src/project';
 import type { Project } from '../src/project';
-import { FOLIO_TEMPLATES, SCRIPTORIUM_KEY, newFolio, newScriptoriumBook, pageToStage, readScriptorium, reidentify, skySeedOf, stageToPage, writeScriptorium } from '../src/scriptorium/convert';
+import { FOLIO_TEMPLATES, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, newScriptoriumBook, pageToStage, putPictureAway, readScriptorium, reidentify, skySeedOf, stageToPage, writeScriptorium } from '../src/scriptorium/convert';
 import type { StagePiece } from '../src/tale/stage/types';
 import { ASSETS } from '../src/assets';
 
@@ -131,6 +131,32 @@ describe('the Scriptorium book', () => {
       expect(() => validateManuscript({ ...page, scene: { ...page.scene, ...scene } as never })).toThrow(/play settings/);
     const badMotion = { ...armed, layers: armed.layers.map(l => l.id === crate.id ? { ...l, works: { by: 't1', motion: 'explode' } } : l) };
     expect(() => validateManuscript(badMotion as never)).toThrow(/motion/);
+  });
+
+  it('keeps the maker’s own pictures in the book’s cabinet, even when no folio shows them', () => {
+    const picture = 'data:image/png;base64,iVBORw0KGgo=';
+    const first = newFolio(1), second = newFolio(2);
+    const { assetId: _, ...drawn } = first.layers.find(l => l.type === 'image') as ImageLayer;
+    const own: ImageLayer = { ...drawn, id: 'own-picture', src: picture, name: 'Your picture' };
+    const shown = bookOf([{ ...first, layers: [...first.layers, own] }, second]);
+    // A picture on one folio is offered on every folio of the book.
+    expect(bookPictures(shown)).toEqual([{ src: picture, kept: false }]);
+    // Its last piece taken away, the picture is kept aside with the book.
+    const bare = keepPictures(shown, { ...shown, pages: [first, second] });
+    expect(bare.pictures).toEqual([picture]);
+    expect(bookPictures(bare)).toEqual([{ src: picture, kept: true }]);
+    expect(() => validateProject(bare)).not.toThrow();
+    // Shown again, on another folio, it is not kept twice.
+    const again = keepPictures(bare, { ...bare, pages: [first, { ...second, layers: [...second.layers, { ...own, id: 'own-again' }] }] });
+    expect(again).not.toHaveProperty('pictures');
+    expect(bookPictures(again)).toEqual([{ src: picture, kept: false }]);
+    // A folio torn out leaves its pictures in the cabinet too.
+    expect(keepPictures(again, { ...again, pages: [first] }).pictures).toEqual([picture]);
+    // Put away, it is gone; a book that never had one keeps its old shape.
+    expect(putPictureAway(bare, picture)).not.toHaveProperty('pictures');
+    expect(keepPictures(bookOf([first]), bookOf([first]))).not.toHaveProperty('pictures');
+    // Only pictures carried in the book itself are accepted.
+    for (const pictures of ['nope', ['https://example.com/x.png'], [42]]) expect(() => validateProject({ ...bare, pictures } as never)).toThrow(/picture/);
   });
 
   it('keeps a folio\'s quiver and refuses an impossible one', () => {

@@ -49,6 +49,8 @@ export function newManuscript(template = 'bestiary'): Manuscript {
   return manuscript;
 }
 export const STORAGE_KEY = 'manuscript-maker:v1';
+/** A picture carried in the book itself, as the maker brought it from their device. */
+export const DATA_PICTURE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
 const numeric = (n:unknown,min:number,max:number) => typeof n==='number' && Number.isFinite(n) && n>=min && n<=max;
 export function validateManuscript(value: unknown): Manuscript {
   if(!value || typeof value !== 'object') throw new Error('That file does not contain a manuscript.');
@@ -58,7 +60,7 @@ export function validateManuscript(value: unknown): Manuscript {
   for(const l of d.layers){
     if(!l || typeof l.id!=='string' || ids.has(l.id) || typeof l.name!=='string' || !numeric(l.x,-10000,10000) || !numeric(l.y,-10000,10000) || !numeric(l.width,1,6000) || !numeric(l.height,1,6000) || !numeric(l.rotation,-36000,36000) || !numeric(l.opacity,0,1) || !['image','text'].includes(l.type) || ['locked','hidden','flipX','flipY'].some(k=>typeof (l as unknown as Record<string,unknown>)[k]!=='boolean')) throw new Error('One of the manuscript layers is invalid.');
     ids.add(l.id);
-    if(l.type==='image' && !(typeof l.src==='string' && (/^\/ManuscriptMaker\/assets\/[a-z0-9-]+\.png$/.test(l.src) || /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(l.src)))) throw new Error('This file contains an unsupported image source.');
+    if(l.type==='image' && !(typeof l.src==='string' && (/^\/ManuscriptMaker\/assets\/[a-z0-9-]+\.png$/.test(l.src) || DATA_PICTURE.test(l.src)))) throw new Error('This file contains an unsupported image source.');
     if(l.type==='image' && l.gameRole !== undefined && !['scenery','player','solid','platform','goal','hazard','ladder'].includes(l.gameRole)) throw new Error('This file contains an unsupported play role.');
     if(l.type==='image' && l.imageFit !== undefined && !['contain','fill'].includes(l.imageFit)) throw new Error('This file contains an unsupported image fit.');
     if(l.type==='image' && l.motion !== undefined && !['drift','sway','bob','turn'].includes(l.motion)) throw new Error('This file contains an unsupported motion.');

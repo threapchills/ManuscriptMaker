@@ -31,7 +31,7 @@ Each folio presses up to three seals: the road walked, every gilded letter gathe
 
 ## Make your own folios: the scriptorium
 
-Choose **The scriptorium** on the cover. Its folios use the same stage as the tale with everything unlocked: the whole cabinet of art (ground, dwellings, nature, sky, beasts, folk, marks), pictures of your own, gilded letters, passages of writing, and a role for every picture (ground, ledge, scenery, peril, ladder, goal, or the traveller). Give each folio a sky, a stream and a quiver of arrows; hang butts and bells, and choose for any picture what it does when one is struck (rises, drops, or falls to one side); set down a grey wolf to keep a stretch of ground. Play any page or the whole book in order, and save or open the book as a file. Pages from the old desk can be brought in.
+Choose **The scriptorium** on the cover. Its folios use the same stage as the tale with everything unlocked: the whole cabinet of art (ground, dwellings, nature, sky, beasts, folk, marks), pictures of your own (kept in the cabinet for every folio of the book), gilded letters, passages of writing, and a role for every picture (ground, ledge, scenery, peril, ladder, goal, or the traveller). Give each folio a sky, a stream and a quiver of arrows; hang butts and bells, and choose for any picture what it does when one is struck (rises, drops, or falls to one side); set down a grey wolf to keep a stretch of ground. Play any page or the whole book in order, and save or open the book as a file. Pages from the old desk can be brought in.
 
 ## The old illuminator's desk
 

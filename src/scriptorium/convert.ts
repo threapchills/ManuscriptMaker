@@ -2,7 +2,7 @@ import type { ImageLayer, Layer, Manuscript, TextLayer } from '../types';
 import { DEFAULT_GLYPHS } from '../types';
 import { baseLayer, newManuscript, uid } from '../document';
 import type { Project } from '../project';
-import { validateProject } from '../project';
+import { MAX_KEPT_PICTURES, validateProject } from '../project';
 import type { StagePiece, StageState } from '../tale/stage/types';
 import { ground, piece, standing } from '../tale/levels';
 import type { ScenePiece } from '../tale/levels';
@@ -161,6 +161,35 @@ export function writeScriptorium(book: Project): boolean {
 }
 
 /** Give every page and layer of an imported book fresh ids, so it can join this book. */
+/** The maker's own pictures on a page: brought from their device, not the cabinet's artwork. */
+export const picturesOf = (page: Manuscript): string[] => page.layers.flatMap(l => l.type === 'image' && !l.assetId && l.src.startsWith('data:') ? [l.src] : []);
+
+/** Every picture of the maker's own in the book: those its folios show, in reading order, then those kept aside. */
+export function bookPictures(book: Project): Array<{ src: string; kept: boolean }> {
+  const shown = [...new Set(book.pages.flatMap(picturesOf))];
+  return [...shown.map(src => ({ src, kept: false })), ...(book.pictures ?? []).filter(src => !shown.includes(src)).map(src => ({ src, kept: true }))];
+}
+
+/**
+ * A picture the maker brought into the book stays in its cabinet when no folio
+ * shows it any longer, whether its last piece was taken away or its folio torn
+ * out: it is kept aside with the book, and leaves that list again once a folio
+ * shows it, so it is never carried twice.
+ */
+export function keepPictures(before: Project, after: Project): Project {
+  const shown = new Set(after.pages.flatMap(picturesOf));
+  const kept = [...new Set([...(before.pictures ?? []), ...before.pages.flatMap(picturesOf)])].filter(src => !shown.has(src)).slice(-MAX_KEPT_PICTURES);
+  const { pictures: _, ...rest } = after;
+  return kept.length ? { ...rest, pictures: kept } : rest;
+}
+
+/** Take a kept picture out of the book's cabinet for good. */
+export function putPictureAway(book: Project, src: string): Project {
+  const { pictures, ...rest } = book;
+  const kept = (pictures ?? []).filter(s => s !== src);
+  return kept.length ? { ...rest, pictures: kept, updatedAt: new Date().toISOString() } : { ...rest, updatedAt: new Date().toISOString() };
+}
+
 export function reidentify(pages: Manuscript[]): Manuscript[] {
   return pages.map(page => ({ ...page, id: uid(), layers: page.layers.map(l => ({ ...l, id: uid() })) }));
 }

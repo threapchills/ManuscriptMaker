@@ -1,5 +1,5 @@
 import type { Layer, Manuscript } from './types';
-import { newManuscript, STORAGE_KEY, uid, validateManuscript } from './document';
+import { DATA_PICTURE, newManuscript, STORAGE_KEY, uid, validateManuscript } from './document';
 
 export interface Project {
   version: 2;
@@ -9,6 +9,8 @@ export interface Project {
   pages: Manuscript[];
   activePageId: string;
   updatedAt: string;
+  /** The maker's own pictures kept in the Scriptorium's cabinet though no page shows them now. */
+  pictures?: string[];
 }
 
 export interface NewProjectOptions {
@@ -20,6 +22,8 @@ export interface NewProjectOptions {
 }
 
 export const MAX_PAGES = 100;
+/** At most this many pictures are kept aside; beyond it the oldest are let go. */
+export const MAX_KEPT_PICTURES = 120;
 const now = () => new Date().toISOString();
 const validDimension = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 100 && value <= 3000;
 const validId = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 500;
@@ -108,6 +112,9 @@ export function validateProject(value: unknown): Project {
     }
   }
   if (!project.pages.some(page => page.id === project.activePageId)) throw new Error('The selected page is missing from this project.');
+  if (project.pictures !== undefined && (!Array.isArray(project.pictures) || project.pictures.length > MAX_KEPT_PICTURES || !project.pictures.every(src => typeof src === 'string' && DATA_PICTURE.test(src)))) {
+    throw new Error('The book’s kept pictures must be pictures carried in the book itself.');
+  }
   return project;
 }
 

@@ -49,14 +49,18 @@ const SHELVES: Shelf[] = [
 const ALL_IDS = new Set(ASSETS.map(a => a.id));
 
 /** The maker's full cabinet of pieces, laid along the lower margin. */
-export default function Library({ onPick, onUpload, uploads = [] }: {
+export default function Library({ onPick, onUpload, uploads = [], onPutAway }: {
   onPick: (pick: LibraryPick) => (event: ReactPointerEvent<HTMLElement>) => void;
   /** A picture chosen from the maker's device. */
   onUpload?: (file: File) => void;
-  /** Pictures of the maker's own already on this folio, to use again. */
-  uploads?: string[];
+  /** Pictures of the maker's own in the book, to use again; `kept` ones no folio shows now. */
+  uploads?: Array<{ src: string; kept: boolean }>;
+  /** Take a kept picture out of the cabinet for good. */
+  onPutAway?: (src: string) => void;
 }) {
   const [shelf, setShelf] = useState('ground');
+  /** The kept picture whose putting away waits on a second press. */
+  const [parting, setParting] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const strip = useRef<HTMLDivElement>(null);
@@ -82,7 +86,12 @@ export default function Library({ onPick, onUpload, uploads = [] }: {
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'target', target: 'bell' })} title="A bell to ring with an arrow: struck, it can set pieces moving"><span className="mark-bell" aria-hidden="true" /><span className="mark-label">Bell</span></button>
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'beast' })} title="A grey wolf keeping a stretch of ground: an arrow sends him running"><img className="mark-wolf" src={srcOf('beast-head-wolf')} alt="" draggable={false} /><span className="mark-label">Wolf</span></button>
           {onUpload && <button type="button" className="tray-piece mark-piece" onClick={() => fileRef.current?.click()} title="Bring a picture of your own"><span className="mark-upload"><InkIcon name="up" size={22} /></span><span className="mark-label">Your picture</span></button>}
-          {uploads.map((src, i) => <button type="button" key={i} className="tray-piece library-piece" onPointerDown={onPick({ kind: 'piece', asset: '', src, role: 'scenery', width: 220 })} title="Your picture · drag into the picture" aria-label="Your picture. Drag into the picture."><img src={src} alt="" draggable={false} /></button>)}
+          {uploads.map(({ src, kept }, i) => <span key={i} className="own-picture">
+            <button type="button" className={`tray-piece library-piece${kept ? ' is-kept' : ''}`} onPointerDown={onPick({ kind: 'piece', asset: '', src, role: 'scenery', width: 220 })} title={kept ? 'Your picture, kept in the cabinet · drag into the picture' : 'Your picture · drag into the picture'} aria-label="Your picture. Drag into the picture."><img src={src} alt="" draggable={false} /></button>
+            {kept && onPutAway && (parting === src
+              ? <button type="button" className="put-away is-sure" onClick={() => { setParting(null); onPutAway(src); }} onBlur={() => setParting(null)} title="Put it away for good" aria-label="Put it away for good" autoFocus><InkIcon name="check" size={13} /></button>
+              : <button type="button" className="put-away" onClick={() => { setParting(src); audio.play('tick'); }} title="Put this picture away" aria-label="Put this picture away"><InkIcon name="close" size={12} /></button>)}
+          </span>)}
           {['signpost-blank', 'door-oak', 'door-double'].map(id => <Token key={id} id={id} onPick={onPick} />)}
         </> : ids.map(id => <Token key={id} id={id} onPick={onPick} />)}
         {!ids.length && query && <p className="margin-note">Nothing by that name in the cabinet.</p>}

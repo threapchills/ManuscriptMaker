@@ -123,6 +123,11 @@ try {
   assert.equal(own.name, 'Your picture');
   assert.equal(own.gameRole, 'solid');
   await page.keyboard.press('Delete');
+  // Its last piece taken away, the picture stays in the cabinet, kept with the book.
+  await expect(page.getByRole('button', { name: 'Your picture. Drag into the picture.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Put this picture away' })).toBeVisible();
+  saved = await book();
+  assert.equal(saved.pictures?.length, 1, 'a picture no folio shows is kept with the book');
 
   // A quiver: an arrow loosed in play sticks in a crate's wooden face as a foothold.
   await page.getByRole('button', { name: 'Ground', exact: true }).click();
@@ -232,6 +237,14 @@ try {
   at = await stage();
   saved = await book();
   assert.equal(saved.pages.length, 2);
+  // The picture kept on the first folio is offered in this one's cabinet too, and can be put away for good.
+  await page.getByRole('button', { name: 'Marks', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Your picture. Drag into the picture.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Put this picture away' }).click();
+  await page.getByRole('button', { name: 'Put it away for good' }).click();
+  await expect(page.getByRole('button', { name: 'Your picture. Drag into the picture.' })).toHaveCount(0);
+  saved = await book();
+  assert.equal(saved.pictures, undefined, 'a picture put away leaves the book');
 
   // Play the whole book: one folio after another, without stopping to build.
   await page.getByRole('button', { name: 'The book', exact: true }).click();
@@ -299,5 +312,5 @@ try {
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, a quiver and an arrow foothold, a butt that raises a crate and a wolf driven off, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen), old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf driven off, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen), old desk reachable, no runtime errors');
 } finally { await browser.close(); }

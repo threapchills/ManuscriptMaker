@@ -18,7 +18,7 @@ import BookContents from './BookContents';
 import FolioSettings from './FolioSettings';
 import SandboxExplicit from './SandboxExplicit';
 import type { FolioTemplate } from './convert';
-import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, newFolio, pageToStage, readScriptorium, reidentify, skySeedOf, stageToPage, writeScriptorium } from './convert';
+import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, pageToStage, putPictureAway, readScriptorium, reidentify, skySeedOf, stageToPage, writeScriptorium } from './convert';
 import '../tale/tale.css';
 import './scriptorium.css';
 
@@ -37,7 +37,8 @@ const FIRST_HINTS: Hint[] = [
   { x: 1150, y: 708, text: 'then press Play', mode: 'build' },
 ];
 const defaultTraveller = (): Traveller => ({ name: PRESETS[0].name, design: PRESETS[0].design, preset: PRESETS[0].id });
-const withPages = (book: Project, pages: Manuscript[]): Project => ({
+/** The book with new pages; a picture of the maker's own that no page shows now is kept in the cabinet. */
+const withPages = (book: Project, pages: Manuscript[]): Project => keepPictures(book, {
   ...book, pages, activePageId: pages.some(p => p.id === book.activePageId) ? book.activePageId : pages[0].id, updatedAt: new Date().toISOString(),
 });
 const storage = {
@@ -62,6 +63,7 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
   const [saveTrouble, setSaveTrouble] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(() => !!storage.get(PREVIOUS_KEY));
   const hasOld = useMemo(() => !!storage.get(STORAGE_KEY), []);
+  const pictures = useMemo(() => bookPictures(book), [book.pages, book.pictures]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ——— keeping the book ———
   useEffect(() => {
@@ -190,7 +192,7 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
       ? () => go({ kind: 'folio', id: next.id, chain, autoPlay: chain })
       : chain ? () => { go({ kind: 'contents' }, true); setToast('Every folio walked, from the first to the last.'); } : undefined;
     body = <MakerFolio key={page.id} page={page} index={folioIndex} traveller={traveller} autoPlay={screen.autoPlay} chain={chain}
-      onUpdate={updatePage}
+      onUpdate={updatePage} pictures={pictures} onPutAway={src => { setBook(b => putPictureAway(b, src)); audio.play('drop'); }}
       onWalked={id => setWalked(w => w.has(id) ? w : new Set([...w, id]))}
       onNext={onNext}
       nextLabel={next ? `Turn to folio ${toRoman(folioIndex + 2)}` : 'The whole book is walked'}
@@ -215,9 +217,12 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
 }
 
 /** One of the maker's folios on the shared stage. */
-function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, onWalked, onNext, nextLabel, onContents }: {
+function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
   page: Manuscript; index: number; traveller: Traveller; autoPlay: boolean; chain: boolean;
   onUpdate: (id: string, change: (page: Manuscript) => Manuscript) => void;
+  /** Every picture of the maker's own in the book, offered in this folio's cabinet. */
+  pictures: Array<{ src: string; kept: boolean }>;
+  onPutAway: (src: string) => void;
   onWalked: (id: string) => void;
   onNext?: () => void; nextLabel: string;
   onContents: () => void;
@@ -238,7 +243,7 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, onWalke
     brief={brief} briefTone={index % 2 ? 'blue' : 'red'}
     sky={sky} skySeed={skySeedOf(page)} paper={page.paper} waterY={waterY}
     initial={initial} onChange={onChange}
-    traveller={traveller} quiver={scene.arrows ?? 0}
+    traveller={traveller} quiver={scene.arrows ?? 0} pictures={pictures} onPutAway={onPutAway}
     headerExtra={<FolioSettings sky={sky} waterY={waterY} height={page.height} brief={scene.brief ?? DEFAULT_BRIEF} arrows={scene.arrows ?? 0}
       onSky={value => onUpdate(id, p => ({ ...p, scene: { ...p.scene, sky: value } }))}
       onWater={y => onUpdate(id, p => ({ ...p, scene: { ...p.scene, waterY: y } }))}
