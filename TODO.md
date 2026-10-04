@@ -43,7 +43,7 @@ The product has two separate experiences: **Manuscript sandbox mode** for free b
 - [x] Add 32 original scene objects and 32 original modular character parts from two reviewed 8×4 sheets. Offer new-game character construction plus four pre-built characters; use the selected sprite as the player on campaign pages.
 - [ ] Allow reopening and editing an existing custom character, propagating changes safely to campaign pages.
 - [ ] Add progression, reset/retry, accessibility, touch usability and performance checks before calling any guided level complete.
-- [ ] Later design enemies, archery, and flying and ask which order matters most. Archery came first (2026-10-04; footholds built, targets and beasts to follow); ask which of enemies and flying comes next. Completion is still checkpoint traversal; no extra construction constraint.
+- [ ] Later design enemies, archery, and flying and ask which order matters most. Archery came first and is built in all three uses the user chose (footholds, targets that work things, and a wolf an arrow drives off), with the second book teaching them (2026-10-04); ask which of flying and further enemies comes next, and whether it should begin a third book. Completion is still checkpoint traversal; no extra construction constraint.
 
 ## Release checkpoint — highest priority
 
