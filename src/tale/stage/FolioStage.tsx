@@ -17,8 +17,8 @@ import { toImage } from '../../engine/rasterize';
 import { audio } from '../../engine/audio';
 import { music } from '../../engine/music';
 import { ASSETS } from '../../assets';
-import type { StageLetter, StagePiece, StageResult, StageState } from './types';
-import { ROLE_LABELS, localPoint, posed } from './types';
+import type { StageBeast, StageLetter, StagePiece, StageResult, StageState, StageTarget } from './types';
+import { MOTIONS as STRUCK_MOTIONS, ROLE_LABELS, localPoint, posed, workedPose } from './types';
 import { AVATAR_HEIGHT, WOLF_PARTS, buildStageField, loadStageImages, srcOf, stageSpec } from './world';
 import Library from './Library';
 import type { LibraryPick } from './Library';
@@ -33,13 +33,16 @@ const COMPACT_BAND = 12;
 const BOX_X = 120, BOX_Y = 150, BOX_W = 1280, BOX_H = 720;
 
 type Mode = 'build' | 'play' | 'won';
-type Selection = { kind: 'piece' | 'letter'; id: string } | { kind: 'spawn' } | null;
+type Selection = { kind: 'piece' | 'letter' | 'target' | 'beast'; id: string } | { kind: 'spawn' } | null;
 type Gesture =
   | { kind: 'move'; id: string; dx: number; dy: number; pointer: number; before: StageState }
   | { kind: 'rotate'; id: string; pointer: number; start: number; base: number; before: StageState }
   | { kind: 'scale'; id: string; pointer: number; startDist: number; base: StagePiece; before: StageState }
   | { kind: 'letter'; id: string; dx: number; dy: number; pointer: number; before: StageState }
-  | { kind: 'spawn'; dx: number; dy: number; pointer: number; before: StageState };
+  | { kind: 'spawn'; dx: number; dy: number; pointer: number; before: StageState }
+  | { kind: 'target'; id: string; dx: number; dy: number; pointer: number; before: StageState }
+  | { kind: 'beast'; id: string; dx: number; dy: number; base: StageBeast; pointer: number; before: StageState }
+  | { kind: 'beast-end'; id: string; end: 'x0' | 'x1'; pointer: number; before: StageState };
 
 const MOTIONS: Array<{ id: StagePiece['anim'] | null; label: string; note: string }> = [
   { id: null, label: 'Still', note: 'Keeps perfectly still' },
@@ -290,6 +293,21 @@ export default function FolioStage(props: FolioStageProps) {
   };
 
   const addFromPick = async (pick: LibraryPick, cx: number, cy: number) => {
+    if (pick.kind === 'target') {
+      const target: StageTarget = { id: newPieceId(), x: clamp(cx, 30, W - 30), y: clamp(cy, 40, H - 30), kind: pick.target };
+      commit({ ...stateRef.current, targets: [...(stateRef.current.targets ?? []), target] });
+      setSelection({ kind: 'target', id: target.id }); audio.play(pick.target === 'bell' ? 'toll' : 'strike');
+      return;
+    }
+    if (pick.kind === 'beast') {
+      // He keeps the ground beneath where he is dropped, a little way either side.
+      await ensureImages(Object.values(WOLF_PARTS).map(srcOf));
+      const at = snapToGround({ x: clamp(cx, 90, W - 90), y: cy });
+      const beast: StageBeast = { id: newPieceId(), kind: 'wolf', x0: clamp(at.x - 140 * unit, 80, W - 80), x1: clamp(at.x + 140 * unit, 80, W - 80), y: at.y };
+      commit({ ...stateRef.current, beasts: [...(stateRef.current.beasts ?? []), beast] });
+      setSelection({ kind: 'beast', id: beast.id }); audio.play('growl');
+      return;
+    }
     if (pick.kind === 'letter') {
       const used = new Set(stateRef.current.letters.map(l => l.glyph));
       const glyph = 'ABCDEFGHIKLMNOPRSTVXY'.split('').find(g => !used.has(g)) ?? '✦';
@@ -316,10 +334,17 @@ export default function FolioStage(props: FolioStageProps) {
     commit(withPieces(stateRef.current, [...stateRef.current.pieces, p]));
     setSelection({ kind: 'piece', id: p.id }); settle(p.id); audio.play('place');
   };
+  /** The state without a target, and without any motion it would have set going. */
+  const withoutTarget = (s: StageState, id: string): StageState => ({
+    ...s, targets: (s.targets ?? []).filter(t => t.id !== id),
+    pieces: s.pieces.map(p => p.works?.by === id ? { ...p, works: undefined } : p),
+  });
   const removeSelected = () => {
     const sel = selectionRef.current; if (!sel) return;
     if (sel.kind === 'piece') { const p = stateRef.current.pieces.find(q => q.id === sel.id); if (!p || !editable(p)) return; commit(withPieces(stateRef.current, stateRef.current.pieces.filter(q => q.id !== sel.id))); }
     else if (sel.kind === 'letter') commit({ ...stateRef.current, letters: stateRef.current.letters.filter(l => l.id !== sel.id) });
+    else if (sel.kind === 'target') commit(withoutTarget(stateRef.current, sel.id));
+    else if (sel.kind === 'beast') commit({ ...stateRef.current, beasts: (stateRef.current.beasts ?? []).filter(b => b.id !== sel.id) });
     else return;
     setSelection(null); setEditingText(null); audio.play('drop');
   };
@@ -364,6 +389,18 @@ export default function FolioStage(props: FolioStageProps) {
     return undefined;
   };
   const pickLetter = (x: number, y: number) => free ? stateRef.current.letters.find(l => Math.hypot(l.x - x, l.y - y) < 32 * unit) : undefined;
+  const pickTarget = (x: number, y: number) => free ? (stateRef.current.targets ?? []).find(t => Math.hypot(t.x - x, (t.y - (t.kind === 'bell' ? 8 : 0) * unit) - y) < 30 * unit) : undefined;
+  /** A wolf is picked by his hide where he stands while building: the middle of his round. */
+  const pickBeast = (x: number, y: number) => free ? (stateRef.current.beasts ?? []).find(b => Math.abs(x - (b.x0 + b.x1) / 2) < 80 * unit && y < b.y + 6 && y > b.y - 100 * unit) : undefined;
+  const pickBeastEnd = (x: number, y: number): { beast: StageBeast; end: 'x0' | 'x1' } | undefined => {
+    const sel = selectionRef.current;
+    if (!free || sel?.kind !== 'beast') return undefined;
+    const beast = (stateRef.current.beasts ?? []).find(b => b.id === sel.id);
+    if (!beast || Math.abs(y - beast.y) > 22 * unit) return undefined;
+    if (Math.abs(x - beast.x0) < 18 * unit) return { beast, end: 'x0' };
+    if (Math.abs(x - beast.x1) < 18 * unit) return { beast, end: 'x1' };
+    return undefined;
+  };
   const pickSpawn = (x: number, y: number) => free && !playerId && Math.abs(x - stateRef.current.spawn.x) < 30 * unit && y < stateRef.current.spawn.y + 6 && y > stateRef.current.spawn.y - AVATAR_HEIGHT * unit;
 
   const onScenePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -376,6 +413,11 @@ export default function FolioStage(props: FolioStageProps) {
     audio.unlock();
     const { x, y } = toScene(event.clientX, event.clientY);
     const before = stateRef.current;
+    const capture = () => { event.preventDefault(); sceneRef.current?.setPointerCapture(event.pointerId); setEditingText(null); audio.play('lift'); };
+    const end = pickBeastEnd(x, y);
+    if (end) { capture(); gesture.current = { kind: 'beast-end', id: end.beast.id, end: end.end, pointer: event.pointerId, before }; return; }
+    const target = pickTarget(x, y);
+    if (target) { capture(); setSelection({ kind: 'target', id: target.id }); gesture.current = { kind: 'target', id: target.id, dx: x - target.x, dy: y - target.y, pointer: event.pointerId, before }; return; }
     const letter = pickLetter(x, y);
     if (letter) {
       event.preventDefault(); sceneRef.current?.setPointerCapture(event.pointerId);
@@ -383,6 +425,8 @@ export default function FolioStage(props: FolioStageProps) {
       gesture.current = { kind: 'letter', id: letter.id, dx: x - letter.x, dy: y - letter.y, pointer: event.pointerId, before };
       audio.play('lift'); return;
     }
+    const beast = pickBeast(x, y);
+    if (beast) { capture(); setSelection({ kind: 'beast', id: beast.id }); gesture.current = { kind: 'beast', id: beast.id, dx: x, dy: y, base: beast, pointer: event.pointerId, before }; return; }
     if (pickSpawn(x, y)) {
       event.preventDefault(); sceneRef.current?.setPointerCapture(event.pointerId);
       setSelection({ kind: 'spawn' }); setEditingText(null);
@@ -406,6 +450,17 @@ export default function FolioStage(props: FolioStageProps) {
     const { x, y } = toScene(event.clientX, event.clientY);
     if (g.kind === 'letter') { live(s => ({ ...s, letters: s.letters.map(l => l.id === g.id ? { ...l, x: clamp(x - g.dx, 10, W - 10), y: clamp(y - g.dy, 10, H - 10) } : l) })); return; }
     if (g.kind === 'spawn') { live(s => ({ ...s, spawn: { x: clamp(x - g.dx, 20, W - 20), y: clamp(y - g.dy, AVATAR_HEIGHT * unit, H) } })); return; }
+    if (g.kind === 'target') { live(s => ({ ...s, targets: (s.targets ?? []).map(t => t.id === g.id ? { ...t, x: clamp(x - g.dx, 20, W - 20), y: clamp(y - g.dy, 30, H - 20) } : t) })); return; }
+    if (g.kind === 'beast') {
+      const shift = clamp(x - g.dx, 80 - g.base.x0, W - 80 - g.base.x1);
+      live(s => ({ ...s, beasts: (s.beasts ?? []).map(b => b.id === g.id ? { ...b, x0: g.base.x0 + shift, x1: g.base.x1 + shift, y: clamp(g.base.y + y - g.dy, 60, H) } : b) }));
+      return;
+    }
+    if (g.kind === 'beast-end') {
+      // A round is at least the wolf's own length, and stays on the page.
+      live(s => ({ ...s, beasts: (s.beasts ?? []).map(b => b.id !== g.id ? b : g.end === 'x0' ? { ...b, x0: clamp(x, 80, b.x1 - 60 * unit) } : { ...b, x1: clamp(x, b.x0 + 60 * unit, W - 80) }) }));
+      return;
+    }
     const p = stateRef.current.pieces.find(q => q.id === g.id); if (!p) return;
     if (g.kind === 'move') {
       live(s => withPieces(s, s.pieces.map(q => q.id === g.id ? { ...q, x: clamp(x - g.dx, -p.width * .7, W - p.width * .3), y: clamp(y - g.dy, -p.height * .7, H - p.height * .3) } : q)));
@@ -436,6 +491,14 @@ export default function FolioStage(props: FolioStageProps) {
     // Dragged down into the margin: back where it came from.
     if (g.kind === 'move' && !inside && y > H) { commit(withPieces(g.before, g.before.pieces.filter(p => p.id !== g.id)), g.before); setSelection(null); audio.play('drop'); return; }
     if (g.kind === 'letter' && !inside && y > H) { commit({ ...g.before, letters: g.before.letters.filter(l => l.id !== g.id) }, g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'target' && !inside && y > H) { commit(withoutTarget(g.before, g.id), g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'beast' && !inside && y > H) { commit({ ...g.before, beasts: (g.before.beasts ?? []).filter(b => b.id !== g.id) }, g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'beast') {
+      // Set down on whatever ground lies beneath the middle of his round.
+      const s = stateRef.current, b = (s.beasts ?? []).find(q => q.id === g.id);
+      if (b) { const at = snapToGround({ x: (b.x0 + b.x1) / 2, y: b.y }); commit({ ...s, beasts: (s.beasts ?? []).map(q => q.id === g.id ? { ...q, y: at.y } : q) }, g.before); audio.play('place'); }
+      return;
+    }
     if (!same(g.before, stateRef.current)) { commit(stateRef.current, g.before); if (g.kind === 'move') { settle(g.id); audio.play('place'); } }
   };
   /** Stand the traveller on whatever ground lies beneath where they were dropped. */
@@ -490,7 +553,7 @@ export default function FolioStage(props: FolioStageProps) {
     const session = sessionRef.current;
     if (!session || modeRef.current === 'play') return;
     audio.unlock();
-    const imgs = await ensureImages(stateRef.current.pieces.filter(p => p.kind === 'image').map(p => p.src));
+    const imgs = await ensureImages([...stateRef.current.pieces.filter(p => p.kind === 'image').map(p => p.src), ...(stateRef.current.beasts?.length ? Object.values(WOLF_PARTS).map(srcOf) : [])]);
     if (!imgs) return;
     const spec = specFor(stateRef.current, imgs);
     if (!spec) return;
@@ -591,8 +654,9 @@ export default function FolioStage(props: FolioStageProps) {
     // pose; a new run remounts it where it began.
     if (p.works) {
       const moved = mode !== 'build' && struck.has(p.works.by);
-      if (p.works.pivot) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
-        swing={{ degrees: moved ? p.works.rotation - p.rotation : 0, origin: localPoint(p, p.works.pivot) }} />;
+      const rest = workedPose(p)!;
+      if (rest.pivot) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
+        swing={{ degrees: moved ? rest.rotation - p.rotation : 0, origin: localPoint(p, rest.pivot) }} />;
       return <SceneLayer key={`${p.id}:${run}`} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works`} srcOverride={p.src} />;
     }
     return <SceneLayer key={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
@@ -603,7 +667,8 @@ export default function FolioStage(props: FolioStageProps) {
    * stands above the piece, so a toolbar above never covers the handle.
    */
   const toolsTop = (p: StagePiece, grow = 1, reach = 85) => {
-    const tall = (!free ? 56 : p.kind === 'image' ? (p.role === 'scenery' ? 152 : 108) : 56) * grow;
+    const struckRow = free && p.kind === 'image' && (state.targets?.length ?? 0) > 0 ? 44 : 0;
+    const tall = ((!free ? 56 : p.kind === 'image' ? (p.role === 'scenery' ? 152 : 108) : 56) + struckRow) * grow;
     const below = p.y + p.height + 18;
     const top = below + tall <= H - 6 ? below : p.y - reach - tall;
     return clamp(top, 8, Math.max(8, H - tall - 6));
@@ -642,6 +707,15 @@ export default function FolioStage(props: FolioStageProps) {
     <span className="rubric small">Gilded letters</span>
     <div>{state.letters.slice(0, 8).map((l, i) => <span key={l.id} className={`letter-slot${lettersShown[i] ? ' is-found' : ''}`}><b>{lettersShown[i] ? l.glyph : ''}</b></span>)}</div>
   </div>;
+  const targets = state.targets ?? [];
+  const targetName = (t: StageTarget) => `${t.kind === 'bell' ? 'Bell' : 'Butt'} ${toRoman(targets.findIndex(q => q.id === t.id) + 1).toLowerCase()}`;
+  const setWorks = (id: string, works: StagePiece['works']) => { transform(id, () => ({ works })); audio.play('tick'); };
+  const struckRow = free && sel?.kind === 'image' && targets.length > 0 && mode === 'build' && <div className="role-row struck-row" role="group" aria-label="When a target is struck">
+    <span className="motion-label">When struck</span>
+    <button type="button" className={`role-chip motion-chip${!sel.works ? ' is-chosen' : ''}`} aria-pressed={!sel.works} title="Stays where it is" onClick={() => setWorks(sel.id, undefined)}>Stays</button>
+    {targets.map(t => <button type="button" key={t.id} className={`role-chip motion-chip${sel.works?.by === t.id ? ' is-chosen' : ''}`} aria-pressed={sel.works?.by === t.id} title={`Moves when ${targetName(t).toLowerCase()} is struck`} onClick={() => setWorks(sel.id, { by: t.id, motion: sel.works?.motion ?? 'rise', x: 0, y: 0, rotation: 0 })}>{targetName(t)}</button>)}
+    {sel.works && STRUCK_MOTIONS.map(m => <button type="button" key={m.id} className={`role-chip motion-chip${sel.works?.motion === m.id ? ' is-chosen' : ''}`} aria-pressed={sel.works?.motion === m.id} onClick={() => setWorks(sel.id, { ...sel.works!, motion: m.id })}>{m.label}</button>)}
+  </div>;
   const pieceTools = sel && mode === 'build' && <>
     <div className="piece-tools-row">
       <span className="piece-name">{nameOf(sel)}</span>
@@ -661,7 +735,20 @@ export default function FolioStage(props: FolioStageProps) {
       <span className="motion-label">Motion</span>
       {MOTIONS.map(m => <button type="button" role="radio" aria-checked={(sel.anim ?? null) === m.id} key={m.label} className={`role-chip motion-chip${(sel.anim ?? null) === m.id ? ' is-chosen' : ''}`} title={m.note} onClick={() => transform(sel.id, () => ({ anim: m.id ?? undefined }))}>{m.label}</button>)}
     </div>}
+    {struckRow}
   </>;
+  const selTarget = selection?.kind === 'target' ? targets.find(t => t.id === selection.id) : undefined;
+  const selBeast = selection?.kind === 'beast' ? (state.beasts ?? []).find(b => b.id === selection.id) : undefined;
+  const markTools = mode === 'build' && (selTarget ? <div className="piece-tools-row">
+    <span className="piece-name">{targetName(selTarget)}</span>
+    <button type="button" className={`role-chip motion-chip${selTarget.kind !== 'bell' ? ' is-chosen' : ''}`} aria-pressed={selTarget.kind !== 'bell'} onClick={() => commit({ ...stateRef.current, targets: targets.map(t => t.id === selTarget.id ? { ...t, kind: 'butt' } : t) })}>Butt</button>
+    <button type="button" className={`role-chip motion-chip${selTarget.kind === 'bell' ? ' is-chosen' : ''}`} aria-pressed={selTarget.kind === 'bell'} onClick={() => commit({ ...stateRef.current, targets: targets.map(t => t.id === selTarget.id ? { ...t, kind: 'bell' } : t) })}>Bell</button>
+    {tool('bin', 'Take it down (Delete)', removeSelected)}
+  </div> : selBeast ? <div className="piece-tools-row">
+    <span className="piece-name">Grey wolf</span>
+    <span className="mark-note">keeps the ground between the marks</span>
+    {tool('bin', 'Send him away (Delete)', removeSelected)}
+  </div> : null);
   const letterTools = selLetter && mode === 'build' && <div className="piece-tools-row">
     <span className="piece-name">Gilded letter</span>
     <input className="letter-glyph-input" value={selLetter.glyph} maxLength={1} aria-label="Letter" onChange={e => { const g = e.target.value.toUpperCase().slice(-1); if (g) commit({ ...stateRef.current, letters: stateRef.current.letters.map(l => l.id === selLetter.id ? { ...l, glyph: g } : l) }); }} />
@@ -686,6 +773,12 @@ export default function FolioStage(props: FolioStageProps) {
       </div>}
       {!compact && sel && pieceTools && <div className="piece-tools" style={{ left: clamp(sel.x + sel.width / 2, Math.min(W / 2, 250 * grow), Math.max(W / 2, W - 250 * grow)), top: toolsTop(sel, grow, small ? 85 * .8 / onScreen : 85) }} onPointerDown={e => e.stopPropagation()}>{pieceTools}</div>}
       {!compact && selLetter && letterTools && <div className="piece-tools" style={{ left: clamp(selLetter.x, 150, W - 150), top: clamp(selLetter.y + 40 * unit, 10, H - 60) }} onPointerDown={e => e.stopPropagation()}>{letterTools}</div>}
+      {mode === 'build' && free && (state.beasts ?? []).map(b => <div key={b.id} className={`beast-round${selBeast?.id === b.id ? ' is-selected' : ''}`} style={{ left: b.x0, top: b.y - 3, width: b.x1 - b.x0 }} aria-hidden="true">
+        {selBeast?.id === b.id && <><span className="beast-end beast-end--start" /><span className="beast-end beast-end--end" /></>}
+      </div>)}
+      {selTarget && mode === 'build' && <div className="mark-ring" style={{ left: selTarget.x, top: selTarget.y }} aria-hidden="true" />}
+      {sel && mode === 'build' && sel.works && (() => { const rest = workedPose(sel)!; return <div className="rest-ghost" style={{ left: rest.x, top: rest.y, width: sel.width, height: sel.height, transform: `rotate(${rest.rotation}deg)` }} aria-hidden="true"><span>at rest</span></div>; })()}
+      {!compact && markTools && (selTarget || selBeast) && <div className="piece-tools" style={selTarget ? { left: clamp(selTarget.x, 160, W - 160), top: clamp(selTarget.y + 46 * unit, 10, H - 60) } : { left: clamp((selBeast!.x0 + selBeast!.x1) / 2, 160, W - 160), top: clamp(selBeast!.y + 18 * unit, 10, H - 60) }} onPointerDown={e => e.stopPropagation()}>{markTools}</div>}
       {!compact && sel && passageEditor(clamp(sel.x, 10, W - 470), clamp(sel.y + sel.height + 80, 10, H - 330))}
       {!images && <div className="scene-loading"><span>The scribe prepares the page…</span></div>}
       {notice && <div className="stage-notice" role="status">{notice}</div>}
@@ -767,6 +860,7 @@ export default function FolioStage(props: FolioStageProps) {
         {(pieceTools || letterTools || (sel && passageEditor(0, 0))) && <div className="compact-dock" onPointerDown={e => e.stopPropagation()}>
           {pieceTools && <div className="piece-tools is-docked">{pieceTools}</div>}
           {letterTools && <div className="piece-tools is-docked">{letterTools}</div>}
+          {markTools && <div className="piece-tools is-docked">{markTools}</div>}
           {sel && passageEditor(0, 0)}
         </div>}
         <div className={`compact-foot${free ? ' has-library' : ''}`}>{margin}{seal(84)}</div>

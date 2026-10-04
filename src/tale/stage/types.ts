@@ -37,7 +37,33 @@ export interface StagePiece {
  * stays. With `pivot` (a point on the page) it swings about that point, as a
  * drawbridge about its hinge; the pose is where the swing leaves it.
  */
-export interface Works { by: string; x: number; y: number; rotation: number; pivot?: [number, number] }
+export interface Works {
+  by: string;
+  x: number; y: number; rotation: number; pivot?: [number, number];
+  /** A motion named instead of a pose, as the scriptorium gives them: worked out from wherever the piece now stands. */
+  motion?: Motion;
+}
+/** How a piece made in the scriptorium moves when struck. */
+export type Motion = 'rise' | 'drop' | 'fall-left' | 'fall-right';
+export const MOTIONS: Array<{ id: Motion; label: string }> = [
+  { id: 'rise', label: 'Rises' }, { id: 'drop', label: 'Drops' }, { id: 'fall-left', label: 'Falls to the left' }, { id: 'fall-right', label: 'Falls to the right' },
+];
+
+/** Where a piece comes to rest once its target is struck, and the hinge it swings on, if any. */
+export function workedPose(p: { x: number; y: number; width: number; height: number; rotation?: number; works?: Works }): { x: number; y: number; rotation: number; pivot?: [number, number] } | null {
+  const w = p.works;
+  if (!w) return null;
+  if (!w.motion) return { x: w.x, y: w.y, rotation: w.rotation, pivot: w.pivot };
+  const rotation = p.rotation ?? 0;
+  if (w.motion === 'rise') return { x: p.x, y: p.y - p.height, rotation };
+  if (w.motion === 'drop') return { x: p.x, y: p.y + p.height, rotation };
+  // Falling over: a quarter turn about the foot of the side it falls toward.
+  const a = rotation * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+  const cx = p.x + p.width / 2, cy = p.y + p.height / 2;
+  const fx = w.motion === 'fall-right' ? p.width / 2 : -p.width / 2, fy = p.height / 2;
+  const pivot: [number, number] = [cx + fx * cos - fy * sin, cy + fx * sin + fy * cos];
+  return { ...swungAbout(p, pivot, w.motion === 'fall-right' ? 90 : -90), pivot };
+}
 
 /** A piece's pose turned `degrees` about a point on the page, as a drawbridge swings about its hinge. */
 export function swungAbout(p: { x: number; y: number; width: number; height: number; rotation?: number }, pivot: [number, number], degrees: number): { x: number; y: number; rotation: number } {
@@ -57,8 +83,11 @@ export function localPoint(p: { x: number; y: number; width: number; height: num
 export interface StageTarget { id: string; x: number; y: number; kind?: 'butt' | 'bell'; /** Hidden until this target is struck. */ after?: string }
 
 /** A piece as it stands once the struck targets have moved it. */
-export const posed = <P extends { x: number; y: number; rotation?: number; works?: Works }>(p: P, struck?: { has: (id: string) => boolean }): P =>
-  p.works && struck?.has(p.works.by) ? { ...p, x: p.works.x, y: p.works.y, rotation: p.works.rotation } : p;
+export const posed = <P extends { x: number; y: number; width: number; height: number; rotation?: number; works?: Works }>(p: P, struck?: { has: (id: string) => boolean }): P => {
+  if (!p.works || !struck?.has(p.works.by)) return p;
+  const rest = workedPose(p)!;
+  return { ...p, x: rest.x, y: rest.y, rotation: rest.rotation };
+};
 
 export interface StageLetter { id: string; x: number; y: number; glyph: string }
 

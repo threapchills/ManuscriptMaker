@@ -62,6 +62,7 @@ export function validateManuscript(value: unknown): Manuscript {
     if(l.type==='image' && l.gameRole !== undefined && !['scenery','player','solid','platform','goal','hazard','ladder'].includes(l.gameRole)) throw new Error('This file contains an unsupported play role.');
     if(l.type==='image' && l.imageFit !== undefined && !['contain','fill'].includes(l.imageFit)) throw new Error('This file contains an unsupported image fit.');
     if(l.type==='image' && l.motion !== undefined && !['drift','sway','bob','turn'].includes(l.motion)) throw new Error('This file contains an unsupported motion.');
+    if(l.type==='image' && l.works !== undefined && (!l.works || typeof l.works.by !== 'string' || l.works.by.length > 64 || !['rise','drop','fall-left','fall-right'].includes(l.works.motion))) throw new Error('This file contains an unsupported motion.');
     if(l.front !== undefined && typeof l.front !== 'boolean') throw new Error('One of the manuscript layers is invalid.');
     if(l.type==='text' && (typeof l.text!=='string' || l.text.length>50000 || !numeric(l.fontSize,8,240) || !numeric(l.lineHeight,.7,3) || !numeric(l.letterSpacing,-5,30) || typeof l.fontFamily!=='string' || l.fontFamily.length>400 || typeof l.color!=='string' || !/^#[0-9a-f]{6}$/i.test(l.color) || !['left','center','right','justify'].includes(l.align) || typeof l.bold!=='boolean' || typeof l.italic!=='boolean' || !l.glyphs || Object.keys(DEFAULT_GLYPHS).some(k=>typeof l.glyphs[k as keyof typeof DEFAULT_GLYPHS]!=='boolean'))) throw new Error('This file contains unsupported text settings.');
   }
@@ -83,7 +84,17 @@ function validateScene(scene: unknown, page: Manuscript) {
     if(!Array.isArray(s.letters) || s.letters.length > 60) bad();
     for(const l of s.letters as Array<Record<string, unknown>>) if(!l || typeof l.id !== 'string' || !numeric(l.x, -10000, 10000) || !numeric(l.y, -10000, 10000) || typeof l.glyph !== 'string' || l.glyph.length < 1 || l.glyph.length > 3) bad();
   }
+  if(s.targets !== undefined) {
+    if(!Array.isArray(s.targets) || s.targets.length > MAX_TARGETS) bad();
+    for(const t of s.targets as Array<Record<string, unknown>>) if(!t || typeof t.id !== 'string' || t.id.length > 64 || !numeric(t.x, -10000, 10000) || !numeric(t.y, -10000, 10000) || !['butt','bell'].includes(t.kind as string)) bad();
+  }
+  if(s.beasts !== undefined) {
+    if(!Array.isArray(s.beasts) || s.beasts.length > MAX_BEASTS) bad();
+    for(const b of s.beasts as Array<Record<string, unknown>>) if(!b || typeof b.id !== 'string' || b.id.length > 64 || b.kind !== 'wolf' || !numeric(b.x0, -10000, 10000) || !numeric(b.x1, -10000, 10000) || (b.x0 as number) > (b.x1 as number) || !numeric(b.y, -10000, 10000)) bad();
+  }
 }
+/** The most targets, and beasts, a folio may hold. */
+export const MAX_TARGETS = 12, MAX_BEASTS = 4;
 export function loadManuscript(): Manuscript {
   try { const saved=localStorage.getItem(STORAGE_KEY); if(saved) return validateManuscript(JSON.parse(saved)); } catch { /* Keep the workspace usable when browser storage is unavailable. */ }
   return newManuscript();

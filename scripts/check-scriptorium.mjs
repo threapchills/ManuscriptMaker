@@ -154,6 +154,57 @@ try {
   assert.equal(shot.arrows.length, 0, 'and pulls the arrows out');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
+
+  // A butt that sets the crate rising when struck, and a wolf keeping the far meadow.
+  await page.getByRole('button', { name: 'Marks', exact: true }).click();
+  await drag(page.getByTitle('A butt to shoot at: struck, it can set pieces moving'), { x: at.x(640), y: at.y(250) });
+  await drag(page.getByTitle('A grey wolf keeping a stretch of ground: an arrow sends him running'), { x: at.x(980), y: at.y(480) });
+  saved = await book();
+  const butt = saved.pages[0].scene.targets?.[0], wolf = saved.pages[0].scene.beasts?.[0];
+  assert.ok(butt && butt.kind === 'butt' && Math.abs(butt.x - 640) < 6, `the butt hangs where it was dropped (${JSON.stringify(butt)})`);
+  assert.ok(wolf && wolf.kind === 'wolf' && wolf.x0 < 980 && wolf.x1 > 980 && Math.abs(wolf.y - 562) < 30, `the wolf keeps the ground beneath where he was set down (${JSON.stringify(wolf)})`);
+  await page.mouse.click(at.x(crateFace.x + crateFace.width / 2), at.y(crateFace.y + crateFace.height / 2));
+  await page.getByRole('button', { name: 'Butt i', exact: true }).click();
+  await page.getByRole('button', { name: 'Rises', exact: true }).click();
+  await expect(page.locator('.rest-ghost')).toBeVisible();
+  saved = await book();
+  assert.deepEqual(saved.pages[0].layers.find(l => l.id === crateFace.id).works, { by: butt.id, motion: 'rise' }, 'the crate rises when the butt is struck');
+  await page.screenshot({ path: '.local/scriptorium-works.png' });
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(500);
+  // The wolf first, while the crate is still down: risen, it would stand in the arrow's way.
+  const beast = () => page.evaluate(() => window.__playSession.beasts.map(b => b.state).join());
+  assert.equal(await beast(), 'patrol', 'the wolf walks his round');
+  const wolfAt = await page.evaluate(() => { const b = window.__playSession.beasts[0]; return { x: b.x, y: b.spec.y - 50 }; });
+  await page.mouse.move(at.x(wolfAt.x), at.y(wolfAt.y), { steps: 3 });
+  await page.waitForTimeout(150);
+  await page.mouse.down(); await page.mouse.up();
+  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'fleeing', null, { timeout: 4000 });
+  await page.screenshot({ path: '.local/scriptorium-wolf.png' });
+  await page.mouse.move(at.x(640), at.y(250), { steps: 3 });
+  await page.waitForTimeout(200);
+  await page.mouse.down(); await page.mouse.up();
+  await page.waitForFunction(id => window.__playSession.struck.has(id), butt.id, { timeout: 4000 });
+  await page.waitForTimeout(1200);
+  const risen = await page.evaluate(() => { const el = document.querySelector('.scene-layer.has-works'); return el ? parseFloat(el.style.top) : null; });
+  assert.ok(risen !== null && risen < crateFace.y - crateFace.height * .9, `the crate has risen by its height (top ${risen}, was ${crateFace.y})`);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(300);
+  assert.equal(await beast(), 'patrol', 'beginning again brings the wolf back to his round');
+  assert.equal(await page.evaluate(() => window.__playSession.struck.size), 0, 'and hangs the butt unstruck again');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  // Taking the butt down leaves the crate still again.
+  await page.mouse.click(at.x(640), at.y(250));
+  await page.keyboard.press('Delete');
+  saved = await book();
+  assert.equal(saved.pages[0].scene.targets, undefined, 'the butt is taken down');
+  assert.equal(saved.pages[0].layers.find(l => l.id === crateFace.id).works, undefined, 'and the crate it worked stays where it is');
+  await page.mouse.click(at.x((wolf.x0 + wolf.x1) / 2), at.y(wolf.y - 40));
+  await page.keyboard.press('Delete');
+  saved = await book();
+  assert.equal(saved.pages[0].scene.beasts, undefined, 'the wolf is sent away');
+
   await page.mouse.click(at.x(crateFace.x + crateFace.width / 2), at.y(crateFace.y + crateFace.height / 2));
   await page.keyboard.press('Delete');
   saved = await book();
@@ -230,5 +281,5 @@ try {
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, a quiver and an arrow foothold, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit, old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture, a quiver and an arrow foothold, a butt that raises a crate and a wolf driven off, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit, old desk reachable, no runtime errors');
 } finally { await browser.close(); }

@@ -104,6 +104,35 @@ describe('the Scriptorium book', () => {
     expect(() => validateManuscript(page)).toThrow(/motion/);
   });
 
+  it('keeps its targets, wolves and the motions targets set going', () => {
+    const page = newFolio(1);
+    const { state } = pageToStage(page);
+    const crate = state.pieces.find(p => p.kind === 'image')!;
+    const armed = stageToPage(page, {
+      ...state,
+      pieces: state.pieces.map(p => p.id === crate.id ? { ...p, works: { by: 't1', motion: 'fall-right' as const, x: 0, y: 0, rotation: 0 } } : p),
+      targets: [{ id: 't1', x: 640, y: 250, kind: 'bell' }],
+      beasts: [{ id: 'w1', kind: 'wolf', x0: 800, x1: 1000, y: 562 }],
+    });
+    expect(() => validateManuscript(armed)).not.toThrow();
+    expect(armed.scene?.targets).toEqual([{ id: 't1', x: 640, y: 250, kind: 'bell' }]);
+    expect(armed.scene?.beasts).toEqual([{ id: 'w1', kind: 'wolf', x0: 800, x1: 1000, y: 562 }]);
+    expect((armed.layers.find(l => l.id === crate.id) as ImageLayer).works).toEqual({ by: 't1', motion: 'fall-right' });
+    const back = pageToStage(armed).state;
+    expect(back.targets).toHaveLength(1);
+    expect(back.beasts).toHaveLength(1);
+    expect(back.pieces.find(p => p.id === crate.id)?.works).toMatchObject({ by: 't1', motion: 'fall-right' });
+    // A page without any keeps its old shape.
+    const plain = stageToPage(page, state);
+    expect(JSON.parse(JSON.stringify(plain.scene))).not.toHaveProperty('targets');
+    expect(JSON.parse(JSON.stringify(plain.scene))).not.toHaveProperty('beasts');
+    // Nonsense is refused.
+    for (const scene of [{ targets: [{ id: 't', x: 1, y: 1, kind: 'cannon' }] }, { beasts: [{ id: 'w', kind: 'bear', x0: 1, x1: 2, y: 3 }] }, { beasts: [{ id: 'w', kind: 'wolf', x0: 9, x1: 2, y: 3 }] }])
+      expect(() => validateManuscript({ ...page, scene: { ...page.scene, ...scene } as never })).toThrow(/play settings/);
+    const badMotion = { ...armed, layers: armed.layers.map(l => l.id === crate.id ? { ...l, works: { by: 't1', motion: 'explode' } } : l) };
+    expect(() => validateManuscript(badMotion as never)).toThrow(/motion/);
+  });
+
   it('keeps a folio\'s quiver and refuses an impossible one', () => {
     const page = newFolio(1);
     expect(page.scene?.arrows).toBeUndefined();

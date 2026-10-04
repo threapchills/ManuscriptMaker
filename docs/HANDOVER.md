@@ -88,8 +88,16 @@ Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `A
 - **The second book is complete.** All six folios are written, `coming` is empty, the last card says "Here endeth the second book", and the contents close with *Explicit liber secundus*. `test:chapter` plays VII to XII in order after the first book's finale, then checks the closing line and that the motto gilds every letter the walk gathered.
 - **Known limitation**: the chapter check's keyboard walkers run in real time, so their leaps are timing-sensitive. Folio VI's walk failed once in about a dozen runs while the machine was busy, and passed on every rerun.
 - **Checks run before pushing Folio XII**: `npm test` (192, including the new `tests/beasts.test.ts`), `npm run build`, `test:levels`, `test:chapter` (three passes in a row before the last fix to the motto check, and one after), `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **Archery in the scriptorium.**
+  - **Marks.** The cabinet's Marks shelf has a butt, a bell and a wolf.
+  - **Targets** are dragged in like letters. Once chosen they show a turning ring and a small toolbar to switch between butt and bell or take the target down. Drag one below the picture or press Delete to remove it.
+  - **Wolves.** A wolf lands on the ground beneath where he is dropped, keeping about 140 either side. His round shows as a dashed line along the ground, with handles at its ends when he is chosen. He can be dragged, and settles on the ground below the middle of his round.
+  - **When struck.** If a folio has a target, a chosen picture gets a "When struck" row: Stays, or a target ("Butt i", "Bell ii"), then Rises, Drops, Falls to the left or Falls to the right. These are motions named rather than poses (`Works.motion`; `workedPose` in `stage/types.ts`): the resting pose is worked out from wherever the piece now stands, and falling is a quarter turn about the foot of that side. A dashed blue ghost shows where it will come to rest. Taking a target down clears the motions it set going.
+  - **Saved** as optional fields: `scene.targets` and `scene.beasts` on the page (written only when there are some) and `ImageLayer.works` (`{ by, motion }`). All are validated in `document.ts`: at most 12 targets and 4 beasts, known kinds and motions, and a round that runs left to right. Older pages are unchanged.
+  - **Pictures.** A wolf's pictures load when he is placed and before play; a wolf placed later used to have no pictures, and was quietly left out of play.
+  - **Checked.** `test:scriptorium` hangs a butt, sets a wolf down and gives the crate "When struck: Butt i · Rises" through the interface. In play it sends the wolf running, then strikes the butt and finds the crate risen by its height. It begins again, takes the butt down (the crate forgets its motion) and sends the wolf away.
+- **Checks run before pushing archery in the scriptorium**: `npm test` (194), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
 - **Next**:
-  - The scriptorium: placing targets, beasts and quivers, and giving pieces a resting pose or a hinge for when a target is struck (the stage already runs them all).
   - The tale's cover, contents and tailor on upright phones.
   - The maker's own pictures across the whole book.
   - Possibly a third book, once the user has chosen what it should teach (flying was the other mechanic named).

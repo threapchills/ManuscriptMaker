@@ -24,7 +24,7 @@ export const skySeedOf = (page: Manuscript) => [...page.id].reduce((h, c) => (h 
 
 export function layerToPiece(l: Layer): StagePiece {
   const common = { id: l.id, name: l.name, x: l.x, y: l.y, width: l.width, height: l.height, rotation: l.rotation, flipX: l.flipX, flipY: l.flipY, opacity: l.opacity, front: l.front };
-  if (l.type === 'image') return { ...common, kind: 'image', src: l.src, asset: l.assetId, role: l.gameRole ?? 'scenery', fit: l.imageFit, ...(l.motion ? { anim: l.motion } : {}) };
+  if (l.type === 'image') return { ...common, kind: 'image', src: l.src, asset: l.assetId, role: l.gameRole ?? 'scenery', fit: l.imageFit, ...(l.motion ? { anim: l.motion } : {}), ...(l.works ? { works: { by: l.works.by, motion: l.works.motion, x: 0, y: 0, rotation: 0 } } : {}) };
   return { ...common, kind: 'text', src: '', role: 'scenery', front: l.front ?? true, text: { text: l.text, fontFamily: l.fontFamily, fontSize: l.fontSize, color: l.color, bold: l.bold, italic: l.italic, align: l.align, lineHeight: l.lineHeight, letterSpacing: l.letterSpacing, glyphs: { ...l.glyphs } } };
 }
 
@@ -38,6 +38,7 @@ export function pieceToLayer(p: StagePiece, previous?: Layer): Layer {
   }
   const image: ImageLayer = { ...(common as ImageLayer), type: 'image', src: p.src, gameRole: p.role, ...(p.asset ? { assetId: p.asset } : {}), ...(p.fit ? { imageFit: p.fit } : {}) };
   if (p.anim) image.motion = p.anim; else delete image.motion;
+  if (p.works?.motion) image.works = { by: p.works.by, motion: p.works.motion }; else delete image.works;
   delete (image as unknown as Record<string, unknown>).text;
   return image;
 }
@@ -48,6 +49,8 @@ export function pageToStage(page: Manuscript): { state: StageState; hidden: Laye
       pieces: page.layers.filter(l => !l.hidden).map(layerToPiece),
       letters: page.scene?.letters?.map(l => ({ ...l })) ?? [],
       spawn: page.scene?.spawn ?? defaultSpawn(page),
+      targets: page.scene?.targets?.map(t => ({ ...t })) ?? [],
+      beasts: page.scene?.beasts?.map(b => ({ ...b })) ?? [],
     },
     hidden: page.layers.filter(l => l.hidden),
   };
@@ -59,7 +62,12 @@ export function stageToPage(page: Manuscript, state: StageState): Manuscript {
   return {
     ...page,
     layers: [...state.pieces.map(p => pieceToLayer(p, byId.get(p.id))), ...hidden].slice(0, 300),
-    scene: { ...page.scene, letters: state.letters.map(l => ({ ...l })), spawn: { ...state.spawn } },
+    scene: {
+      ...page.scene, letters: state.letters.map(l => ({ ...l })), spawn: { ...state.spawn },
+      // Kept only when there are some, so pages without them look as they always have.
+      targets: state.targets?.length ? state.targets.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind ?? 'butt' })) : undefined,
+      beasts: state.beasts?.length ? state.beasts.map(b => ({ ...b })) : undefined,
+    },
     updatedAt: new Date().toISOString(),
   };
 }

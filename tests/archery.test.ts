@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import type { Field } from '../src/engine/field';
 import { addFoothold, aim, ARROW, footholdShape, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
-import { localPoint, posed, swungAbout } from '../src/tale/stage/types';
+import { localPoint, posed, swungAbout, workedPose } from '../src/tale/stage/types';
 import type { Arrow } from '../src/engine/archery';
 import { createWorld, stepWorld } from '../src/engine/world';
 import { NO_INPUT } from '../src/engine/controller';
@@ -148,6 +148,20 @@ describe('archery', () => {
     // The hinge is the same point of the raised piece's own box as of the flat one's.
     const [lx, ly] = localPoint({ ...flat, ...raised }, hinge);
     expect(lx).toBeCloseTo(300, 6); expect(ly).toBeCloseTo(20, 6);
+  });
+
+  it('works out a named motion from wherever the piece now stands', () => {
+    const crate = { x: 300, y: 400, width: 100, height: 80, rotation: 0 };
+    expect(workedPose({ ...crate, works: { by: 'b', motion: 'rise', x: 0, y: 0, rotation: 0 } })).toEqual({ x: 300, y: 320, rotation: 0 });
+    expect(workedPose({ ...crate, works: { by: 'b', motion: 'drop', x: 0, y: 0, rotation: 0 } })).toEqual({ x: 300, y: 480, rotation: 0 });
+    // Falling to the right: a quarter turn about its bottom right corner, which stays put.
+    const fell = workedPose({ ...crate, works: { by: 'b', motion: 'fall-right', x: 0, y: 0, rotation: 0 } })!;
+    expect(fell.rotation).toBe(90);
+    expect(fell.pivot).toEqual([400, 480]);
+    expect(localPoint({ ...crate, ...fell }, [400, 480])).toEqual([expect.closeTo(100, 6), expect.closeTo(80, 6)]);
+    const left = workedPose({ ...crate, works: { by: 'b', motion: 'fall-left', x: 0, y: 0, rotation: 0 } })!;
+    expect(left.rotation).toBe(-90);
+    expect(left.pivot).toEqual([300, 480]);
   });
 
   it('keeps a hidden target out of reach until the one that hides it is struck', () => {

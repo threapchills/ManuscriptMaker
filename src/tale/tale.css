@@ -515,6 +515,20 @@
 .mark-upload { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--lapis); border: 1.5px dashed rgba(31, 58, 138, .5); }
 .stage-notice { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 9; padding: 10px 20px; border-radius: 10px; background: var(--vellum-hi); color: var(--vermilion-deep); font: italic 22px var(--book); box-shadow: 0 8px 22px rgba(40, 25, 10, .4); animation: pop-in-plain .2s ease-out; pointer-events: none; }
 .mark-label { font: italic 14px var(--book); color: var(--ink-soft); }
+.mark-butt { width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle, #e9bf57 0 18%, #b3261e 19% 38%, #f4ecd8 39% 58%, #2c4f9e 59% 78%, #d9c27a 79% 86%, #c9a13b 87%); box-shadow: 0 1px 3px rgba(40, 24, 10, .35); }
+.mark-bell { width: 30px; height: 36px; background: linear-gradient(90deg, #8a5a1c, #f2cf73 40%, #d39b35 60%, #6e4514); clip-path: polygon(38% 0, 62% 0, 70% 12%, 72% 52%, 100% 86%, 100% 100%, 0 100%, 0 86%, 28% 52%, 30% 12%); }
+.mark-wolf { width: 44px; height: 44px; object-fit: contain; }
+/* Building: a wolf's round along the ground, a chosen target, and where a worked piece will rest. */
+.beast-round { position: absolute; height: 6px; border-bottom: 2px dashed rgba(122, 74, 20, .55); pointer-events: none; }
+.beast-round.is-selected { border-bottom-color: rgba(179, 38, 30, .85); }
+.beast-end { position: absolute; bottom: -9px; width: 16px; height: 16px; border-radius: 50%; background: #fff8e4; border: 2px solid var(--vermilion); box-shadow: 0 1px 3px rgba(40, 24, 10, .35); transform: scale(var(--inv, 1)); }
+.beast-end--start { left: -8px; } .beast-end--end { right: -8px; }
+.mark-ring { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; border: 2px dashed var(--vermilion); pointer-events: none; animation: ring-turn 6s linear infinite; }
+@keyframes ring-turn { to { transform: rotate(360deg); } }
+.rest-ghost { position: absolute; border: 2px dashed rgba(31, 58, 138, .6); border-radius: 4px; background: rgba(31, 58, 138, .06); pointer-events: none; }
+.rest-ghost span { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: italic 15px var(--book); color: rgba(31, 58, 138, .8); white-space: nowrap; }
+.mark-note { font: italic 15px var(--book); color: var(--ink-soft); }
+.struck-row .motion-label { white-space: nowrap; }
 .ghost-marker { display: grid; place-items: center; width: 70px; height: 70px; border-radius: 50%; font: 40px var(--fraktur); color: #fff1c4; background: radial-gradient(circle at 34% 28%, #fff4c8, #e5b451 42%, #9a6b1c 82%); }
 
 .passage-editor { position: absolute; z-index: 8; width: 460px; padding: 10px 14px 12px; border-radius: 12px; background: var(--vellum-hi); border: 1px solid rgba(90, 60, 30, .35); box-shadow: 0 14px 34px rgba(40, 25, 10, .38); display: flex; flex-direction: column; gap: 8px; animation: pop-in-plain .2s ease-out; }

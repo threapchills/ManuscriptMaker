@@ -5,11 +5,16 @@ import { ASSETS } from '../../assets';
 import { sceneConfig } from '../../sceneCatalog';
 import { audio } from '../../engine/audio';
 import { InkIcon } from '../ornaments';
+import { srcOf } from './world';
 
 export type LibraryPick =
   | { kind: 'piece'; asset: string; role: GameRole; width?: number; /** A picture of the maker's own, by data URL. */ src?: string }
   | { kind: 'letter' }
-  | { kind: 'passage' };
+  | { kind: 'passage' }
+  /** A butt or a bell to shoot at, which can set pieces moving. */
+  | { kind: 'target'; target: 'butt' | 'bell' }
+  /** A grey wolf keeping a stretch of ground. */
+  | { kind: 'beast' };
 
 /** What a picture does when it first lands, before the maker changes it. */
 const ROLES: Record<string, GameRole> = {
@@ -73,6 +78,9 @@ export default function Library({ onPick, onUpload, uploads = [] }: {
         {shelf === 'marks' && !query ? <>
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'letter' })} title="A gilded letter to gather"><span className="mark-letter">A</span><span className="mark-label">Letter</span></button>
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'passage' })} title="A passage of writing"><span className="mark-passage">¶</span><span className="mark-label">Words</span></button>
+          <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'target', target: 'butt' })} title="A butt to shoot at: struck, it can set pieces moving"><span className="mark-butt" aria-hidden="true" /><span className="mark-label">Butt</span></button>
+          <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'target', target: 'bell' })} title="A bell to ring with an arrow: struck, it can set pieces moving"><span className="mark-bell" aria-hidden="true" /><span className="mark-label">Bell</span></button>
+          <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'beast' })} title="A grey wolf keeping a stretch of ground: an arrow sends him running"><img className="mark-wolf" src={srcOf('beast-head-wolf')} alt="" draggable={false} /><span className="mark-label">Wolf</span></button>
           {onUpload && <button type="button" className="tray-piece mark-piece" onClick={() => fileRef.current?.click()} title="Bring a picture of your own"><span className="mark-upload"><InkIcon name="up" size={22} /></span><span className="mark-label">Your picture</span></button>}
           {uploads.map((src, i) => <button type="button" key={i} className="tray-piece library-piece" onPointerDown={onPick({ kind: 'piece', asset: '', src, role: 'scenery', width: 220 })} title="Your picture · drag into the picture" aria-label="Your picture. Drag into the picture."><img src={src} alt="" draggable={false} /></button>)}
           {['signpost-blank', 'door-oak', 'door-double'].map(id => <Token key={id} id={id} onPick={onPick} />)}
