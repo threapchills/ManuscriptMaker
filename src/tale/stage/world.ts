@@ -95,8 +95,10 @@ export function stageSpec(o: {
   width: number; height: number; waterY?: number; field: Field;
   images: Map<string, LoadedImage>; traveller: Traveller | null;
   targets?: StageTarget[]; beasts?: StageBeast[];
+  /** One screen's height, for a big folio: the traveller keeps the size a screen gives them. */
+  viewHeight?: number;
 }): (SessionSpec & { playerId?: string }) | null {
-  const unit = Math.max(.6, Math.min(2, o.height / 720));
+  const unit = Math.max(.6, Math.min(2, (o.viewHeight ?? o.height) / 720));
   const who = stageAvatar(o.pieces, o.images, o.traveller, o.spawn, unit);
   if (!who) return null;
   return {

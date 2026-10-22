@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createField, fillPolygon, fillRect, finalizeField } from '../src/engine/field';
+import { cellFor, createField, fillPolygon, fillRect, finalizeField } from '../src/engine/field';
 import type { Field } from '../src/engine/field';
 import { NO_INPUT } from '../src/engine/controller';
 import type { ControlInput } from '../src/engine/controller';
@@ -236,5 +236,47 @@ describe('the world around the traveller', () => {
     run(w, .5);
     expect(feetY(w)).toBe(330);
     expect(w.body.grounded).toBe(true);
+  });
+});
+
+describe('big folios', () => {
+  it('keeps one cell per unit up to two screens, and is never coarser than before', () => {
+    expect(cellFor(1280, 720)).toBe(1);
+    expect(cellFor(2560, 720)).toBe(1);
+    expect(cellFor(1280, 1440)).toBe(1);
+    expect(cellFor(5120, 720)).toBe(2);
+    expect(cellFor(10240, 720)).toBe(2);
+    const before = (w: number, h: number) => Math.max(w, h) <= 1600 ? 1 : Math.ceil(Math.max(w, h) / 1600);
+    for (let wide = 1; wide <= 8; wide++) for (let tall = 1; tall <= 4 && wide * tall <= 8; tall++) {
+      const w = 1280 * wide, h = 720 * tall, cell = cellFor(w, h);
+      expect(cell).toBeLessThanOrEqual(before(w, h));
+      // Every size a folio may take stays within some two million cells.
+      expect(Math.ceil(w / cell) * Math.ceil(h / cell)).toBeLessThanOrEqual(2_000_000);
+    }
+    for (const [w, h] of [[1600, 1600], [3000, 3000], [3000, 900]]) expect(cellFor(w, h)).toBeLessThanOrEqual(before(w, h));
+  });
+
+  it('walks and leaps alike on the coarser field of a folio four screens wide', () => {
+    const trial = (width: number) => {
+      const f = createField(width, H); fillRect(f, 'solid', 0, 600, width, 120); finalizeField(f);
+      const w = createWorld({ field: f, pageWidth: width, pageHeight: H, unit: 1, spawn: { x: 200, y: 600 }, hitbox: HITBOX, goals: [] });
+      run(w, .3);
+      const from = feetX(w);
+      run(w, 1, () => ({ x: 1 }));
+      const walked = feetX(w) - from;
+      run(w, .5);
+      let top = Infinity, held = false;
+      for (let i = 0; i < Math.round(1 / STEP); i++) {
+        const jump = i * STEP < .4;
+        stepWorld(w, input({ jump, jumpPressed: jump && !held })); held = jump;
+        top = Math.min(top, feetY(w));
+      }
+      return { cell: f.cell, walked, leap: 600 - top };
+    };
+    const one = trial(1280), four = trial(5120);
+    expect(one.cell).toBe(1); expect(four.cell).toBe(2);
+    expect(Math.abs(four.walked - one.walked)).toBeLessThan(6);
+    expect(Math.abs(four.leap - one.leap)).toBeLessThan(6);
+    expect(one.leap).toBeGreaterThan(130);
   });
 });

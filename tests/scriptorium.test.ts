@@ -3,7 +3,7 @@ import type { ImageLayer, Manuscript, TextLayer } from '../src/types';
 import { validateManuscript } from '../src/document';
 import { validateProject } from '../src/project';
 import type { Project } from '../src/project';
-import { FOLIO_TEMPLATES, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, newScriptoriumBook, pageToStage, putPictureAway, readScriptorium, reidentify, skySeedOf, stageToPage, writeScriptorium } from '../src/scriptorium/convert';
+import { FOLIO_TEMPLATES, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, newScriptoriumBook, pageToStage, putPictureAway, readScriptorium, reidentify, resizeFolio, screensOf, sizeWords, skySeedOf, stageToPage, writeScriptorium } from '../src/scriptorium/convert';
 import type { StagePiece } from '../src/tale/stage/types';
 import { ASSETS } from '../src/assets';
 
@@ -168,4 +168,56 @@ describe('the Scriptorium book', () => {
     expect(stageToPage(armed, state).scene?.arrows).toBe(3);
     for (const arrows of [-1, 2.5, 13, '3']) expect(() => validateManuscript({ ...page, scene: { ...page.scene, arrows: arrows as number } })).toThrow(/play settings/);
   });
+
+  it('grows a folio to the right and upward, and back again, losing nothing', () => {
+    const page: Manuscript = { ...newFolio(1), scene: { ...newFolio(1).scene, waterY: 640 } };
+    expect(screensOf(page)).toEqual({ wide: 1, tall: 1 });
+    const long = resizeFolio(page, 4, 1)!;
+    expect([long.width, long.height]).toEqual([5120, 720]);
+    expect(long.scene?.screens).toEqual({ wide: 4, tall: 1 });
+    expect(long.layers).toEqual(page.layers);
+    expect(() => validateManuscript(long)).not.toThrow();
+    // Room above: everything moves down a screen, so the ground stays at the foot.
+    const tall = resizeFolio(page, 2, 2)!;
+    expect([tall.width, tall.height]).toEqual([2560, 1440]);
+    expect(tall.layers.map(l => l.y)).toEqual(page.layers.map(l => l.y + 720));
+    expect(tall.layers.map(l => l.x)).toEqual(page.layers.map(l => l.x));
+    expect(tall.scene?.spawn).toEqual({ x: 104, y: 562 + 720 });
+    expect(tall.scene?.letters?.map(l => l.y)).toEqual(page.scene?.letters?.map(l => l.y + 720));
+    expect(tall.scene?.waterY).toBe(640 + 720);
+    expect(() => validateManuscript(tall)).not.toThrow();
+    // And back: the very same folio, with no size left on it.
+    const again = resizeFolio(tall, 1, 1)!;
+    expect(withoutTime(again)).toEqual(withoutTime(page));
+    expect(again.scene && 'screens' in again.scene).toBe(false);
+    expect(resizeFolio(page, 1, 1)).toBe(page);
+  });
+
+  it('refuses a size that would cut off anything on the folio, or that could not be opened again', () => {
+    const long = resizeFolio(newFolio(1), 4, 1)!;
+    const crate = { ...long.layers[0], id: 'far-crate', x: 2900, y: 300, width: 100, height: 100 };
+    const built: Manuscript = { ...long, layers: [...long.layers, crate] };
+    expect(resizeFolio(built, 2, 1)).toBeNull();
+    expect(resizeFolio(built, 3, 1)?.width).toBe(3840);
+    // Up in the new sky, a letter or the stream itself would be lost by taking that sky away.
+    const tall = resizeFolio(newFolio(1), 1, 2)!;
+    expect(resizeFolio({ ...tall, scene: { ...tall.scene, letters: [{ id: 'high', x: 400, y: 200, glyph: 'A' }] } }, 1, 1)).toBeNull();
+    expect(resizeFolio({ ...tall, scene: { ...tall.scene, waterY: 500 } }, 1, 1)).toBeNull();
+    expect(resizeFolio({ ...tall, scene: { ...tall.scene, waterY: 900 } }, 1, 1)?.scene?.waterY).toBe(180);
+    // Past the limits of a folio, or of a page.
+    for (const [wide, tall] of [[9, 1], [1, 5], [3, 3], [0, 1], [2.5, 1]]) expect(resizeFolio(newFolio(1), wide, tall)).toBeNull();
+    expect(resizeFolio({ ...newFolio(1), width: 2000, height: 1125 }, 8, 1)).toBeNull();
+  });
+
+  it('keeps a folio\'s size and refuses an impossible one', () => {
+    const page = newFolio(1);
+    for (const screens of [{ wide: 4, tall: 1 }, { wide: 2, tall: 4 }, { wide: 8, tall: 1 }]) expect(() => validateManuscript({ ...page, width: 1280 * screens.wide, height: 720 * screens.tall, scene: { ...page.scene, screens } })).not.toThrow();
+    for (const screens of [{ wide: 0, tall: 1 }, { wide: 9, tall: 1 }, { wide: 3, tall: 3 }, { wide: 1, tall: 5 }, { wide: 2.5, tall: 1 }, { wide: '4', tall: 1 }, null]) expect(() => validateManuscript({ ...page, scene: { ...page.scene, screens: screens as never } })).toThrow(/play settings/);
+    const long = resizeFolio(page, 4, 1)!;
+    const { state } = pageToStage(long);
+    expect(stageToPage(long, state).scene?.screens).toEqual({ wide: 4, tall: 1 });
+    expect(() => validateManuscript({ ...page, width: 10241 })).toThrow();
+    expect([{ wide: 1, tall: 1 }, { wide: 4, tall: 1 }, { wide: 2, tall: 2 }, { wide: 1, tall: 3 }].map(sizeWords)).toEqual(['one screen', 'four screens wide', 'two screens wide, two tall', 'three screens tall']);
+  });
 });
+

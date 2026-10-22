@@ -2,8 +2,9 @@
  * The collision field: a set of bit masks built from painted pixels, with
  * summed-area tables so any rectangle can be tested in constant time.
  *
- * One cell is `cell` page units. Pages up to 1600 units wide use one cell per
- * unit, so collision matches the artwork to the pixel.
+ * One cell is `cell` page units. Ordinary pages use one cell per unit, so
+ * collision matches the artwork to the pixel; big folios use the finest cell
+ * that keeps the field within a budget.
  */
 export type SurfaceKind = 'solid' | 'platform' | 'hazard' | 'ladder';
 export type Material = 'grass' | 'earth' | 'wood' | 'stone' | 'hay' | 'leaves' | 'cloth' | 'water';
@@ -35,10 +36,19 @@ export function createField(pageWidth: number, pageHeight: number, cell = cellFo
   };
 }
 
-/** Keep huge sandbox pages affordable while matching normal pages exactly. */
+/** About two million cells: two screens at one cell per unit, some forty megabytes of masks and tables. */
+const CELL_BUDGET = 2_000_000;
+/**
+ * Keep big sandbox pages affordable while matching normal pages exactly: the
+ * finer of one cell per 1600 units of the longest side (as it always was) and
+ * the finest whole cell that keeps the field within the budget, so a folio of
+ * several screens keeps fine footing and no page is ever made coarser.
+ */
 export function cellFor(pageWidth: number, pageHeight: number): number {
   const longest = Math.max(pageWidth, pageHeight);
-  return longest <= 1600 ? 1 : Math.ceil(longest / 1600);
+  let budget = 1;
+  while (Math.ceil(pageWidth / budget) * Math.ceil(pageHeight / budget) > CELL_BUDGET) budget++;
+  return Math.min(longest <= 1600 ? 1 : Math.ceil(longest / 1600), budget);
 }
 
 function integrate(mask: Uint8Array, out: Int32Array, width: number, height: number) {

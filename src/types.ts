@@ -16,7 +16,8 @@ export interface SceneSettings {
   sky?: SkySetting; waterY?: number | null; brief?: string; spawn?: { x: number; y: number }; letters?: Array<{ id: string; x: number; y: number; glyph: string }>;
   /** Arrows in the quiver for each run of the folio. */ arrows?: number;
   /** Butts and bells to shoot at; a struck one sets moving the pieces it works. */ targets?: Array<{ id: string; x: number; y: number; kind: 'butt' | 'bell' }>;
-  /** Beasts keeping ground; an arrow drives them off. */ beasts?: Array<{ id: string; kind: 'wolf'; x0: number; x1: number; y: number }>;
+  /** Beasts keeping ground; an arrow kills them. */ beasts?: Array<{ id: string; kind: 'wolf'; x0: number; x1: number; y: number }>;
+  /** A big folio: so many screens wide and tall, one shown at a time as the camera follows. Absent for one screen. */ screens?: { wide: number; tall: number };
 }
 export interface Manuscript { version: 1; id: string; title: string; width: number; height: number; paper: 'vellum'|'ivory'|'rose'|'midnight'; border: 'illuminated'|'double'|'none'; layers: Layer[]; updatedAt: string; scene?: SceneSettings; }
 export interface CanvasProps { manuscript: Manuscript; selectedId: string | null; onSelect: (id: string | null) => void; onChangeLayer: (id: string, patch: Partial<Layer>, commit?: boolean) => void; onDropAsset: (assetId: string, x: number, y: number) => void; onEditText: (id: string) => void; zoom: number; showGuides: boolean; }

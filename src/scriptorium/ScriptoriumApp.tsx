@@ -18,7 +18,7 @@ import BookContents from './BookContents';
 import FolioSettings from './FolioSettings';
 import SandboxExplicit from './SandboxExplicit';
 import type { FolioTemplate } from './convert';
-import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, pageToStage, putPictureAway, readScriptorium, reidentify, skySeedOf, stageToPage, writeScriptorium } from './convert';
+import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, pageToStage, putPictureAway, readScriptorium, reidentify, resizeFolio, screensOf, skySeedOf, stageToPage, writeScriptorium } from './convert';
 import '../tale/tale.css';
 import './scriptorium.css';
 
@@ -229,15 +229,18 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, picture
 }) {
   const id = page.id;
   // The stage keeps its own copy while it is open; the book follows every change.
-  const initial = useMemo(() => pageToStage(page).state, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A change of size reshapes the page itself, so the stage begins again from it.
+  const screens = screensOf(page);
+  const initial = useMemo(() => pageToStage(page).state, [id, screens.wide, screens.tall]); // eslint-disable-line react-hooks/exhaustive-deps
   const onChange = useCallback((state: StageState) => onUpdate(id, p => stageToPage(p, state)), [id, onUpdate]);
   const [firstTime] = useState(() => !storage.get(HINTS_KEY) && page.width === 1280 && page.height === 720);
   const scene = page.scene ?? {};
   const sky = scene.sky ?? 'none';
   const waterY = typeof scene.waterY === 'number' ? scene.waterY : undefined;
   const brief = scene.brief?.trim() ? scene.brief : DEFAULT_BRIEF;
-  return <FolioStage
-    free stageKey={id} width={page.width} height={page.height}
+  const [settings, setSettings] = useState({ open: false, refocus: false });
+  return <FolioStage key={`${screens.wide}x${screens.tall}`}
+    free stageKey={id} width={page.width} height={page.height} screens={screens}
     rubric={chain ? `Folio ${toRoman(index + 1)} · walking the whole book` : `Folio ${toRoman(index + 1)} · of your making`}
     title={page.title} onTitle={title => onUpdate(id, p => ({ ...p, title: title.slice(0, 100) }))}
     brief={brief} briefTone={index % 2 ? 'blue' : 'red'}
@@ -248,8 +251,11 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, picture
       onSky={value => onUpdate(id, p => ({ ...p, scene: { ...p.scene, sky: value } }))}
       onWater={y => onUpdate(id, p => ({ ...p, scene: { ...p.scene, waterY: y } }))}
       onBrief={text => onUpdate(id, p => ({ ...p, scene: { ...p.scene, brief: text.slice(0, 4000) } }))}
-      onArrows={count => onUpdate(id, p => ({ ...p, scene: { ...p.scene, arrows: count } }))} />}
-    hints={firstTime ? FIRST_HINTS : undefined}
+      onArrows={count => onUpdate(id, p => ({ ...p, scene: { ...p.scene, arrows: count } }))}
+      screens={screens} canHold={(wide, tall) => resizeFolio(page, wide, tall) !== null}
+      open={settings.open} refocus={settings.refocus} onOpen={open => setSettings({ open, refocus: false })}
+      onScreens={(wide, tall) => { setSettings({ open: true, refocus: true }); onUpdate(id, p => resizeFolio(p, wide, tall) ?? p); }} />}
+    hints={firstTime && screens.wide * screens.tall === 1 ? FIRST_HINTS : undefined}
     onPlay={() => storage.set(HINTS_KEY, '1')}
     onWin={() => onWalked(id)}
     card={(result, controls) => <SandboxExplicit title={page.title} result={result} onNext={onNext} nextLabel={nextLabel} onAgain={controls.again} onBuild={controls.build} />}

@@ -1,6 +1,6 @@
 # Manuscript project ToDos
 
-Last updated: 2026-10-04. This file records the user's requested direction, including messages sent during implementation. `docs/GAME_VISION.md` is the full playable-manuscript brief; `docs/HANDOVER.md` records the concrete implementation state.
+Last updated: 2026-10-22. This file records the user's requested direction, including messages sent during implementation. `docs/GAME_VISION.md` is the full playable-manuscript brief; `docs/HANDOVER.md` records the concrete implementation state.
 
 ## 2026-09-24 and 2026-10-04 Claude sessions (see HANDOVER)
 
@@ -27,7 +27,8 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [ ] Scriptorium next: behaviours such as moving ledges, switches and doors (shared with the tale). Targets that work things and the wolf already cover some of this.
 - [x] Some darkness (user, 2026-10-22: "PEGI 13 overall … a little blood … evil wolves are evil and can be killed"): an arrow kills a wolf, which falls with the arrow in it and lies in a little blood; red eyes; a little blood when a wolf bites.
 - [ ] Good pet dogs and other friendly animals (user, 2026-10-22: "in due course").
-- [ ] Sandbox big folios (user, 2026-10-22): 2×, 4× or 8× the page, the camera following the traveller; ways out (an edge, or a doorway) leading to another folio, chosen as things are placed rather than in an events editor.
+- [x] Sandbox big folios (user, 2026-10-22: "4x or 8x the current level or page size … the camera following the player"): up to eight screens (8 wide, or 4 tall), sized in the folio's settings; the camera follows the traveller in play; the view moves by dragging open ground, the wheel, a map of the whole, or carrying a piece to an edge.
+- [ ] Ways out (user, 2026-10-22: "when exiting the play area to the right … set that as the cue to move to a new page"): an edge, or a doorway, leading to another folio, chosen as things are placed rather than in an events editor.
 - [ ] Liber tertius (user, 2026-10-04): harder folios needing a precise configuration of placed pieces as well as shooting.
 
 ## Playable manuscript direction — new top product priority

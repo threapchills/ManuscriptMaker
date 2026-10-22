@@ -2,7 +2,7 @@
 // folios, built and walked on the same stage as the tale.
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const base = process.env.BASE_URL || 'http://localhost:5173/ManuscriptMaker/';
 await mkdir('.local', { recursive: true });
@@ -14,14 +14,15 @@ page.on('pageerror', error => errors.push(error.message));
 const book = async () => { await page.waitForTimeout(600); return page.evaluate(() => JSON.parse(localStorage.getItem('manuscript-maker:scriptorium-v1') || 'null')); };
 const phase = () => page.evaluate(() => window.__playSession?.world.phase);
 
-/** Hold right and leap at edges and walls, like a player who knows the road. */
-async function walk(timeout = 16000) {
+/** Hold right and leap at edges and walls, like a player who knows the road; `watch` sees each step. */
+async function walk(timeout = 16000, watch = async () => {}) {
   await page.keyboard.down('ArrowRight');
   const start = Date.now();
   let lastLeap = 0;
   while (Date.now() - start < timeout) {
     const p = await page.evaluate(() => window.__playSession.probe(34));
     if (p.phase === 'won') break;
+    await watch(p);
     const now = Date.now();
     if (p.grounded && (!p.support || p.wall || (p.stuck && now - start > 500)) && now - lastLeap > 500) {
       lastLeap = now;
@@ -38,6 +39,12 @@ const stage = async () => {
   const scene = await page.locator('.scene').boundingBox();
   return { x: v => scene.x + v * scene.width / 1280, y: v => scene.y + v * scene.height / 720 };
 };
+/** Where a big folio's view begins, in scene units: the camera slides the scene beneath the frame. */
+const cameraAt = () => page.evaluate(() => {
+  const m = document.querySelector('.scene-camera')?.style.transform.match(/translate\((-?[\d.]+)px, (-?[\d.]+)px\)/);
+  const k = Number((document.querySelector('.scene').style.transform.match(/scale\(([\d.]+)\)/) ?? [0, 1])[1]);
+  return m ? { x: Math.round(-Number(m[1]) / k) || 0, y: Math.round(-Number(m[2]) / k) || 0 } : { x: 0, y: 0 };
+});
 const drag = async (locator, to) => {
   const from = await locator.boundingBox();
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
@@ -285,6 +292,60 @@ try {
   assert.equal(written.pages.length, 2);
   assert.equal(written.pages[1].scene.sky, 'night');
 
+  // A big folio: four screens wide, sized in its settings, one screen in view and a map of the whole.
+  await page.locator('.maker-open').nth(1).click();
+  await expect(page.getByRole('heading', { name: 'Over the Brook by Night' })).toBeVisible({ timeout: 5000 });
+  await stage();
+  await page.getByRole('button', { name: /sky, stream and words/ }).click();
+  await page.getByRole('button', { name: 'Four screens wide: the view follows the traveller' }).click();
+  // The stage begins again at the new size, and the card stays open with the size chosen in hand.
+  await expect(page.getByRole('dialog', { name: 'Folio settings' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Four screens wide: the view follows the traveller' })).toBeFocused();
+  saved = await book();
+  assert.equal(saved.pages[1].width, 5120);
+  assert.deepEqual(saved.pages[1].scene.screens, { wide: 4, tall: 1 });
+  assert.equal(saved.pages[1].layers.length, written.pages[1].layers.length, 'nothing is lost in growing');
+  await page.getByRole('button', { name: /sky, stream and words/ }).click();
+  await stage();
+  const view = await page.locator('.scene-view').boundingBox(), chart = await page.locator('.folio-map').boundingBox();
+  await page.mouse.click(chart.x + chart.width - 3, chart.y + chart.height / 2);
+  assert.equal((await cameraAt()).x, 3840, 'pressing the map shows that part of the folio');
+  await page.mouse.move(view.x + view.width * .3, view.y + 30); await page.mouse.down();
+  await page.mouse.move(view.x + view.width * .6, view.y + 30, { steps: 6 }); await page.mouse.up();
+  assert.ok((await cameraAt()).x < 3840 - 300, 'dragging open sky moves the view along');
+  await page.screenshot({ path: '.local/scriptorium-big.png' });
+
+  // A long road opened from a file: plain ground four screens long, walked to its end as the view follows.
+  // The signpost stands against the far edge, where a traveller who leaps past it is stopped upon it.
+  const plain = written.pages[0];
+  const firstScreen = plain.layers.filter(l => l.gameRole !== 'goal' && l.x + l.width / 2 < 1280);
+  const road = {
+    ...plain, title: 'The long road', width: 5120, scene: { ...plain.scene, screens: { wide: 4, tall: 1 } },
+    layers: [...plain.layers.map(l => l.gameRole === 'goal' ? { ...l, x: 5120 - l.width } : l), ...[1, 2, 3].flatMap(i => firstScreen.map(l => ({ ...l, id: `${l.id}-${i}`, x: l.x + 1280 * i })))],
+  };
+  await writeFile('.local/scriptorium-long-road.json', JSON.stringify({ ...written, title: 'The Long Road', pages: [road], activePageId: road.id }));
+  await page.getByRole('button', { name: 'The book', exact: true }).click();
+  // The book's own file input, not the cabinet's for pictures, which stays a moment as the page turns.
+  await expect(page.getByLabel('The book’s title')).toBeVisible({ timeout: 5000 });
+  await page.locator('input[type=file][accept=".json,.manuscript"]').setInputFiles('.local/scriptorium-long-road.json');
+  await expect(page.getByLabel('The book’s title')).toHaveValue('The Long Road', { timeout: 5000 });
+  await page.getByRole('button', { name: /Open folio 1/ }).click();
+  await expect(page.getByRole('heading', { name: 'The long road' })).toBeVisible({ timeout: 5000 });
+  await stage();
+  await page.keyboard.press('Enter');
+  let outOfView = 0, farthest = 0;
+  const followed = await walk(40000, async p => { const c = await cameraAt(); farthest = Math.max(farthest, c.x); if (p.x < c.x || p.x > c.x + 1280) outOfView++; });
+  assert.equal(followed, 'won', 'the long road is walked to its signpost');
+  assert.equal(outOfView, 0, 'the traveller never leaves the view');
+  assert.equal(farthest, 3840, 'the view follows them to the far end');
+  await page.screenshot({ path: '.local/scriptorium-long-road.png' });
+  await page.getByRole('button', { name: 'Keep building' }).click();
+  await page.getByRole('button', { name: 'The book', exact: true }).click();
+  await page.getByRole('button', { name: /Return to the book you had before/ }).click();
+  await expect(page.getByLabel('The book’s title')).toHaveValue('Tales of the Brook', { timeout: 5000 });
+  saved = await book();
+  assert.deepEqual(saved.pages[1].scene.screens, { wide: 4, tall: 1 }, 'the big folio is kept in the book');
+
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(300);
   assert.ok(await page.evaluate(() => document.body.scrollWidth) <= 844, 'the contents fit a phone held sideways');
@@ -307,10 +368,17 @@ try {
   await page.screenshot({ path: '.local/scriptorium-phone.png' });
   await page.locator('.compact-contents').click();
   await expect(page.locator('.maker-row')).toHaveCount(2, { timeout: 5000 });
+  // The big folio on an upright phone: one screen in the picture, its map docked beneath it.
+  await page.locator('.maker-open').nth(1).click();
+  await expect(page.locator('.folio-map.is-docked')).toBeVisible({ timeout: 5000 });
+  assert.ok(await fits('.folio-map') && await fits('.compact-folio') && await fits('.library'), 'a big folio fits an upright phone, its map docked beneath the picture');
+  await page.screenshot({ path: '.local/scriptorium-phone-big.png' });
+  await page.locator('.compact-contents').click();
+  await expect(page.locator('.maker-row')).toHaveCount(2, { timeout: 5000 });
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen), old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), old desk reachable, no runtime errors');
 } finally { await browser.close(); }

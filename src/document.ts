@@ -51,14 +51,20 @@ export function newManuscript(template = 'bestiary'): Manuscript {
 export const STORAGE_KEY = 'manuscript-maker:v1';
 /** A picture carried in the book itself, as the maker brought it from their device. */
 export const DATA_PICTURE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+/** The longest side of a page: a sandbox folio of eight screens in a row. */
+export const MAX_PAGE = 10240;
+/** How far from the page's corner anything may lie. */
+const MAX_REACH = 20000;
+/** A big folio holds at most this many screens, at most eight wide and four tall. */
+export const MAX_SCREENS = 8, MAX_TALL = 4;
 const numeric = (n:unknown,min:number,max:number) => typeof n==='number' && Number.isFinite(n) && n>=min && n<=max;
 export function validateManuscript(value: unknown): Manuscript {
   if(!value || typeof value !== 'object') throw new Error('That file does not contain a manuscript.');
   const d = value as Manuscript;
-  if(d.version!==1 || typeof d.title!=='string' || d.title.length>200 || typeof d.id!=='string' || !numeric(d.width,100,3000) || !numeric(d.height,100,3000) || !['vellum','ivory','rose','midnight'].includes(d.paper) || !['illuminated','double','none'].includes(d.border) || !Array.isArray(d.layers) || d.layers.length>300) throw new Error('This manuscript has an unsupported format.');
+  if(d.version!==1 || typeof d.title!=='string' || d.title.length>200 || typeof d.id!=='string' || !numeric(d.width,100,MAX_PAGE) || !numeric(d.height,100,MAX_PAGE) || !['vellum','ivory','rose','midnight'].includes(d.paper) || !['illuminated','double','none'].includes(d.border) || !Array.isArray(d.layers) || d.layers.length>300) throw new Error('This manuscript has an unsupported format.');
   const ids=new Set<string>();
   for(const l of d.layers){
-    if(!l || typeof l.id!=='string' || ids.has(l.id) || typeof l.name!=='string' || !numeric(l.x,-10000,10000) || !numeric(l.y,-10000,10000) || !numeric(l.width,1,6000) || !numeric(l.height,1,6000) || !numeric(l.rotation,-36000,36000) || !numeric(l.opacity,0,1) || !['image','text'].includes(l.type) || ['locked','hidden','flipX','flipY'].some(k=>typeof (l as unknown as Record<string,unknown>)[k]!=='boolean')) throw new Error('One of the manuscript layers is invalid.');
+    if(!l || typeof l.id!=='string' || ids.has(l.id) || typeof l.name!=='string' || !numeric(l.x,-MAX_REACH,MAX_REACH) || !numeric(l.y,-MAX_REACH,MAX_REACH) || !numeric(l.width,1,6000) || !numeric(l.height,1,6000) || !numeric(l.rotation,-36000,36000) || !numeric(l.opacity,0,1) || !['image','text'].includes(l.type) || ['locked','hidden','flipX','flipY'].some(k=>typeof (l as unknown as Record<string,unknown>)[k]!=='boolean')) throw new Error('One of the manuscript layers is invalid.');
     ids.add(l.id);
     if(l.type==='image' && !(typeof l.src==='string' && (/^\/ManuscriptMaker\/assets\/[a-z0-9-]+\.png$/.test(l.src) || DATA_PICTURE.test(l.src)))) throw new Error('This file contains an unsupported image source.');
     if(l.type==='image' && l.gameRole !== undefined && !['scenery','player','solid','platform','goal','hazard','ladder'].includes(l.gameRole)) throw new Error('This file contains an unsupported play role.');
@@ -81,18 +87,19 @@ function validateScene(scene: unknown, page: Manuscript) {
   if(s.waterY !== undefined && s.waterY !== null && !numeric(s.waterY, 0, page.height)) bad();
   if(s.brief !== undefined && (typeof s.brief !== 'string' || s.brief.length > 4000)) bad();
   if(s.arrows !== undefined && !(Number.isInteger(s.arrows) && (s.arrows as number) >= 0 && (s.arrows as number) <= MAX_ARROWS)) bad();
-  if(s.spawn !== undefined) { const p = s.spawn as { x: unknown; y: unknown }; if(!p || !numeric(p.x, -10000, 10000) || !numeric(p.y, -10000, 10000)) bad(); }
+  if(s.screens !== undefined) { const q = s.screens as { wide: unknown; tall: unknown }; if(!q || !Number.isInteger(q.wide) || !Number.isInteger(q.tall) || (q.wide as number) < 1 || (q.tall as number) < 1 || (q.wide as number) > MAX_SCREENS || (q.tall as number) > MAX_TALL || (q.wide as number) * (q.tall as number) > MAX_SCREENS) bad(); }
+  if(s.spawn !== undefined) { const p = s.spawn as { x: unknown; y: unknown }; if(!p || !numeric(p.x, -MAX_REACH, MAX_REACH) || !numeric(p.y, -MAX_REACH, MAX_REACH)) bad(); }
   if(s.letters !== undefined) {
     if(!Array.isArray(s.letters) || s.letters.length > 60) bad();
-    for(const l of s.letters as Array<Record<string, unknown>>) if(!l || typeof l.id !== 'string' || !numeric(l.x, -10000, 10000) || !numeric(l.y, -10000, 10000) || typeof l.glyph !== 'string' || l.glyph.length < 1 || l.glyph.length > 3) bad();
+    for(const l of s.letters as Array<Record<string, unknown>>) if(!l || typeof l.id !== 'string' || !numeric(l.x, -MAX_REACH, MAX_REACH) || !numeric(l.y, -MAX_REACH, MAX_REACH) || typeof l.glyph !== 'string' || l.glyph.length < 1 || l.glyph.length > 3) bad();
   }
   if(s.targets !== undefined) {
     if(!Array.isArray(s.targets) || s.targets.length > MAX_TARGETS) bad();
-    for(const t of s.targets as Array<Record<string, unknown>>) if(!t || typeof t.id !== 'string' || t.id.length > 64 || !numeric(t.x, -10000, 10000) || !numeric(t.y, -10000, 10000) || !['butt','bell'].includes(t.kind as string)) bad();
+    for(const t of s.targets as Array<Record<string, unknown>>) if(!t || typeof t.id !== 'string' || t.id.length > 64 || !numeric(t.x, -MAX_REACH, MAX_REACH) || !numeric(t.y, -MAX_REACH, MAX_REACH) || !['butt','bell'].includes(t.kind as string)) bad();
   }
   if(s.beasts !== undefined) {
     if(!Array.isArray(s.beasts) || s.beasts.length > MAX_BEASTS) bad();
-    for(const b of s.beasts as Array<Record<string, unknown>>) if(!b || typeof b.id !== 'string' || b.id.length > 64 || b.kind !== 'wolf' || !numeric(b.x0, -10000, 10000) || !numeric(b.x1, -10000, 10000) || (b.x0 as number) > (b.x1 as number) || !numeric(b.y, -10000, 10000)) bad();
+    for(const b of s.beasts as Array<Record<string, unknown>>) if(!b || typeof b.id !== 'string' || b.id.length > 64 || b.kind !== 'wolf' || !numeric(b.x0, -MAX_REACH, MAX_REACH) || !numeric(b.x1, -MAX_REACH, MAX_REACH) || (b.x0 as number) > (b.x1 as number) || !numeric(b.y, -MAX_REACH, MAX_REACH)) bad();
   }
 }
 /** The most targets, and beasts, a folio may hold. */

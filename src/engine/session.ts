@@ -72,6 +72,8 @@ export class PlaySession {
   aimAt: { x: number; y: number } | null = null;
   /** How much larger than the page's own the aiming marks are drawn, to stay visible on a small screen. */
   markScale = 1;
+  /** The stretch of the page in view, for setting sounds left and right: the whole page, unless a camera moves over a big folio. */
+  view: { x: number; width: number } | null = null;
   private bowAt = -10;
   /** The walkable masks before any arrow, to wipe footholds away when a run begins again. */
   private platforms: ReturnType<typeof snapshotPlatforms>;
@@ -154,9 +156,15 @@ export class PlaySession {
     const from = this.bowPoint(facing);
     this.arrows.push(loose(from, { x, y }, this.spec.unit));
     this.quiver--; this.loosed++; this.bowAt = this.time;
-    audio.play('loose', { pan: (from.x / this.spec.pageWidth - .5) * 1.2 });
+    audio.play('loose', { pan: this.pan(from.x) });
     this.callbacks.onArrows?.(this.quiver, this.loosed);
     return true;
+  }
+
+  /** Left or right of the middle of the view, for a sound made at x. */
+  private pan(x: number): number {
+    const view = this.view ?? { x: 0, width: this.spec.pageWidth };
+    return Math.max(-1, Math.min(1, ((x - view.x) / view.width - .5) * 1.2));
   }
 
   /** What lies just ahead of the traveller: used by automated playtests. */
@@ -230,7 +238,7 @@ export class PlaySession {
     for (const beast of this.beasts) {
       const was = beast.state;
       stepBeast(beast, dt, feet, unit);
-      if (beast.state === 'chase' && was === 'patrol') audio.play('growl', { pan: (beast.x / this.spec.pageWidth - .5) * 1.2 });
+      if (beast.state === 'chase' && was === 'patrol') audio.play('growl', { pan: this.pan(beast.x) });
       const hide = beastRect(beast, unit);
       if (!hide || world.phase !== 'playing') continue;
       const r = bodyRect(world);
@@ -245,7 +253,7 @@ export class PlaySession {
     if (!this.arrows.length) return;
     const { unit } = this.spec;
     const page = this.arrowPage();
-    const pan = (x: number) => (x / this.spec.pageWidth - .5) * 1.2;
+    const pan = (x: number) => this.pan(x);
     for (const a of this.arrows) {
       const e = stepArrow(a, this.spec.field, dt, page);
       if (!e || e.type === 'gone') continue;
@@ -284,7 +292,7 @@ export class PlaySession {
 
   private handle(events: WorldEvent[]): void {
     const unit = this.spec.unit;
-    const pan = (x: number) => (x / this.spec.pageWidth - .5) * 1.2;
+    const pan = (x: number) => this.pan(x);
     for (const e of events) {
       if (e.type === 'jump') {
         this.stretch = 1; this.squash = 0;

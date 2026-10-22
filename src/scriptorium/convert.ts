@@ -1,6 +1,6 @@
 import type { ImageLayer, Layer, Manuscript, TextLayer } from '../types';
 import { DEFAULT_GLYPHS } from '../types';
-import { baseLayer, newManuscript, uid } from '../document';
+import { MAX_PAGE, MAX_SCREENS, MAX_TALL, baseLayer, newManuscript, uid } from '../document';
 import type { Project } from '../project';
 import { MAX_KEPT_PICTURES, validateProject } from '../project';
 import type { StagePiece, StageState } from '../tale/stage/types';
@@ -160,7 +160,59 @@ export function writeScriptorium(book: Project): boolean {
   try { localStorage.setItem(SCRIPTORIUM_KEY, JSON.stringify(book)); return true; } catch { return false; }
 }
 
-/** Give every page and layer of an imported book fresh ids, so it can join this book. */
+/** How many screens wide and tall a folio is: one, unless it has been made bigger. */
+export const screensOf = (page: Manuscript) => page.scene?.screens ?? { wide: 1, tall: 1 };
+const NUMBER = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+/** A big folio's size in a few words: "four screens wide", "two screens wide, two tall", "three screens tall". */
+export const sizeWords = ({ wide, tall }: { wide: number; tall: number }) => wide * tall === 1 ? 'one screen'
+  : wide > 1 ? `${NUMBER[wide]} screens wide${tall > 1 ? `, ${NUMBER[tall]} tall` : ''}` : `${NUMBER[tall]} screens tall`;
+
+/** Where everything on a folio lies: the middle of each picture and passage, and each letter, mark, wolf's round and the start. */
+function contentPoints(page: Manuscript): Array<[number, number]> {
+  const scene = page.scene ?? {};
+  return [
+    ...page.layers.map(l => [l.x + l.width / 2, l.y + l.height / 2] as [number, number]),
+    ...(scene.letters ?? []).map(l => [l.x, l.y] as [number, number]),
+    ...(scene.targets ?? []).map(t => [t.x, t.y] as [number, number]),
+    ...(scene.beasts ?? []).flatMap(b => [[b.x0, b.y], [b.x1, b.y]] as Array<[number, number]>),
+    ...(scene.spawn ? [[scene.spawn.x, scene.spawn.y] as [number, number]] : []),
+  ];
+}
+
+/**
+ * The folio made `wide` × `tall` screens. Width is added on the right; height
+ * is added above, with everything moved down, so the ground stays at the foot
+ * and the new room is sky to climb into. Null when the change would cut off
+ * anything on the folio, stream included, which is never silently dropped, or
+ * would make a page too big to be opened again.
+ */
+export function resizeFolio(page: Manuscript, wide: number, tall: number): Manuscript | null {
+  const was = screensOf(page);
+  if (wide === was.wide && tall === was.tall) return page;
+  if (!Number.isInteger(wide) || !Number.isInteger(tall) || wide < 1 || tall < 1 || tall > MAX_TALL || wide * tall > MAX_SCREENS) return null;
+  const screenW = page.width / was.wide, screenH = page.height / was.tall;
+  const width = Math.round(screenW * wide), height = Math.round(screenH * tall), dy = height - page.height;
+  if (width > MAX_PAGE || height > MAX_PAGE) return null;
+  const scene = page.scene ?? {};
+  if (contentPoints(page).some(([x, y]) => x > width || y + dy < 0)) return null;
+  if (typeof scene.waterY === 'number' && scene.waterY + dy < 0) return null;
+  const down = <T extends { y: number }>(p: T): T => ({ ...p, y: p.y + dy });
+  const { screens: _, ...rest } = scene;
+  return {
+    ...page, width, height, updatedAt: new Date().toISOString(),
+    layers: page.layers.map(down),
+    scene: {
+      ...rest,
+      ...(scene.spawn ? { spawn: down(scene.spawn) } : {}),
+      ...(scene.letters ? { letters: scene.letters.map(down) } : {}),
+      ...(scene.targets ? { targets: scene.targets.map(down) } : {}),
+      ...(scene.beasts ? { beasts: scene.beasts.map(down) } : {}),
+      ...(typeof scene.waterY === 'number' ? { waterY: scene.waterY + dy } : {}),
+      ...(wide * tall > 1 ? { screens: { wide, tall } } : {}),
+    },
+  };
+}
+
 /** The maker's own pictures on a page: brought from their device, not the cabinet's artwork. */
 export const picturesOf = (page: Manuscript): string[] => page.layers.flatMap(l => l.type === 'image' && !l.assetId && l.src.startsWith('data:') ? [l.src] : []);
 
@@ -190,6 +242,7 @@ export function putPictureAway(book: Project, src: string): Project {
   return kept.length ? { ...rest, pictures: kept, updatedAt: new Date().toISOString() } : { ...rest, updatedAt: new Date().toISOString() };
 }
 
+/** Give every page and layer of an imported book fresh ids, so it can join this book. */
 export function reidentify(pages: Manuscript[]): Manuscript[] {
   return pages.map(page => ({ ...page, id: uid(), layers: page.layers.map(l => ({ ...l, id: uid() })) }));
 }

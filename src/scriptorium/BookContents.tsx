@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { Project } from '../project';
 import { MAX_PAGES } from '../project';
 import type { FolioTemplate } from './convert';
-import { FOLIO_TEMPLATES, newFolio } from './convert';
+import { FOLIO_TEMPLATES, newFolio, screensOf, sizeWords } from './convert';
 import type { Traveller } from '../tale/save';
 import { useSpread } from '../tale/scene';
 import { DropCap, Flourish, InkIcon, WaxSeal, toRoman } from '../tale/ornaments';
@@ -21,6 +21,8 @@ function summaryOf(page: Manuscript) {
   const letters = page.scene?.letters?.length ?? 0;
   const parts = [shown.length === 1 ? 'one piece' : `${shown.length} pieces`];
   if (letters) parts.push(letters === 1 ? 'one letter' : `${letters} letters`);
+  const size = screensOf(page);
+  if (size.wide * size.tall > 1) parts.push(sizeWords(size));
   return goal ? parts.join(' · ') : <>{parts.join(' · ')} · <em>no goal yet</em></>;
 }
 

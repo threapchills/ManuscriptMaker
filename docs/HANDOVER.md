@@ -2,7 +2,79 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 Claude session: some darkness, and what comes next (read first)
+## 2026-10-22 (later) Claude session: big folios in the scriptorium (read first)
+
+The first half of the user's sandbox request: folios several screens big, with the camera following the traveller. Ways out to other folios are the second half and are not built yet (see Next).
+
+- **The size.**
+  - A scriptorium folio may be 1 to 8 screens wide and 1 to 4 tall, at most eight screens in all.
+  - It is saved as the optional `scene.screens: { wide, tall }`, absent for one screen, so older books keep their shape.
+  - A screen is the folio's old page (1280×720 for every scriptorium folio); the page's `width` and `height` are the whole.
+- **Choosing it.**
+  - The folio's settings card has a new row, **The folio’s size**: a grid of screens, lit from the corner to the size under the pointer, with the size in words beneath. Cells past eight screens are not drawn, so the allowed sizes read as a staircase.
+  - `resizeFolio` (`src/scriptorium/convert.ts`) makes the change:
+    - Width is added on the right.
+    - Height is added *above*, with everything moved down, so the ground stays at the foot and the new room is sky to climb into.
+    - Shrinking reverses it exactly.
+  - `resizeFolio` refuses (returns null) any size that would cut off a picture's middle, a letter, a mark, a wolf's round, the start or the stream. It also refuses a page past the limits. Such cells are closed in the grid, and the note says why. Nothing is ever dropped.
+  - A change of size begins the stage again from the reshaped page (`FolioStage` is keyed by the size). The card's open state now lives in `MakerFolio`, so the card stays open through the change, and the focus returns to the size chosen.
+- **The stage** (`src/tale/stage/FolioStage.tsx`; prop `screens`).
+  - The picture shows one screen (`VW × VH`), and a camera moves over the whole. The camera is imperative (`cam` ref, `placeCamera`), not React state, so following costs no re-render.
+  - In play, the camera follows the traveller with a loose middle (12% of the view across, 14% up and down) and a smooth catch-up. Far away, as after a tumble back to the start, it goes straight to them.
+  - While building, the view moves in four ways:
+    - dragging open ground (anything not a piece);
+    - the wheel (along a folio one screen tall, up and down a tall one);
+    - pressing the **map**: the whole folio in miniature at the corner, tinted to its sky, with its stream, seams between screens, the start, and a gilt window for the view. On a phone it is docked beneath the picture.
+    - carrying a piece, or one from the cabinet, near an edge, with the piece kept under the pointer as the folio slides.
+  - A big folio's sky is a fixed backdrop behind the moving scene, like the far heavens. The play canvas is one screen in size and moves with the camera.
+  - Tool cards, the passage editor and notices keep to the view.
+- **The traveller keeps the size a screen gives them.** `stageSpec`'s `viewHeight` sets the unit from one screen's height, so the traveller is smaller against the whole folio, as the user asked, but the same on the screen.
+- **Collision on a big folio.** `cellFor` (`src/engine/field.ts`) now takes the finer of the old rule and the finest whole cell that keeps the field within about two million cells (some 40 MB of masks and tables).
+  - One and two screens keep one cell per unit; up to eight screens use two.
+  - No page is coarser than before.
+  - A unit test shows walking and leaping alike on a four-screen field, to within six units.
+- **Sounds** are set left and right by where they are in the view (`PlaySession.view`), not on the whole page.
+- **In the book's contents**, a big folio's miniature shows the screen it begins on, stamped "×4" (or however many screens). Its line names the size ("four screens wide").
+- **Validation** (`src/document.ts`):
+  - `MAX_PAGE` is 10240 (page sides were limited to 3000).
+  - Positions may reach ±20000.
+  - `scene.screens` must be whole numbers, at most 8 wide and 4 tall (`MAX_SCREENS`, `MAX_TALL`) and 8 screens in all.
+  - Older files are unaffected; the old desk opens a big folio as one long page.
+- **The first-time notes** ("drag pieces up from the cabinet" …) are placed for one screen, so they are shown only on a folio of one screen.
+- **Checked.**
+  - `npm test`:
+    - `cellFor` across every allowed size;
+    - walking and leaping alike on the coarser field;
+    - `resizeFolio` growing right and up, and back to the very same folio;
+    - its refusals: content, the stream, the limits, and a page too big to open;
+    - `screens` validation;
+    - `sizeWords`.
+  - `test:scriptorium`, new steps:
+    - a folio is made four screens wide in its settings; the card stays open with the focus on the size, and nothing is lost;
+    - the map shows the far end;
+    - dragging open sky moves the view;
+    - a long road four screens long is opened from a file and walked end to end; the traveller never leaves the view, and the view reaches the far end;
+    - the earlier book is restored with its big folio kept;
+    - on an upright phone, the big folio fits with its map docked.
+  - A scratch browser script (not committed) also checked:
+    - the wheel;
+    - carrying from the cabinet and moving a placed piece to an edge, each landing under the pointer;
+    - closed sizes;
+    - a folio two by two: everything moved down a screen, back to one screen exactly, and the view following a fall from a ledge in the new sky.
+- **Checks run before pushing**: `npm test` (200), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:play` and `test:browser` all pass.
+  - `test:scriptorium` first failed in its own new step. The book file was set on the first file input found while the page was still turning, which was the cabinet's picture input on the folio being left.
+  - The step now waits for the contents and chooses the book's own input. The whole check then passed.
+- **Measured, and a known limit.** After an edit, the stage rebuilds the collision field and re-renders, as it always has. In headless Chromium in this container, the pause after an edit was up to about 0.19 s on one screen, 0.17 s on four and 0.34 s on eight.
+- **Not done.**
+  - No parallax: the far hills move with everything else.
+  - A big folio cannot yet be made from the tale.
+  - The old desk knows nothing of screens.
+- **Next: ways out**, the second half of the request.
+  - An edge of a folio (or a doorway picture) leads to another folio of the book.
+  - The way is chosen where it is made: a tab on the edge opens the book's folios in miniature, with "a new folio beyond", and the way back is made too. There is no events editor.
+  - In play, the page turns and the traveller comes in by the opposite edge, which serves as their place to return to.
+
+## 2026-10-22 Claude session: some darkness, and what comes next
 
 - **The user's directions, in their words.**
   - On the tone (2026-10-22): "The game is FUN! … However it's a little too anodyne and SFW. the thing about shooting the wolf to run away especially. We need to have SOME darkness even if it's PEGI 13 overall, so a little blood effects, and yes, enemies like evil wolves are evil and can be killed. We will add good pet dogs etc. in due course."

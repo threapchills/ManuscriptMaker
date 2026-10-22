@@ -10,6 +10,7 @@ import type { IconName } from '../ornaments';
 import SoundToggles from '../SoundToggles';
 import { FONT_OPTIONS, transformText } from '../../text';
 import { PlaySession } from '../../engine/session';
+import { drawnFeet } from '../../engine/world';
 import { InputController } from '../../engine/input';
 import type { LoadedImage } from '../../engine/images';
 import { alphaAt, loadImages } from '../../engine/images';
@@ -43,7 +44,8 @@ type Gesture =
   | { kind: 'target'; id: string; dx: number; dy: number; pointer: number; before: StageState }
   | { kind: 'beast'; id: string; dx: number; dy: number; base: StageBeast; pointer: number; before: StageState }
   | { kind: 'beast-end'; id: string; end: 'x0' | 'x1'; pointer: number; before: StageState }
-  | { kind: 'aim'; pointer: number };
+  | { kind: 'aim'; pointer: number }
+  | { kind: 'pan'; pointer: number; x: number; y: number; from: { x: number; y: number } };
 
 const MOTIONS: Array<{ id: StagePiece['anim'] | null; label: string; note: string }> = [
   { id: null, label: 'Still', note: 'Keeps perfectly still' },
@@ -94,13 +96,19 @@ export interface FolioStageProps {
   /** The maker's own pictures elsewhere in the book, and those kept aside, for the cabinet. */
   pictures?: Array<{ src: string; kept: boolean }>;
   onPutAway?: (src: string) => void;
+  /** A big folio's screens: the picture shows one at a time, and a camera moves over the whole. */
+  screens?: { wide: number; tall: number };
 }
 
 export default function FolioStage(props: FolioStageProps) {
   const { width: W, height: H, free = false } = props;
+  // A big folio is several screens wide or tall: the picture shows one screen
+  // (VW × VH), and a camera moves over the whole, following the traveller in play.
+  const screensWide = Math.max(1, props.screens?.wide ?? 1), screensTall = Math.max(1, props.screens?.tall ?? 1);
+  const VW = W / screensWide, VH = H / screensTall, big = screensWide * screensTall > 1;
   const fit = useFit(FOLIO_W, FOLIO_H, 8);
   const viewport = useViewport();
-  const sceneScale = Math.min(BOX_W / W, BOX_H / H);
+  const sceneScale = Math.min(BOX_W / VW, BOX_H / VH);
   const [images, setImages] = useState<Map<string, LoadedImage> | null>(null);
   const [state, setState] = useState<StageState>(props.initial);
   const stateRef = useRef(state); stateRef.current = state;
@@ -130,6 +138,13 @@ export default function FolioStage(props: FolioStageProps) {
   const [touch, setTouch] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches);
   const sceneRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  /** The camera: where the view begins on the folio, in scene units; and what moves with it. */
+  const cam = useRef({ x: 0, y: 0 });
+  const viewRef = useRef<HTMLDivElement>(null), cameraRef = useRef<HTMLDivElement>(null), mapViewRef = useRef<HTMLDivElement>(null);
+  /** Screen pixels per scene unit, kept for the animation loop. */
+  const shownRef = useRef(1);
+  /** The pointer while something is carried, so the view can pan when it comes near an edge. */
+  const carry = useRef<{ x: number; y: number; pointer?: number; shift?: boolean } | null>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<PlaySession | null>(null);
   const inputRef = useRef(new InputController());
@@ -143,7 +158,7 @@ export default function FolioStage(props: FolioStageProps) {
   const upload = async (file: File) => {
     try {
       const src = await readPicture(file);
-      await addFromPick({ kind: 'piece', asset: '', src, role: 'scenery', width: 220 }, W * .5, H * .42);
+      await addFromPick({ kind: 'piece', asset: '', src, role: 'scenery', width: 220 }, cam.current.x + VW * .5, cam.current.y + VH * .42);
     } catch (error) { say(error instanceof Error ? error.message : 'That picture could not be opened.'); }
   };
   // The maker's own pictures: those on this folio first, then the rest of the book's.
@@ -172,9 +187,9 @@ export default function FolioStage(props: FolioStageProps) {
 
   const specFor = useCallback((s: StageState, imgs: Map<string, LoadedImage>) => {
     const field = buildStageField(s.pieces, W, H, props.waterY, imgs);
-    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, waterY: props.waterY, field, images: imgs, traveller: props.traveller, targets: s.targets, beasts: s.beasts });
+    const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, viewHeight: VH, waterY: props.waterY, field, images: imgs, traveller: props.traveller, targets: s.targets, beasts: s.beasts });
     return spec && { ...spec, quiver };
-  }, [W, H, props.waterY, props.traveller, quiver]);
+  }, [W, H, VH, props.waterY, props.traveller, quiver]);
 
   const winRef = useRef<(s: PlaySession) => void>(() => undefined);
   /**
@@ -246,13 +261,14 @@ export default function FolioStage(props: FolioStageProps) {
       if (session && canvas) {
         session.frozen = modeRef.current === 'build';
         session.update(seconds);
-        const dpr = Math.min(2, window.devicePixelRatio || 1), scale = Math.min(2.4, canvas.getBoundingClientRect().width / W * dpr);
-        const w = Math.round(W * scale), h = Math.round(H * scale);
+        if (big) { if (modeRef.current === 'build') panNearEdge(seconds); else follow(seconds, session); placeCamera(); session.view = { x: cam.current.x, width: VW }; }
+        const dpr = Math.min(2, window.devicePixelRatio || 1), scale = Math.min(2.4, canvas.getBoundingClientRect().width / VW * dpr);
+        const w = Math.round(VW * scale), h = Math.round(VH * scale);
         if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
         const context = canvas.getContext('2d');
         if (context) {
           context.setTransform(1, 0, 0, 1, 0, 0); context.clearRect(0, 0, w, h);
-          context.setTransform(scale, 0, 0, scale, 0, 0);
+          context.setTransform(scale, 0, 0, scale, -cam.current.x * scale, -cam.current.y * scale);
           context.imageSmoothingQuality = 'high';
           session.draw(context);
           const sel = selectionRef.current;
@@ -268,7 +284,65 @@ export default function FolioStage(props: FolioStageProps) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [W, H, free]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [W, H, VW, VH, big, free]);
+
+  // ——— the camera over a big folio ———
+  const clampCam = (x: number, y: number) => ({ x: clamp(x, 0, Math.max(0, W - VW)), y: clamp(y, 0, Math.max(0, H - VH)) });
+  /** Put the view where the camera is: the scene slides beneath the frame, and the play canvas and the map's window go with it. */
+  const placeCamera = () => {
+    if (!big) return;
+    const { x, y } = cam.current, s = shownRef.current;
+    if (cameraRef.current) cameraRef.current.style.transform = `translate(${-x * s}px, ${-y * s}px)`;
+    if (overlayRef.current) { overlayRef.current.style.left = `${x}px`; overlayRef.current.style.top = `${y}px`; }
+    if (mapViewRef.current) { mapViewRef.current.style.left = `${x / W * 100}%`; mapViewRef.current.style.top = `${y / H * 100}%`; }
+  };
+  /** Frame the traveller: a loose middle where they can move before the view follows, then a smooth catch-up. */
+  const follow = (seconds: number, session: PlaySession) => {
+    const feet = drawnFeet(session.world, 1), c = cam.current;
+    const ax = c.x + VW * .5, ay = c.y + VH * .6, slackX = VW * .12, slackY = VH * .14;
+    // Far off (come back to the start after a tumble), the view goes straight to them.
+    if (Math.abs(feet.x - ax) > VW * 1.2 || Math.abs(feet.y - ay) > VH * 1.2) { cam.current = clampCam(feet.x - VW * .5, feet.y - VH * .6); return; }
+    const tx = feet.x > ax + slackX ? c.x + feet.x - ax - slackX : feet.x < ax - slackX ? c.x + feet.x - ax + slackX : c.x;
+    const ty = feet.y > ay + slackY ? c.y + feet.y - ay - slackY : feet.y < ay - slackY ? c.y + feet.y - ay + slackY : c.y;
+    const k = 1 - Math.exp(-seconds * 8);
+    cam.current = clampCam(c.x + (tx - c.x) * k, c.y + (ty - c.y) * k);
+  };
+  /** Carrying something to the edge of the view moves the view along, so it can be taken anywhere on the folio. */
+  const panNearEdge = (seconds: number) => {
+    const p = carry.current, view = viewRef.current;
+    if (!p || !view) return;
+    const r = view.getBoundingClientRect(), edge = Math.min(56, r.width * .08), speed = 760 * Math.min(seconds, .05);
+    const dx = p.x < r.left + edge ? -1 : p.x > r.right - edge ? 1 : 0;
+    const dy = screensTall === 1 ? 0 : p.y < r.top + edge ? -1 : p.y > r.bottom - edge && p.y < r.bottom + 20 ? 1 : 0;
+    if (!dx && !dy) return;
+    const before = cam.current;
+    cam.current = clampCam(before.x + dx * speed, before.y + dy * speed);
+    // Whatever is held stays under the pointer as the folio moves beneath it.
+    if ((cam.current.x !== before.x || cam.current.y !== before.y) && p.pointer !== undefined) moveGesture(p.x, p.y, p.pointer, !!p.shift);
+  };
+  // A big folio opens on its start.
+  useEffect(() => {
+    if (!big) return;
+    cam.current = clampCam(stateRef.current.spawn.x - VW * .35, stateRef.current.spawn.y - VH * .72);
+    placeCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [big, W, H, VW, VH]);
+  // While building, the wheel moves the view: along the folio when it is one screen tall.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view || !big) return;
+    const wheel = (e: WheelEvent) => {
+      if (modeRef.current !== 'build') return;
+      e.preventDefault();
+      const s = shownRef.current || 1;
+      cam.current = clampCam(cam.current.x + (e.deltaX + (screensTall === 1 ? e.deltaY : 0)) / s, cam.current.y + (screensTall === 1 ? 0 : e.deltaY) / s);
+      placeCamera();
+    };
+    view.addEventListener('wheel', wheel, { passive: false });
+    return () => view.removeEventListener('wheel', wheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [big, screensTall, W, H, VW, VH]);
 
   // ——— editing with history ———
   const commit = useCallback((next: StageState, before = stateRef.current) => {
@@ -377,11 +451,12 @@ export default function FolioStage(props: FolioStageProps) {
   const setRole = (id: string, role: GameRole) => { transform(id, () => ({ role })); audio.play(role === 'goal' ? 'collect' : 'place'); };
 
   // ——— pointer: scene coordinates and pixel-true picking ———
+  /** Scene units under a point on the screen; `inside` the view shown, or `below` it, in the margin. */
   const toScene = (clientX: number, clientY: number) => {
-    const r = sceneRef.current!.getBoundingClientRect();
-    return { x: (clientX - r.left) * W / r.width, y: (clientY - r.top) * H / r.height, inside: clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom };
+    const r = sceneRef.current!.getBoundingClientRect(), v = (viewRef.current ?? sceneRef.current!).getBoundingClientRect();
+    return { x: (clientX - r.left) * W / r.width, y: (clientY - r.top) * H / r.height, inside: clientX >= v.left && clientX <= v.right && clientY >= v.top && clientY <= v.bottom, below: clientY > v.bottom };
   };
-  const unit = H / 720;
+  const unit = VH / 720;
   const pickPiece = (x: number, y: number): StagePiece | undefined => {
     const list = stateRef.current.pieces.filter(editable);
     const hitImage = (p: StagePiece, loose: boolean) => {
@@ -453,7 +528,12 @@ export default function FolioStage(props: FolioStageProps) {
       audio.play('lift'); return;
     }
     const hit = pickPiece(x, y);
-    if (!hit) { setSelection(null); setEditingText(null); return; }
+    if (!hit) {
+      setSelection(null); setEditingText(null);
+      // Open ground on a big folio: dragging it moves the view.
+      if (big) { event.preventDefault(); sceneRef.current?.setPointerCapture(event.pointerId); gesture.current = { kind: 'pan', pointer: event.pointerId, x: event.clientX, y: event.clientY, from: { ...cam.current } }; }
+      return;
+    }
     event.preventDefault();
     sceneRef.current?.setPointerCapture(event.pointerId);
     if (selectionRef.current?.kind !== 'piece' || (selectionRef.current as { id: string }).id !== hit.id) setEditingText(null);
@@ -464,9 +544,15 @@ export default function FolioStage(props: FolioStageProps) {
   };
   const onScenePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (modeRef.current === 'play' && sessionRef.current) { const { x, y, inside } = toScene(event.clientX, event.clientY); sessionRef.current.aimAt = inside ? { x, y } : null; }
+    moveGesture(event.clientX, event.clientY, event.pointerId, event.shiftKey);
+  };
+  /** The gesture in hand follows the pointer; also replayed as the view pans beneath something carried. */
+  const moveGesture = (clientX: number, clientY: number, pointerId: number, shiftKey: boolean) => {
     const g = gesture.current;
-    if (!g || g.pointer !== event.pointerId || g.kind === 'aim') return;
-    const { x, y } = toScene(event.clientX, event.clientY);
+    if (!g || g.pointer !== pointerId || g.kind === 'aim') return;
+    if (g.kind === 'pan') { const s = shownRef.current || 1; cam.current = clampCam(g.from.x - (clientX - g.x) / s, g.from.y - (clientY - g.y) / s); placeCamera(); return; }
+    if (g.kind !== 'rotate' && g.kind !== 'scale') carry.current = { x: clientX, y: clientY, pointer: pointerId, shift: shiftKey };
+    const { x, y } = toScene(clientX, clientY);
     if (g.kind === 'letter') { live(s => ({ ...s, letters: s.letters.map(l => l.id === g.id ? { ...l, x: clamp(x - g.dx, 10, W - 10), y: clamp(y - g.dy, 10, H - 10) } : l) })); return; }
     if (g.kind === 'spawn') { live(s => ({ ...s, spawn: { x: clamp(x - g.dx, 20, W - 20), y: clamp(y - g.dy, AVATAR_HEIGHT * unit, H) } })); return; }
     if (g.kind === 'target') { live(s => ({ ...s, targets: (s.targets ?? []).map(t => t.id === g.id ? { ...t, x: clamp(x - g.dx, 20, W - 20), y: clamp(y - g.dy, 30, H - 20) } : t) })); return; }
@@ -487,7 +573,7 @@ export default function FolioStage(props: FolioStageProps) {
       const cx = p.x + p.width / 2, cy = p.y + p.height / 2;
       let angle = g.base + (Math.atan2(y - cy, x - cx) - g.start) * 180 / Math.PI;
       angle = ((angle + 180) % 360 + 360) % 360 - 180;
-      if (event.shiftKey) angle = Math.round(angle / 15) * 15;
+      if (shiftKey) angle = Math.round(angle / 15) * 15;
       else for (const snap of [0, 90, -90, 180, -180]) if (Math.abs(angle - snap) < 4) angle = snap;
       live(s => withPieces(s, s.pieces.map(q => q.id === g.id ? { ...q, rotation: Math.round(angle * 10) / 10 } : q)));
     } else {
@@ -504,19 +590,20 @@ export default function FolioStage(props: FolioStageProps) {
   const onScenePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId) return;
-    gesture.current = null; setLifted(null);
+    gesture.current = null; carry.current = null; setLifted(null);
+    if (g.kind === 'pan') return;
     if (g.kind === 'aim') {
       const { x, y, inside } = toScene(event.clientX, event.clientY), session = sessionRef.current;
       if (session) { session.aimAt = null; if (inside && event.type === 'pointerup') session.loose(x, y); }
       return;
     }
-    const { y, inside } = toScene(event.clientX, event.clientY);
+    const { inside, below } = toScene(event.clientX, event.clientY);
     if (g.kind === 'spawn') { const s = stateRef.current; commit({ ...s, spawn: snapToGround(s.spawn) }, g.before); audio.play('place'); return; }
     // Dragged down into the margin: back where it came from.
-    if (g.kind === 'move' && !inside && y > H) { commit(withPieces(g.before, g.before.pieces.filter(p => p.id !== g.id)), g.before); setSelection(null); audio.play('drop'); return; }
-    if (g.kind === 'letter' && !inside && y > H) { commit({ ...g.before, letters: g.before.letters.filter(l => l.id !== g.id) }, g.before); setSelection(null); audio.play('drop'); return; }
-    if (g.kind === 'target' && !inside && y > H) { commit(withoutTarget(g.before, g.id), g.before); setSelection(null); audio.play('drop'); return; }
-    if (g.kind === 'beast' && !inside && y > H) { commit({ ...g.before, beasts: (g.before.beasts ?? []).filter(b => b.id !== g.id) }, g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'move' && !inside && below) { commit(withPieces(g.before, g.before.pieces.filter(p => p.id !== g.id)), g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'letter' && !inside && below) { commit({ ...g.before, letters: g.before.letters.filter(l => l.id !== g.id) }, g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'target' && !inside && below) { commit(withoutTarget(g.before, g.id), g.before); setSelection(null); audio.play('drop'); return; }
+    if (g.kind === 'beast' && !inside && below) { commit({ ...g.before, beasts: (g.before.beasts ?? []).filter(b => b.id !== g.id) }, g.before); setSelection(null); audio.play('drop'); return; }
     if (g.kind === 'beast') {
       // Set down on whatever ground lies beneath the middle of his round.
       const s = stateRef.current, b = (s.beasts ?? []).find(q => q.id === g.id);
@@ -561,12 +648,13 @@ export default function FolioStage(props: FolioStageProps) {
     const move = (e: PointerEvent) => {
       if (!dragging && Math.hypot(e.clientX - startX, e.clientY - startY) > 6) dragging = true;
       if (dragging) setGhost({ pick, x: e.clientX, y: e.clientY, over: toScene(e.clientX, e.clientY).inside });
+      if (dragging) carry.current = { x: e.clientX, y: e.clientY };
     };
     const up = (e: PointerEvent) => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
-      setGhost(null);
+      setGhost(null); carry.current = null;
       const at = toScene(e.clientX, e.clientY);
-      if (!dragging) { void addFromPick(pick, W * .5, H * .42); return; }
+      if (!dragging) { void addFromPick(pick, cam.current.x + VW * .5, cam.current.y + VH * .42); return; }
       if (at.inside) void addFromPick(pick, at.x, at.y); else audio.play('drop');
     };
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
@@ -582,6 +670,7 @@ export default function FolioStage(props: FolioStageProps) {
     const spec = specFor(stateRef.current, imgs);
     if (!spec) return;
     session.configure(spec); setPlayerId(spec.playerId);
+    if (big) { cam.current = clampCam(spec.spawn.x - VW * .5, spec.spawn.y - VH * .6); placeCamera(); }
     unwork();
     inputRef.current.reset();
     session.frozen = false;
@@ -693,9 +782,9 @@ export default function FolioStage(props: FolioStageProps) {
   const toolsTop = (p: StagePiece, grow = 1, reach = 85) => {
     const struckRow = free && p.kind === 'image' && (state.targets?.length ?? 0) > 0 ? 44 : 0;
     const tall = ((!free ? 56 : p.kind === 'image' ? (p.role === 'scenery' ? 152 : 108) : 56) + struckRow) * grow;
-    const below = p.y + p.height + 18;
-    const top = below + tall <= H - 6 ? below : p.y - reach - tall;
-    return clamp(top, 8, Math.max(8, H - tall - 6));
+    const below = p.y + p.height + 18, viewTop = cam.current.y, viewBottom = viewTop + VH;
+    const top = below + tall <= viewBottom - 6 ? below : p.y - reach - tall;
+    return clamp(top, viewTop + 8, Math.max(viewTop + 8, viewBottom - tall - 6));
   };
   const back = state.pieces.filter(p => !p.front), front = state.pieces.filter(p => p.front);
 
@@ -706,9 +795,12 @@ export default function FolioStage(props: FolioStageProps) {
   // margin, the seal and the touch pad sit below it, never over it.
   const fitFull = Math.min((viewport.w - 16) / FOLIO_W, (viewport.h - 16) / FOLIO_H);
   const compact = viewport.h > viewport.w && fitFull < COMPACT_BELOW;
-  const compactScale = Math.max(.1, (viewport.w - 24 - COMPACT_BAND * 2) / W);
+  const compactScale = Math.max(.1, (viewport.w - 24 - COMPACT_BAND * 2) / VW);
   const shown = compact ? compactScale : sceneScale;
-  const frameW = W * shown, frameH = H * shown;
+  shownRef.current = shown;
+  // The picture's frame shows one screen; on a big folio the camera chooses which.
+  const frameW = VW * shown, frameH = VH * shown;
+  const vx = big ? cam.current.x : 0, vy = big ? cam.current.y : 0;
   /** Screen pixels per scene unit, so a dragged piece looks the size it will land. */
   const onScreen = compact ? compactScale : fit * sceneScale;
   /** Room either side of the folio, where a phone held sideways can keep its touch buttons. */
@@ -786,30 +878,57 @@ export default function FolioStage(props: FolioStageProps) {
 
   const miniature = (place: CSSProperties) => <div className="miniature" ref={shakeRef} style={{ ...place, width: frameW, height: frameH }}>
     <GildedFrame width={frameW} height={frameH} band={compact ? COMPACT_BAND : undefined} />
+    <div ref={viewRef} className={`scene-view${big ? ` is-big paper-${props.paper ?? 'vellum'}` : ''}`} style={{ width: frameW, height: frameH }}>
+    {/* A big folio's sky stays put behind the scene, like the far heavens. */}
+    {big && props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={VW} height={VH} />}
+    <div ref={cameraRef} className="scene-camera" style={big ? { transform: `translate(${-vx * shown}px, ${-vy * shown}px)` } : undefined}>
     <div ref={sceneRef} className={`scene${lens ? ' has-lens' : ''}${mode === 'play' && arrows.left > 0 ? ' can-shoot' : ''} paper-${props.paper ?? 'vellum'}`} style={{ width: W, height: H, transform: shown !== 1 ? `scale(${shown})` : undefined, transformOrigin: '0 0' }}
       onPointerDown={onScenePointerDown} onPointerMove={onScenePointerMove} onPointerUp={onScenePointerUp} onPointerCancel={onScenePointerUp}
       onPointerLeave={() => { if (sessionRef.current) sessionRef.current.aimAt = null; }}>
-      {props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={W} height={H} />}
+      {!big && props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={W} height={H} />}
       {back.map(renderPiece)}
-      <canvas ref={overlayRef} className="scene-overlay" aria-hidden="true" />
+      <canvas ref={overlayRef} className="scene-overlay" aria-hidden="true" style={big ? { left: vx, top: vy, width: VW, height: VH } : undefined} />
       {front.map(renderPiece)}
       {(props.hints ?? []).filter(h => h.mode === 'both' || h.mode === (mode === 'build' ? 'build' : 'play')).map((h, i) => <div key={`${mode}-${i}`} className={`marginal-hint point-${h.point ?? 'down'}`} style={{ left: h.x, top: h.y, animationDelay: `${.6 + i * .5}s` }}><span className="manicule">☞</span>{h.text}</div>)}
       {sel && mode === 'build' && <div className="selection" style={{ left: sel.x, top: sel.y, width: sel.width, height: sel.height, transform: `rotate(${sel.rotation}deg)` }}>
         <button type="button" className="handle handle-rotate" aria-label="Turn the piece" onPointerDown={beginHandle('rotate')}><InkIcon name="rotate" size={18} /></button>
         <button type="button" className="handle handle-scale" aria-label="Stretch the piece" onPointerDown={beginHandle('scale')} />
       </div>}
-      {!compact && sel && pieceTools && <div className="piece-tools" style={{ left: clamp(sel.x + sel.width / 2, Math.min(W / 2, 250 * grow), Math.max(W / 2, W - 250 * grow)), top: toolsTop(sel, grow, small ? 85 * .8 / onScreen : 85) }} onPointerDown={e => e.stopPropagation()}>{pieceTools}</div>}
-      {!compact && selLetter && letterTools && <div className="piece-tools" style={{ left: clamp(selLetter.x, 150, W - 150), top: clamp(selLetter.y + 40 * unit, 10, H - 60) }} onPointerDown={e => e.stopPropagation()}>{letterTools}</div>}
+      {!compact && sel && pieceTools && <div className="piece-tools" style={{ left: clamp(sel.x + sel.width / 2, vx + Math.min(VW / 2, 250 * grow), vx + Math.max(VW / 2, VW - 250 * grow)), top: toolsTop(sel, grow, small ? 85 * .8 / onScreen : 85) }} onPointerDown={e => e.stopPropagation()}>{pieceTools}</div>}
+      {!compact && selLetter && letterTools && <div className="piece-tools" style={{ left: clamp(selLetter.x, vx + 150, vx + VW - 150), top: clamp(selLetter.y + 40 * unit, vy + 10, vy + VH - 60) }} onPointerDown={e => e.stopPropagation()}>{letterTools}</div>}
       {mode === 'build' && free && (state.beasts ?? []).map(b => <div key={b.id} className={`beast-round${selBeast?.id === b.id ? ' is-selected' : ''}`} style={{ left: b.x0, top: b.y - 3, width: b.x1 - b.x0 }} aria-hidden="true">
         {selBeast?.id === b.id && <><span className="beast-end beast-end--start" /><span className="beast-end beast-end--end" /></>}
       </div>)}
       {selTarget && mode === 'build' && <div className="mark-ring" style={{ left: selTarget.x, top: selTarget.y }} aria-hidden="true" />}
       {sel && mode === 'build' && sel.works && (() => { const rest = workedPose(sel)!; return <div className="rest-ghost" style={{ left: rest.x, top: rest.y, width: sel.width, height: sel.height, transform: `rotate(${rest.rotation}deg)` }} aria-hidden="true"><span>at rest</span></div>; })()}
-      {!compact && markTools && (selTarget || selBeast) && <div className="piece-tools" style={selTarget ? { left: clamp(selTarget.x, 160, W - 160), top: clamp(selTarget.y + 46 * unit, 10, H - 60) } : { left: clamp((selBeast!.x0 + selBeast!.x1) / 2, 160, W - 160), top: clamp(selBeast!.y + 18 * unit, 10, H - 60) }} onPointerDown={e => e.stopPropagation()}>{markTools}</div>}
-      {!compact && sel && passageEditor(clamp(sel.x, 10, W - 470), clamp(sel.y + sel.height + 80, 10, H - 330))}
+      {!compact && markTools && (selTarget || selBeast) && <div className="piece-tools" style={selTarget ? { left: clamp(selTarget.x, vx + 160, vx + VW - 160), top: clamp(selTarget.y + 46 * unit, vy + 10, vy + VH - 60) } : { left: clamp((selBeast!.x0 + selBeast!.x1) / 2, vx + 160, vx + VW - 160), top: clamp(selBeast!.y + 18 * unit, vy + 10, vy + VH - 60) }} onPointerDown={e => e.stopPropagation()}>{markTools}</div>}
+      {!compact && sel && passageEditor(clamp(sel.x, vx + 10, vx + VW - 470), clamp(sel.y + sel.height + 80, vy + 10, vy + VH - 330))}
       {!images && <div className="scene-loading"><span>The scribe prepares the page…</span></div>}
-      {notice && <div className="stage-notice" role="status">{notice}</div>}
+      {notice && <div className="stage-notice" role="status" style={big ? { left: vx + VW / 2, bottom: 'auto', top: vy + VH - 70 * unit } : undefined}>{notice}</div>}
     </div>
+    </div>
+    </div>
+    {!compact && folioMap}
+  </div>;
+
+  // The whole of a big folio in miniature while building: where the view is, and a press to look elsewhere.
+  const lookAt = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    cam.current = clampCam((e.clientX - r.left) / r.width * W - VW / 2, (e.clientY - r.top) / r.height * H - VH / 2);
+    placeCamera();
+  };
+  const mapW = compact ? frameW : Math.min(340, 112 * screensWide), mapScale = mapW / W;
+  const folioMap = big && mode === 'build' && <div className={`folio-map sky-${props.sky ?? 'day'}${compact ? ' is-docked' : ''}`} style={{ width: mapW, height: H * mapScale }} role="img" aria-label={`The whole folio, ${screensWide} screens wide and ${screensTall} tall: press a place to look there`}
+    onPointerDown={e => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); lookAt(e); }} onPointerMove={e => { if (e.buttons) lookAt(e); }}>
+    <div className="folio-map-scene" style={{ width: W, height: H, transform: `scale(${mapScale})` }} aria-hidden="true">
+      {back.filter(p => p.kind === 'image').map(p => <SceneLayer key={p.id} piece={{ ...p, anim: undefined, asset: p.asset ?? '', src: p.src } as never} srcOverride={p.src} />)}
+      {props.waterY !== undefined && <span className="folio-map-water" style={{ top: props.waterY }} />}
+      {front.filter(p => p.kind === 'image').map(p => <SceneLayer key={p.id} piece={{ ...p, anim: undefined, asset: p.asset ?? '', src: p.src } as never} srcOverride={p.src} />)}
+    </div>
+    {Array.from({ length: screensWide - 1 }, (_, i) => <span key={`c${i}`} className="folio-map-seam" style={{ left: `${(i + 1) / screensWide * 100}%` }} />)}
+    {Array.from({ length: screensTall - 1 }, (_, i) => <span key={`r${i}`} className="folio-map-seam is-across" style={{ top: `${(i + 1) / screensTall * 100}%` }} />)}
+    <span className="folio-map-start" style={{ left: `${state.spawn.x / W * 100}%`, top: `${state.spawn.y / H * 100}%` }} />
+    <div ref={mapViewRef} className="folio-map-view" style={{ width: `${VW / W * 100}%`, height: `${VH / H * 100}%`, left: `${vx / W * 100}%`, top: `${vy / H * 100}%` }} />
   </div>;
 
   const brief = (dropCap: number) => (!free || mode !== 'build') && <div className="folio-brief">
@@ -884,6 +1003,7 @@ export default function FolioStage(props: FolioStageProps) {
         </header>
         <div className="compact-title">{titleBlock}{lettersBlock}</div>
         {miniature({ position: 'relative', margin: `${COMPACT_BAND + 4}px 0` })}
+        {folioMap}
         {(pieceTools || letterTools || (sel && passageEditor(0, 0))) && <div className="compact-dock" onPointerDown={e => e.stopPropagation()}>
           {pieceTools && <div className="piece-tools is-docked">{pieceTools}</div>}
           {letterTools && <div className="piece-tools is-docked">{letterTools}</div>}
