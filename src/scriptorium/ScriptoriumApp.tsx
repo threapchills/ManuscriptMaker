@@ -30,7 +30,7 @@ import './scriptorium.css';
 type Screen =
   | { kind: 'contents' }
   | { kind: 'tailor' }
-  | { kind: 'folio'; id: string; chain: boolean; autoPlay: boolean; arrive?: Arrival };
+  | { kind: 'folio'; id: string; chain: boolean; autoPlay: boolean; arrive?: Arrival; gathered?: boolean[] };
 
 /** The book that was open before another was opened from a file. */
 const PREVIOUS_KEY = `${SCRIPTORIUM_KEY}:previous`;
@@ -85,7 +85,11 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(''), 4600); return () => window.clearTimeout(t); }, [toast]);
   useEffect(() => { if (!turn) return; const t = window.setTimeout(() => setTurn(null), 900); return () => window.clearTimeout(t); }, [turn]);
 
+  /** The letters gathered in each folio on a journey by its ways, so coming back finds them gathered still. */
+  const journey = useRef(new Map<string, boolean[]>());
   const go = useCallback((next: Screen, back = false) => {
+    // A journey lasts while the traveller goes from folio to folio by its ways.
+    if (!(next.kind === 'folio' && next.arrive)) journey.current.clear();
     setTurn({ id: Date.now(), back });
     audio.play('page');
     window.setTimeout(() => setScreen(next), 60);
@@ -138,13 +142,14 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
   };
   // ——— ways between folios ———
   /** Off an edge that leads on: the book turns to the folio beyond, and the traveller comes in by its opposite edge. */
-  const travel = (from: string, way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1) => {
+  const travel = (from: string, way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1, gathered: boolean[]) => {
     const b = bookRef.current, page = b.pages.find(p => p.id === from), to = 'edge' in way ? page && waysOf(page)[way.edge] : way.to;
     const beyond = to ? b.pages.find(p => p.id === to) : undefined;
     if (!page || !beyond) return;
     setBook(x => ({ ...x, activePageId: beyond.id }));
     const arrive: Arrival = 'edge' in way ? arrivalFrom(way.edge, at, page, facing) : { from: page.id, facing };
-    go({ kind: 'folio', id: beyond.id, chain: screen.kind === 'folio' && screen.chain, autoPlay: true, arrive }, 'edge' in way && (way.edge === 'left' || way.edge === 'top'));
+    journey.current.set(from, gathered);
+    go({ kind: 'folio', id: beyond.id, chain: screen.kind === 'folio' && screen.chain, autoPlay: true, arrive, gathered: journey.current.get(beyond.id) }, 'edge' in way && (way.edge === 'left' || way.edge === 'top'));
   };
   /** A new folio beyond a doorway, with the same picture standing in it as the doorway back; its id, to lead the doorway there. */
   const folioThroughDoor = (from: string, door: StagePiece): string | null => {
@@ -244,7 +249,7 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
       ? () => go({ kind: 'folio', id: next.id, chain, autoPlay: chain })
       : chain ? () => { go({ kind: 'contents' }, true); setToast('Every folio walked, from the first to the last.'); } : undefined;
     body = <MakerFolio key={page.id} page={page} index={folioIndex} traveller={traveller} autoPlay={screen.autoPlay} chain={chain}
-      pages={book.pages} arrival={screen.arrive} onTravel={(way, at, facing) => travel(page.id, way, at, facing)}
+      pages={book.pages} arrival={screen.arrive} gathered={screen.gathered} onTravel={(way, at, facing, gathered) => travel(page.id, way, at, facing, gathered)}
       onLink={(edge, to) => linkEdge(page.id, edge, to)} onBeyond={edge => folioOnward(page.id, edge)} onTurn={turnTo}
       onThroughDoor={door => folioThroughDoor(page.id, door)}
       onUpdate={updatePage} pictures={pictures} onPutAway={src => { setBook(b => putPictureAway(b, src)); audio.play('drop'); }}
@@ -272,11 +277,11 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
 }
 
 /** One of the maker's folios on the shared stage. */
-function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, onTravel, onLink, onBeyond, onTurn, onThroughDoor, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
+function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, gathered, onTravel, onLink, onBeyond, onTurn, onThroughDoor, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
   page: Manuscript; index: number; traveller: Traveller; autoPlay: boolean; chain: boolean;
   /** The whole book, for choosing where an edge leads; and how the traveller came in, if by a way. */
-  pages: Manuscript[]; arrival?: Arrival;
-  onTravel: (way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1) => void;
+  pages: Manuscript[]; arrival?: Arrival; gathered?: boolean[];
+  onTravel: (way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1, gathered: boolean[]) => void;
   onLink: (edge: Edge, to: string | null) => void; onBeyond: (edge: Edge) => void; onTurn: (id: string) => void;
   onThroughDoor: (door: StagePiece) => string | null;
   onUpdate: (id: string, change: (page: Manuscript) => Manuscript) => void;
@@ -321,7 +326,7 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, o
       open={settings.open} refocus={settings.refocus} onOpen={open => setSettings({ open, refocus: false })}
       onScreens={(wide, tall) => { setSettings({ open: true, refocus: true }); onUpdate(id, p => resizeFolio(p, wide, tall) ?? p); }} />}
     hints={firstTime && screens.wide * screens.tall === 1 ? FIRST_HINTS : undefined}
-    ways={ways} arrival={arrival} onTravel={onTravel}
+    ways={ways} arrival={arrival} gathered={gathered} onTravel={onTravel}
     folios={pages.flatMap((p, i) => p.id === id ? [] : [{ id: p.id, numeral: toRoman(i + 1), title: p.title }])}
     wayCard={(place, close) => 'edge' in place
       ? <WayCard edge={place.edge} page={page} pages={pages} stream={waterY !== undefined} onClose={close}

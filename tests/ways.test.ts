@@ -164,11 +164,12 @@ describe('going off an edge that leads on', () => {
     expect(shut.phase).toBe('playing');
   });
 
-  it('does not go straight back by the edge just come in by, until well away from it', () => {
-    const w = createWorld(spec(field(f => meadow(f)), { left: true }, { x: 28, y: 600 }));
-    expect(hold(w, { x: -1 }, 1).some(e => e.type === 'exit')).toBe(false);
-    hold(w, { x: 1 }, .6);
-    expect(hold(w, { x: -1 }, 2).find(e => e.type === 'exit')).toMatchObject({ edge: 'left' });
+  it('goes straight back by the edge just come in by, when turned back towards it', () => {
+    // Come in by the left edge, still walking on: no way back is taken until they turn.
+    const on = createWorld(spec(field(f => meadow(f)), { left: true }, { x: 28, y: 600 }));
+    expect(hold(on, { x: 1 }, .5).some(e => e.type === 'exit')).toBe(false);
+    const back = createWorld(spec(field(f => meadow(f)), { left: true }, { x: 28, y: 600 }));
+    expect(hold(back, { x: -1 }, .3).find(e => e.type === 'exit')).toMatchObject({ edge: 'left' });
   });
 
   it('falls off the foot into the folio below, rather than tumbling back to the start', () => {

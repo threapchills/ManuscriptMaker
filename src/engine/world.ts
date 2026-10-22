@@ -54,24 +54,11 @@ export interface World {
   jumps: number;
   wonAt: number | null;
   accumulator: number;
-  /**
-   * The edges the traveller has been well away from since they last came
-   * into the folio, so a way cannot take them straight back as they arrive.
-   */
-  ready: Record<Edge, boolean>;
 }
 
 export const STEP = 1 / 120;
 const DYING = .5;
 const RESPAWNING = .26;
-/** How far from an edge counts as well away from it. */
-const EDGE_CLEAR = 60;
-
-/** The edges these feet are well away from. */
-function readyAt(spec: WorldSpec, feet: { x: number; y: number }): Record<Edge, boolean> {
-  const m = EDGE_CLEAR * spec.unit;
-  return { left: feet.x > m, right: feet.x < spec.pageWidth - m, top: feet.y - spec.hitbox.height > m, bottom: true };
-}
 
 export function createWorld(spec: WorldSpec): World {
   const body = makeBody(spec.field, spec.spawn.x, spec.spawn.y, spec.hitbox.width, spec.hitbox.height);
@@ -80,7 +67,6 @@ export function createWorld(spec: WorldSpec): World {
     spec, tuning: scaleTuning(spec.unit, spec.field.cell, spec.tuning ?? TUNING), body, previous: feet,
     phase: 'playing', phaseTime: 0, time: 0,
     collected: (spec.collectibles ?? []).map(() => false), deaths: 0, jumps: 0, wonAt: null, accumulator: 0,
-    ready: readyAt(spec, feet),
   };
 }
 
@@ -107,7 +93,6 @@ function respawn(world: World) {
   const { spec } = world;
   world.body = makeBody(spec.field, spec.spawn.x, spec.spawn.y, spec.hitbox.width, spec.hitbox.height);
   world.previous = feetOf(world.body, spec.field);
-  world.ready = readyAt(spec, world.previous);
   world.phase = 'respawning'; world.phaseTime = 0;
 }
 
@@ -155,16 +140,14 @@ export function stepWorld(world: World, input: ControlInput, dt = STEP): WorldEv
     return events;
   }
   const fell = world.body.y * spec.field.cell > spec.pageHeight + 40 * spec.unit;
-  // Off an edge that leads on: walking off a side, climbing or leaping off the top, falling off the foot.
+  // Off an edge that leads on: pressing on against a side, climbing or leaping off the top, falling off the foot.
+  // A traveller who comes in by an edge and turns straight back goes back the way they came.
   if (spec.ways && world.phase === 'playing') {
-    const m = EDGE_CLEAR * spec.unit, b = world.body, ready = world.ready, ways = spec.ways;
-    if (feet.x > m) ready.left = true;
-    if (feet.x < spec.pageWidth - m) ready.right = true;
-    if (feet.y - spec.hitbox.height > m) ready.top = true;
+    const b = world.body, ways = spec.ways;
     const off: Edge | null =
-      ways.right && ready.right && b.x + b.w >= spec.field.width && input.x > 0 ? 'right'
-      : ways.left && ready.left && b.x <= 0 && input.x < 0 ? 'left'
-      : ways.top && ready.top && (feet.y < 0 || (b.climbing && b.y <= 0 && input.up)) ? 'top'
+      ways.right && b.x + b.w >= spec.field.width && input.x > 0 ? 'right'
+      : ways.left && b.x <= 0 && input.x < 0 ? 'left'
+      : ways.top && (feet.y < 0 || (b.climbing && b.y <= 0 && input.up)) ? 'top'
       : ways.bottom && fell ? 'bottom' : null;
     if (off) {
       world.phase = 'away'; world.phaseTime = 0;

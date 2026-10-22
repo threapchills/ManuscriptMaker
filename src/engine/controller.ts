@@ -51,7 +51,8 @@ export const TUNING: Tuning = {
   maxFall: 1150,
   coyoteTime: .1,
   bufferTime: .13,
-  stepUp: 7,
+  // A tuft of turf at the end of a meadow is about ten tall: stepped over either way, as a kerb is.
+  stepUp: 10,
   lipHeight: 18,
   snapDown: 12,
   ledgeAssist: 12,

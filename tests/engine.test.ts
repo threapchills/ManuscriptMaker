@@ -72,6 +72,20 @@ describe('walls, lips, and slopes', () => {
     expect(feetY(w)).toBe(600);
   });
 
+  it('steps over a tuft of turf ten tall either way, as at the join of two meadows, but not a kerb much taller', () => {
+    const tuft = (h: number) => field(f => { fillRect(f, 'solid', 0, 600, W, 120); fillRect(f, 'solid', 600, 600 - h, 120, h); });
+    const right = world(tuft(10), { x: 400, y: 600 });
+    run(right, 2, () => ({ x: 1 }));
+    expect(feetX(right)).toBeGreaterThan(800);
+    const left = world(tuft(10), { x: 900, y: 600 });
+    run(left, 2, () => ({ x: -1 }));
+    expect(feetX(left)).toBeLessThan(500);
+    expect(left.jumps + right.jumps).toBe(0);
+    const kerb = world(tuft(16), { x: 400, y: 600 });
+    run(kerb, 2, () => ({ x: 1 }));
+    expect(feetX(kerb)).toBeLessThan(600);
+  });
+
   it('pops onto a ledge it only just clipped while falling', () => {
     // Measure a full jump, then put a ledge a few units above its highest point.
     const flat = world(field(f => fillRect(f, 'solid', 0, 600, W, 120)), { x: 300, y: 600 });

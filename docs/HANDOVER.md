@@ -30,7 +30,9 @@ The second half of the user's sandbox request: "when exiting the play area to th
   - **Coming in.** The traveller comes in by the opposite edge, at the same height above the foot (`arrivalFrom`, `arrivalPoint` in `src/engine/ways.ts`). They stand on the ground there: a road a little higher or lower is found, the highest ground otherwise. Where the edge itself is open, the ground is sought a little inward. Ground under a peril or the stream is never chosen. With no ground at all, the folio's own start serves.
   - **The place to return to.** Where they came in is the start for that run: a tumble or **R** returns them there, not to the folio's own start, which may lie on the far side. Returning to building and pressing Play starts from the folio's own start again.
   - **Walking on.** A movement key still held as the page turns keeps them walking (`movementHeld`, `InputController.hold`).
-  - **No going straight back.** An edge cannot be gone off until the traveller has been 60 units away from it (`World.ready`), so arriving by an edge cannot send them straight back through it.
+  - **Turning straight back.** A traveller who comes in by an edge and turns straight back goes back the way they came.
+    - A guard was built at first (`World.ready`): no edge could be gone off until the traveller had been 60 units from it.
+    - It was taken out in the next batch. It barred a change of mind and guarded against nothing: a carried key always points away from the edge come in by, and every way out needs the traveller pressing past the page's bounds.
 - **While the stream flows along the foot**, a fall ends in its water (the stream is a peril in the field), so the foot's card says to stop the stream for the foot to lead on.
 - **Within a card, Enter and Space press its buttons and no longer begin a run.** Before this, Enter on a size in the settings card also started play.
 - **The book's contents** name each folio's ways ("a way on to III"). A folio with a way on is no longer marked "no goal yet", since it can be left.
@@ -86,8 +88,18 @@ The second half of the user's sandbox request: "when exiting the play area to th
       - The contents read "a way on to II".
     - A scratch run (not committed) checked the prompt above the door, a leap away from it, and the **Go in** button on an upright touch phone.
   - **Checks run before pushing**: `npm test` (224), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **A journey remembers its letters** (pushed after the doorways). While the traveller goes from folio to folio by ways or doorways, the letters gathered in each stay gathered when they come back to it.
+  - `ScriptoriumApp` keeps them in a `journey` map: the stage reports a folio's letters as the traveller leaves (`onTravel`), and `gathered` gives them back on arrival.
+  - Any other turn of the page (the contents, Play from building, "Turn to folio …") ends the journey and forgets them. Each folio's win still counts its own letters.
+- **The traveller steps over a tuft of turf ten tall** (`TUNING.stepUp`, 7 before).
+  - Measured on the plain template: each meadow piece ends in a raised tuft that drops about 10 units at the join with the next. Walking right, the tuft is climbed gradually and the drop is nothing; walking left, the drop was a wall, and the traveller stopped dead at every join.
+  - Ways made walking back common, so the step is now 10. A kerb of 16 still stops them (`tests/engine.test.ts`).
+  - With the step at 10, the plain ground was walked back from 1083 to 20 without a leap.
+  - Every proof in `test:levels` holds with the step at 10: each folio is closed bare and to single pieces as before, and every letter lies where it was meant.
+- **A doorway's badge** now sits at its foot, where the traveller stands to go in. At the top of the picture it hid under the selection's turning handle.
+- **Checks run before pushing the journey, the step and the badge**: `npm test` (225), `npm run build`, `test:levels`, `test:chapter`, `test:scriptorium`, `test:tale`, `test:solidity`, `test:play` and `test:browser` all pass.
+  - A scratch run (not committed) gathered a letter on the bridge of a folio, walked off its left edge into a new folio beyond and straight back. The letter was still gathered, and a fresh run from building forgot it.
 - **Not done.**
-  - Gilded letters gathered in one folio are gathered again on coming back to it, since each arrival begins that folio's run afresh.
   - "Play the whole book" still turns the folios in order.
 
 ## 2026-10-22 (later) Claude session: big folios in the scriptorium

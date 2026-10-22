@@ -30,7 +30,8 @@ Last updated: 2026-10-22. This file records the user's requested direction, incl
 - [x] Sandbox big folios (user, 2026-10-22: "4x or 8x the current level or page size … the camera following the player"): up to eight screens (8 wide, or 4 tall), sized in the folio's settings; the camera follows the traveller in play; the view moves by dragging open ground, the wheel, a map of the whole, or carrying a piece to an edge.
 - [x] Ways out (user, 2026-10-22: "when exiting the play area to the right … set that as the cue to move to a new page"): any edge of a folio may lead to another folio of the book, chosen on a tab on that edge (the book's folios in miniature, or a new folio beyond), with the way back made too; in play the page turns and the traveller comes in by the opposite edge, which serves as their place to return to.
 - [x] Doorways: a scenery picture made to lead to another folio from its tools (or to a new folio beyond, with the same picture there leading back); up, pressed before it, goes in, and the traveller comes out before the doorway that leads back.
-- [ ] Letters gathered in a folio stay gathered when the traveller comes back to it by a way.
+- [x] Letters gathered in a folio stay gathered when the traveller comes back to it by a way, for as long as the journey lasts.
+- [x] Walking back over the plain ground's meadow joins: the traveller steps over a tuft ten tall (the step was 7, and leftward walking stopped at every join).
 - [ ] Liber tertius (user, 2026-10-04): harder folios needing a precise configuration of placed pieces as well as shooting.
 
 ## Playable manuscript direction — new top product priority

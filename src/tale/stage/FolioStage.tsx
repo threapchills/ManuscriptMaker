@@ -106,10 +106,12 @@ export interface FolioStageProps {
   folios?: Array<{ id: string; numeral: string; title: string }>;
   /** The card for choosing where an edge or a doorway leads: opened by an edge's tab, or a doorway's tools, while building. */
   wayCard?: (place: WayPlace, close: () => void) => ReactNode;
-  /** The traveller went off an edge, or in at a doorway, that leads on; their feet at `at`. */
-  onTravel?: (way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1) => void;
+  /** The traveller went off an edge, or in at a doorway, that leads on; their feet at `at`, and the letters gathered here. */
+  onTravel?: (way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1, gathered: boolean[]) => void;
   /** Come in from another folio by a way: the first run begins where they came in, and begins again there. */
   arrival?: Arrival;
+  /** The letters of this folio already gathered on the journey that came in by a way. */
+  gathered?: boolean[];
 }
 
 /** Where a way is being chosen: an edge of the folio, or a picture made a doorway, with the means to set where it leads. */
@@ -251,8 +253,8 @@ export default function FolioStage(props: FolioStageProps) {
           if (e.type === 'win') winRef.current(s);
           if (e.type === 'exit') {
             const facing = s.world.body.facing < 0 ? -1 : 1, to = e.door ? stateRef.current.pieces.find(p => p.id === e.door)?.way : undefined;
-            if (e.edge) travelRef.current?.({ edge: e.edge }, { x: e.x, y: e.y }, facing);
-            else if (e.door && to) travelRef.current?.({ door: e.door, to }, { x: e.x, y: e.y }, facing);
+            if (e.edge) travelRef.current?.({ edge: e.edge }, { x: e.x, y: e.y }, facing, [...s.world.collected]);
+            else if (e.door && to) travelRef.current?.({ door: e.door, to }, { x: e.x, y: e.y }, facing, [...s.world.collected]);
           }
         }
       },
@@ -711,6 +713,9 @@ export default function FolioStage(props: FolioStageProps) {
     if (at) spec = { ...spec, spawn: at };
     session.configure(spec); setPlayerId(spec.playerId);
     if (at && arrive) session.world.body.facing = arrive.facing;
+    // Letters gathered here earlier on the journey stay gathered.
+    const gathered = arrive && props.gathered?.length === session.world.collected.length ? [...props.gathered] : stateRef.current.letters.map(() => false);
+    if (arrive) session.world.collected = [...gathered];
     if (big) { cam.current = clampCam(spec.spawn.x - VW * .5, spec.spawn.y - VH * .6); placeCamera(); }
     unwork();
     inputRef.current.reset();
@@ -718,7 +723,7 @@ export default function FolioStage(props: FolioStageProps) {
     if (at) inputRef.current.hold(movementHeld());
     setWayAt(null);
     session.frozen = false;
-    setSelection(null); setEditingText(null); setLettersNow(stateRef.current.letters.map(() => false)); setFalls(0); setResult(null); setShowCard(false);
+    setSelection(null); setEditingText(null); setLettersNow(gathered); setFalls(0); setResult(null); setShowCard(false);
     startedAt.current = performance.now();
     setMode('play');
     audio.play('press');
@@ -977,7 +982,7 @@ export default function FolioStage(props: FolioStageProps) {
   /** Doorways that lead on, labelled while building with the folio they lead to. */
   const doorBadges = free && mode === 'build' && state.pieces.filter(p => p.kind === 'image' && p.role === 'scenery' && p.way && folioById.has(p.way)).map(p => {
     const b = images ? boundsOf(p, images) : p;
-    return <div key={`door-${p.id}`} className="door-badge" style={{ left: b.x + b.width / 2, top: b.y }} aria-hidden="true"><InkIcon name="up" size={13} />{folioById.get(p.way!)!.numeral}</div>;
+    return <div key={`door-${p.id}`} className="door-badge" style={{ left: b.x + b.width / 2, top: b.y + b.height }} aria-hidden="true"><InkIcon name="up" size={13} />{folioById.get(p.way!)!.numeral}</div>;
   });
   const hasDoor = state.pieces.some(p => p.kind === 'image' && p.role === 'scenery' && !!p.way && folioById.has(p.way));
 
