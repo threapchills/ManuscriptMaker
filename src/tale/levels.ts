@@ -809,6 +809,8 @@ const folio14: LevelDef = {
     ground('stone-walkway', f14X - 290, f14Parapet, 128, { role: 'solid', layer: 'ground', filter: 'saturate(.3) sepia(.25) brightness(1.22)' }),
     f14Gate,
     ...f14Upper,
+    // A column closes the louvre's far side, just beyond the bell: no one walks through the belfry.
+    standing('column-stone', f14X + 92, f14Sill, 130 * 73 / 196, { role: 'solid', layer: 'ground' }),
     standing('wildflowers', 800, 572, 96, { layer: 'front', anim: 'sway' }),
     standing('grass-tuft', 1020, 570, 72, { layer: 'front', anim: 'sway' }),
   ],
