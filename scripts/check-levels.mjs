@@ -391,8 +391,9 @@ try {
   assert.ok(!bare14.solved, `Folio XIV cannot be passed bare (${note(bare14)})`);
   // For the record, not a rule: a lob from the very end of the road, at one angle, can find the bell (a secret, like the Postern's causeway).
   const road14 = await page.evaluate(() => window.targetStrikes(13, [], { da: .25 }));
-  console.log(`  folio XIV · shots from the bare road that ring the bell: ${road14.hits.length}${road14.hits.length ? ` (${road14.hits.map(h => `from ${Math.round(h.from.x)} at ${h.angle.toFixed(1)}°`).join(', ')})` : ''}`);
-  assert.ok(road14.hits.length <= 3, `the bell is not to be rung from the road but by a rare lob (${road14.hits.length} ways)`);
+  const lob14 = road14.hits.map(h => h.angle);
+  console.log(`  folio XIV · shots from the bare road that ring the bell: ${road14.hits.length}${road14.hits.length ? `, all from the road’s last ${Math.round(Math.max(...road14.hits.map(h => h.from.x)))} at ${Math.min(...lob14).toFixed(1)}° to ${Math.max(...lob14).toFixed(1)}°` : ''}`);
+  assert.ok(road14.hits.every(h => h.from.x < 60), `the bell is rung from the road only by a lob from its very end (${JSON.stringify(road14.hits.find(h => h.from.x >= 60) ?? {})})`);
   const bell14 = (await page.evaluate(() => window.levelGeometry(13))).targets.find(t => t.id === 'bell');
   const at14 = [bell14.x, bell14.y];
   const plan14 = [{ stand: 'crate-wood', cx: 250, base: 562, w: 96 }];
