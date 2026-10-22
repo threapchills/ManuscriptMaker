@@ -204,8 +204,9 @@
 .scene-layer.has-works { transition: left .9s cubic-bezier(.45, 0, .3, 1), top .9s cubic-bezier(.45, 0, .3, 1), transform .9s cubic-bezier(.45, 0, .3, 1); }
 .scene-swing { position: absolute; inset: 0; transition: transform .9s cubic-bezier(.5, 0, .75, 1); }
 /* A piece that drops falls, quickening, and strikes (FolioStage DROP_MS). */
+/* Its duration is set on the piece, from how far it falls (FolioStage fallTime). */
 .scene-layer.has-works.is-drop { transition: left .55s cubic-bezier(.55, 0, 1, .45), top .55s cubic-bezier(.55, 0, 1, .45), transform .55s cubic-bezier(.55, 0, 1, .45); }
-@media (prefers-reduced-motion: reduce) { .scene-layer.has-works, .scene-layer.has-works.is-drop, .scene-swing { transition-duration: .2s; } }
+@media (prefers-reduced-motion: reduce) { .scene-layer.has-works, .scene-layer.has-works.is-drop, .scene-swing { transition-duration: .2s !important; } }
 .ink-tools { display: flex; gap: 2px; margin-left: auto; }
 .ink-tool { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #3b2a1d; transition: background .15s, transform .15s, color .15s; }
 .ink-tool .ink-icon { stroke-width: 2.1; }

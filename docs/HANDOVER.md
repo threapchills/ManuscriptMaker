@@ -2,7 +2,19 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (evening, later) Claude session: springy pieces, and the Gorge (read first)
+## 2026-10-22 (evening, last) Claude session: what drops falls to the ground (read first)
+
+A quality-of-life change to the scriptorium, long on the list.
+
+- **"Drops" lands** (`landDrops` in `src/tale/stage/world.ts`).
+  - **What happens.** In play, each picture set to drop when a target is struck falls straight down until its painted foot meets the first ground beneath it. What the same target works falls with it, so it is not ground; other pieces stand where they are. With nothing beneath, it falls into the stream (its foot a little under the water) or off the foot of the page.
+  - **How.** When play begins (`played` in `FolioStage`), "Drops" is turned into an explicit pose, as a level's works are. The book keeps "Drops", so a folio rebuilt beneath a piece still lands it right, and older books are unchanged. The strike, the field laid after it, and the drawing all use `played`.
+  - **The fall's time** follows the drop: √(2d/g) with the traveller's own gravity (3300 a second squared), at least 0.22 s (`fallTime`, set on the piece as its transition's duration). A stone falling 400 takes about 0.49 s, close to the 0.55 s every drop used to take. With reduced motion the stylesheet's 0.2 s wins (`!important`).
+  - **The ghost at rest** for a selected dropping piece shows where it will land. It is worked out 140 ms after the pieces lie still (laying the ground while a piece is dragged would be slow), and it is hidden while it is out of date.
+- **Checked**: a scratch run hung a crate 260 up over the first folio's meadow and set it to drop when a butt is struck: the ghost lay on the meadow, and the struck crate fell there in 0.40 s. `test:scriptorium` now does the same, then undoes it.
+- **Checks run before pushing**: `npm test` (234), `npm run build`, `test:scriptorium`, `test:chapter` (the Hanging Stone's drop, now timed by its height, still crushes the wolf), `test:tale`, `test:play` and `test:browser` pass. `test:scriptorium` failed once on my own assertion: set down by hand, the crate had sunk 9 into the turf, and the landing (rightly) finds the turf's top. `test:levels` and `test:solidity` were not re-run; their harness pages import none of what changed.
+
+## 2026-10-22 (evening, later) Claude session: springy pieces, and the Gorge
 
 A new verb for the third book, chosen over a two-leaf bascule bridge (on paper that design kept collapsing into the Belfry's single-vantage puzzle): something springy to fall on. The user's north star asks for Mario's joy as well as precision; a bounce is both.
 

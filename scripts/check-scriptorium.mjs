@@ -221,6 +221,41 @@ try {
   assert.equal(await page.evaluate(() => window.__playSession.struck.size), 0, 'and hangs the butt unstruck again');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
+  // Hung high and set to drop instead, the crate falls until it meets the ground, where its ghost at rest showed.
+  await page.mouse.click(at.x(crateFace.x + crateFace.width / 2), at.y(crateFace.y + crateFace.height / 2));
+  await page.mouse.move(at.x(crateFace.x + crateFace.width / 2), at.y(crateFace.y + crateFace.height / 2));
+  await page.mouse.down();
+  await page.mouse.move(at.x(crateFace.x + crateFace.width / 2), at.y(crateFace.y + crateFace.height / 2 - 260), { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Drops', exact: true }).click();
+  await expect(page.locator('.rest-ghost')).toBeVisible({ timeout: 3000 });
+  const sceneBox = await page.locator('.scene').boundingBox();
+  const ghostTop = ((await page.locator('.rest-ghost').boundingBox()).y - sceneBox.y) * 720 / sceneBox.height;
+  const hung = (await book()).pages[0].layers.find(l => l.id === crateFace.id);
+  assert.deepEqual(hung.works, { by: butt.id, motion: 'drop' }, 'the crate drops when the butt is struck');
+  // (Set down by hand it had sunk a little into the turf; it lands on the turf's top.)
+  assert.ok(ghostTop > crateFace.y - 14 && ghostTop < crateFace.y + 2 && hung.y < crateFace.y - 200, `hung ${Math.round(crateFace.y - hung.y)} up, its ghost at rest lies on the ground where it stood (${Math.round(ghostTop)}, stood at ${Math.round(crateFace.y)})`);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(500);
+  await page.mouse.move(at.x(640), at.y(250), { steps: 3 });
+  await page.waitForTimeout(200);
+  await page.mouse.down(); await page.mouse.up();
+  await page.waitForFunction(id => window.__playSession.struck.has(id), butt.id, { timeout: 4000 });
+  await page.waitForTimeout(900);
+  const fell = await page.evaluate(() => { const el = document.querySelector('.scene-layer.has-works'); return el ? parseFloat(el.style.top) : null; });
+  assert.ok(fell !== null && Math.abs(fell - ghostTop) < 3, `the crate fell to the ground beneath it (top ${fell}, its ghost ${Math.round(ghostTop)})`);
+  await page.screenshot({ path: '.local/scriptorium-drop.png' });
+  await page.keyboard.press('r');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  // Set back down and rising, as it was.
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(300);
+  const back = (await book()).pages[0].layers.find(l => l.id === crateFace.id);
+  assert.ok(Math.abs(back.y - crateFace.y) < 2 && back.works?.motion === 'rise', `undo sets the crate down and rising again (${JSON.stringify({ y: back.y, works: back.works })})`);
   // Taking the butt down leaves the crate still again.
   await page.mouse.click(at.x(640), at.y(250));
   await page.keyboard.press('Delete');
@@ -488,5 +523,5 @@ try {
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), a way from the big folio’s left edge to a new folio beyond (chosen on the edge, the way back made), walked there and back, and shut when that folio was torn out, a cottage made a doorway to a new folio beyond (the same cottage there leading back), gone in at and come out of again, old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, the crate hung high and dropped to the ground beneath where its ghost showed, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), a way from the big folio’s left edge to a new folio beyond (chosen on the edge, the way back made), walked there and back, and shut when that folio was torn out, a cottage made a doorway to a new folio beyond (the same cottage there leading back), gone in at and come out of again, old desk reachable, no runtime errors');
 } finally { await browser.close(); }

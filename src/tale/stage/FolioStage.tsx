@@ -22,7 +22,7 @@ import { music } from '../../engine/music';
 import { ASSETS } from '../../assets';
 import type { StageBeast, StageLetter, StagePiece, StageResult, StageState, StageTarget } from './types';
 import { MOTIONS as STRUCK_MOTIONS, ROLE_LABELS, drops, localPoint, posed, workedPose } from './types';
-import { AVATAR_HEIGHT, WOLF_PARTS, boundsOf, buildStageField, doorRects, loadStageImages, srcOf, stageSpec } from './world';
+import { AVATAR_HEIGHT, WOLF_PARTS, boundsOf, buildStageField, doorRects, landDrops, loadStageImages, srcOf, stageSpec } from './world';
 import Library from './Library';
 import type { LibraryPick } from './Library';
 import PassageEditor from './PassageEditor';
@@ -135,6 +135,9 @@ export default function FolioStage(props: FolioStageProps) {
   const [, bump] = useState(0);
   const [mode, setMode] = useState<Mode>('build');
   const modeRef = useRef(mode); modeRef.current = mode;
+  /** The pieces as play has them: whatever is set to drop lands on the ground beneath it. */
+  const played = useMemo(() => mode === 'play' && images ? landDrops(state.pieces, W, H, props.waterY, images) : state.pieces, [mode, images, state.pieces, W, H, props.waterY]);
+  const playedRef = useRef(played); playedRef.current = played;
   const [selection, setSelection] = useState<Selection>(null);
   const selectionRef = useRef(selection); selectionRef.current = selection;
   const [lens, setLens] = useState(false);
@@ -231,7 +234,7 @@ export default function FolioStage(props: FolioStageProps) {
   const strikeRef = useRef<(id: string) => void>(() => undefined);
   strikeRef.current = (id: string) => {
     owlNews.current = { kind: 'struck', at: performance.now() };
-    const moving = stateRef.current.pieces.filter(p => p.works?.by === id);
+    const moving = playedRef.current.filter(p => p.works?.by === id);
     setStruck(prev => new Set(prev).add(id));
     if (!moving.length) return;
     // What drops falls, quicker than anything wound or swung, and strikes where it lands.
@@ -240,9 +243,9 @@ export default function FolioStage(props: FolioStageProps) {
     working.current.push(window.setTimeout(() => {
       const session = sessionRef.current;
       if (!session || !images || !session.struck.has(id)) return;
-      session.swapField(buildStageField(stateRef.current.pieces, W, H, props.waterY, images, session.struck), falling.map(p => boundsOf(posed(p, session.struck), images)));
+      session.swapField(buildStageField(playedRef.current, W, H, props.waterY, images, session.struck), falling.map(p => boundsOf(posed(p, session.struck), images)));
       if (!allFall) audio.play('settle');
-    }, allFall ? DROP_MS : WORKS_MS));
+    }, allFall ? Math.max(...falling.map(p => fallTime(p, unit))) * 1000 + 30 : WORKS_MS));
   };
   /** Put back everything targets moved, at once: a run is beginning again. */
   const unwork = useCallback(() => {
@@ -865,6 +868,17 @@ export default function FolioStage(props: FolioStageProps) {
 
   const sel = selection?.kind === 'piece' ? state.pieces.find(p => p.id === selection.id) : undefined;
   const selLetter = selection?.kind === 'letter' ? state.letters.find(l => l.id === selection.id) : undefined;
+  // Where a picture set to drop will land, for its ghost at rest: worked out once the pieces lie still a moment.
+  const [landing, setLanding] = useState<{ id: string; x: number; y: number; at: number } | null>(null);
+  const dropping = mode === 'build' && sel?.kind === 'image' && sel.works?.motion === 'drop' ? sel : undefined;
+  useEffect(() => {
+    if (!dropping || !images) return;
+    const timer = window.setTimeout(() => {
+      const landed = landDrops(stateRef.current.pieces, W, H, props.waterY, images).find(p => p.id === dropping.id);
+      if (landed?.works) setLanding({ id: dropping.id, x: dropping.x, y: dropping.y, at: landed.works.y });
+    }, 140);
+    return () => window.clearTimeout(timer);
+  }, [dropping, images, state.pieces, W, H, props.waterY]);
   const lettersShown = mode === 'build' ? (props.lettersKept ?? []) : lettersNow.map((found, i) => found && !flying.includes(i));
   const briefFirst = props.brief.charAt(0), briefRest = props.brief.slice(1);
   const tool = (name: IconName, label: string, action: () => void, disabled = false, active = false) =>
@@ -888,7 +902,8 @@ export default function FolioStage(props: FolioStageProps) {
       const rest = workedPose(p)!;
       if (rest.pivot) return <SceneLayer key={`${p.id}:${run}`} dataId={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
         swing={{ degrees: moved ? rest.rotation - p.rotation : 0, origin: localPoint(p, rest.pivot) }} />;
-      return <SceneLayer key={`${p.id}:${run}`} dataId={p.id} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works${drops(p) ? ' is-drop' : ''}`} srcOverride={p.src} />;
+      return <SceneLayer key={`${p.id}:${run}`} dataId={p.id} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works${drops(p) ? ' is-drop' : ''}`} srcOverride={p.src}
+        style={drops(p) ? { transitionDuration: `${fallTime(p, unit)}s` } : undefined} />;
     }
     return <SceneLayer key={p.id} dataId={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
   };
@@ -904,7 +919,7 @@ export default function FolioStage(props: FolioStageProps) {
     const top = below + tall <= viewBottom - 6 ? below : p.y - reach - tall;
     return clamp(top, viewTop + 8, Math.max(viewTop + 8, viewBottom - tall - 6));
   };
-  const back = state.pieces.filter(p => !p.front), front = state.pieces.filter(p => p.front);
+  const back = played.filter(p => !p.front), front = played.filter(p => p.front);
 
   // ——— layout ———
   // The folio is a fixed design scaled to the window. On a narrow upright
@@ -1101,7 +1116,11 @@ export default function FolioStage(props: FolioStageProps) {
         {selBeast?.id === b.id && <><span className="beast-end beast-end--start" /><span className="beast-end beast-end--end" /></>}
       </div>)}
       {selTarget && mode === 'build' && <div className="mark-ring" style={{ left: selTarget.x, top: selTarget.y }} aria-hidden="true" />}
-      {sel && mode === 'build' && sel.works && (() => { const rest = workedPose(sel)!; return <div className="rest-ghost" style={{ left: rest.x, top: rest.y, width: sel.width, height: sel.height, transform: `rotate(${rest.rotation}deg)` }} aria-hidden="true"><span>at rest</span></div>; })()}
+      {sel && mode === 'build' && sel.works && (() => {
+        // A dropping piece's ghost waits until where it lands is known for where it now hangs.
+        const rest = dropping ? (landing?.id === sel.id && landing.x === sel.x && landing.y === sel.y ? { x: sel.x, y: landing.at, rotation: sel.rotation } : null) : workedPose(sel);
+        return rest && <div className="rest-ghost" style={{ left: rest.x, top: rest.y, width: sel.width, height: sel.height, transform: `rotate(${rest.rotation}deg)` }} aria-hidden="true"><span>at rest</span></div>;
+      })()}
       {!compact && markTools && (selTarget || selBeast) && <div className="piece-tools" style={selTarget ? { left: clamp(selTarget.x, vx + 160, vx + VW - 160), top: clamp(selTarget.y + 46 * unit, vy + 10, vy + VH - 60) } : { left: clamp((selBeast!.x0 + selBeast!.x1) / 2, vx + 160, vx + VW - 160), top: clamp(selBeast!.y + 18 * unit, vy + 10, vy + VH - 60) }} onPointerDown={e => e.stopPropagation()}>{markTools}</div>}
       {!compact && sel && passageEditor(clamp(sel.x, vx + 10, vx + VW - 470), clamp(sel.y + sel.height + 80, vy + 10, vy + VH - 330))}
       {!images && <div className="scene-loading"><span>The scribe prepares the page…</span></div>}
@@ -1256,8 +1275,11 @@ export default function FolioStage(props: FolioStageProps) {
 /** The kinds of mark an arrow can strike, as the scriptorium names them. */
 const TARGET_KINDS = [['butt', 'Butt'], ['bell', 'Bell'], ['rope', 'Rope']] as const;
 
-/** How long a piece that drops takes to fall (tale.css .has-works.is-drop matches it). */
-const DROP_MS = 550;
+/** How long a piece that drops takes to fall to rest: as a stone falls, quickening (never quicker than a blink). */
+function fallTime(p: StagePiece, unit = 1): number {
+  const rest = workedPose(p);
+  return rest ? Math.max(.22, Math.sqrt(2 * Math.max(0, rest.y - p.y) / (3300 * unit))) : .22;
+}
 /** How long a piece a target works takes to come to rest (tale.css .has-works matches it). */
 const WORKS_MS = 900;
 

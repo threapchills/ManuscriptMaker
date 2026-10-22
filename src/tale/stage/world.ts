@@ -1,5 +1,5 @@
 import type { Field } from '../../engine/field';
-import { fillRect, finalizeField } from '../../engine/field';
+import { fillRect, finalizeField, groundBelow } from '../../engine/field';
 import type { Collider, Placement } from '../../engine/rasterize';
 import { pageBounds, rasterizeField } from '../../engine/rasterize';
 import type { LoadedImage } from '../../engine/images';
@@ -55,6 +55,34 @@ export function buildStageField(pieces: StagePiece[], width: number, height: num
     finalizeField(field);
   }
   return field;
+}
+
+/**
+ * Where each picture set to "Drops" comes to rest: straight down onto the
+ * first ground beneath its painted foot (what the same target works falls
+ * with it, and is not ground), into the stream, or off the foot of the page.
+ * Its works then name that pose outright, as a level's do. For play only:
+ * the book keeps "Drops", so a folio rebuilt beneath it still lands right.
+ */
+export function landDrops(pieces: StagePiece[], width: number, height: number, waterY: number | undefined, images: Map<string, LoadedImage>): StagePiece[] {
+  const droppers = pieces.filter(p => p.kind === 'image' && p.works?.motion === 'drop');
+  if (!droppers.length) return pieces;
+  const grounds = new Map<string, Field>(), rest = new Map<string, number>();
+  for (const p of droppers) {
+    const by = p.works!.by;
+    let field = grounds.get(by);
+    if (!field) { field = buildStageField(pieces.filter(q => q.works?.by !== by), width, height, undefined, images); grounds.set(by, field); }
+    const box = boundsOf(p, images), foot = box.y + box.height, c = field.cell;
+    let fall = Infinity;
+    for (let x = box.x + 3; x < box.x + box.width - 3; x += 3) {
+      const row = groundBelow(field, x / c, Math.ceil(foot / c));
+      if (row !== undefined) fall = Math.min(fall, row * c - foot);
+    }
+    // Nothing beneath: into the stream, its foot a little under the water, or away off the page.
+    const floor = waterY !== undefined ? waterY + 14 * height / 720 : height + box.height + 40;
+    rest.set(p.id, p.y + Math.max(0, Math.min(fall, floor - foot)));
+  }
+  return pieces.map(p => rest.has(p.id) ? { ...p, works: { ...p.works!, motion: undefined, x: p.x, y: rest.get(p.id)!, rotation: p.rotation } } : p);
 }
 
 /** A picture's painted bounds on the page, or its frame while its image is not loaded. */
