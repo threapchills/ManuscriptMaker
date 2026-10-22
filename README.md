@@ -21,7 +21,7 @@ Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or ta
 | IX · The Watchtower | stone turns arrows: a crate from the margin, and an arrow in the timber above it |
 | X · The Bell in the Oak | ring the bell with an arrow, and the gatekeeper winds up his portcullis |
 | XI · The Drawbridge | strike the butt to let the drawbridge down, and find what the raised bridge was hiding |
-| XII · The Grey Wolf | a wolf keeps the road to the abbey: climb the palisade and send him running with an arrow |
+| XII · The Grey Wolf | an evil wolf keeps the road to the abbey: climb the palisade and bring him down with an arrow |
 
 Each folio presses up to three seals: the road walked, every gilded letter gathered, and a frugal scribe (no more pieces and arrows than the folio's par). Across each book the letters spell its motto.
 

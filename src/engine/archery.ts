@@ -37,8 +37,8 @@ export interface Arrow {
 export type ArrowEvent =
   | { type: 'stick'; x: number; y: number; material?: Material; foothold: boolean }
   | { type: 'target'; id: string; x: number; y: number }
-  /** It struck a beast's hide and glanced off; `dx` is the way it was flying. */
-  | { type: 'beast'; id: string; x: number; y: number; dx: number }
+  /** It went into a beast and killed it; (dx, dy) is the way it was flying. */
+  | { type: 'beast'; id: string; x: number; y: number; dx: number; dy: number }
   | { type: 'glance'; x: number; y: number; material?: Material }
   | { type: 'sink'; x: number; y: number }
   | { type: 'gone' };
@@ -124,11 +124,10 @@ export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number;
     }
     const beast = page.beasts?.find(r => a.x >= r.x && a.x <= r.x + r.width && a.y >= r.y && a.y <= r.y + r.height);
     if (beast) {
-      // No arrow wounds a beast here: it glances off the hide, and the beast takes fright.
-      const dx = Math.sign(a.vx) || 1;
-      a.state = 'glancing'; a.age = 0;
-      a.vx = -a.vx * .2; a.vy = -Math.abs(a.vy) * .3 - 200 * page.unit;
-      return { type: 'beast', id: beast.id, x: a.x, y: a.y, dx };
+      // It goes home in the beast's flank and stays there: the beast is drawn with it as it falls.
+      const len = Math.hypot(a.vx, a.vy) || 1;
+      a.state = 'gone';
+      return { type: 'beast', id: beast.id, x: a.x, y: a.y, dx: a.vx / len, dy: a.vy / len };
     }
     const at = strikeAt(f, a.x, a.y);
     if (!at.wall) continue;

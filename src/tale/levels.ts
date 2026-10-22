@@ -650,12 +650,12 @@ const folio11: LevelDef = {
 // The end of the second book. A timber palisade about 222 high, climbed on an
 // arrow as at the barred gate; beyond it a grey wolf keeps the road before
 // the abbey door. From the road the palisade hides him; from its top an arrow
-// sends him running. (A bold leap over a charging wolf may also serve.)
+// kills him. (A bold leap over a charging wolf may also serve.)
 const f12Wall = [...f7Rows(470), ...f7Rows(590)];
 const f12Top = topOf(f12Wall[1]);
 const folio12: LevelDef = {
   id: 'folio-12', numeral: 12, title: 'The Grey Wolf',
-  brief: 'The abbey at the greenwood’s end, and a grey wolf keeping the road before its door. No arrow will wound him, but one will send him running. Climb the palisade, and see him off from above.',
+  brief: 'The abbey at the greenwood’s end, and a grey wolf keeping the road before its door, red-eyed and hungry. His bite will send you back to the start. Climb the palisade, and bring him down with an arrow from above.',
   sky: 'dusk',
   scene: [
     piece('moon-silver', 1080, 50, 74, { layer: 'far', anim: 'bob', opacity: .9 }),

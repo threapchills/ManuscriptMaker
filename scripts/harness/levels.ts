@@ -198,7 +198,7 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
   const level: LevelDef = LEVELS[index];
   const images = await loadLevelImages(level, traveller);
   const pieces = buildPieces(specs);
-  // Beasts keep their ground as a peril until an arrow drives them off.
+  // Beasts keep their ground as a peril until an arrow kills them.
   const gone = new Set<string>();
   let field = buildLevelField(level, pieces, images, undefined, gone, true);
   // Targets struck so far, and the footholds made, to lay again when a struck target moves something.
@@ -214,7 +214,7 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
     const { event, arrow } = shootFrom(field, spot, { x: shot.at[0], y: shot.at[1] }, level.waterY, openTargets(level.targets, struck), beasts);
     loosed.push({ from: { x: spot.x, y: spot.y }, event });
     if (event?.type === 'target' || event?.type === 'beast') {
-      // Whatever it works comes to rest, or the beast runs off; the page is walked as it then stands.
+      // Whatever it works comes to rest, or the beast is killed; the page is walked as it then stands.
       (event.type === 'target' ? struck : gone).add(event.id);
       field = buildLevelField(level, pieces, images, struck, gone, true);
       for (const a of steps) addFoothold(field, a);

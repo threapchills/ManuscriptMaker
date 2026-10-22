@@ -8,7 +8,7 @@ import type { Material } from './field';
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
   | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
-  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'yelp' | 'bite';
+  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -307,10 +307,15 @@ class AudioEngine {
         this.tone({ freq: vary(68), to: 92, type: 'sawtooth', gain: .06, attack: .06, decay: .5, pan, wet: .15 });
         this.noiseBurst({ gain: .05, attack: .05, decay: .45, type: 'bandpass', freq: 320, q: 2.5, pan, wet: .15 });
         break;
-      case 'yelp':
-        // A startled yip, and away.
-        this.tone({ freq: vary(780), to: 1180, type: 'triangle', gain: .09, attack: .005, decay: .12, pan, wet: .2 });
-        this.tone({ at: now + .1, freq: vary(980), to: 620, type: 'triangle', gain: .06, decay: .14, pan, wet: .2 });
+      case 'slain':
+        // The arrow going home, a pained yelp breaking off, a last whimper, and the dull fall of the body.
+        this.noiseBurst({ gain: .08, decay: .05, type: 'lowpass', freq: 700, pan, wet: .08 });
+        this.tone({ freq: vary(120), to: 60, type: 'triangle', gain: .1, decay: .07, pan, wet: .08 });
+        this.tone({ at: now + .02, freq: vary(940), to: 520, type: 'sawtooth', gain: .06, attack: .004, decay: .17, pan, wet: .2 });
+        this.tone({ at: now + .04, freq: vary(1180), to: 700, type: 'triangle', gain: .045, decay: .12, pan, wet: .2 });
+        this.tone({ at: now + .24, freq: vary(560), to: 360, type: 'triangle', gain: .03, attack: .03, decay: .32, pan, wet: .3 });
+        this.tone({ at: now + .52, freq: vary(95), to: 48, type: 'sine', gain: .16, decay: .22, pan, wet: .15 });
+        this.noiseBurst({ at: now + .52, gain: .07, decay: .1, type: 'lowpass', freq: 600, pan, wet: .15 });
         break;
       case 'bite':
         // A snap of jaws and a tumble.

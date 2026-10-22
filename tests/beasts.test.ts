@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { beastRect, makeBeast, startle, stepBeast, WOLF } from '../src/engine/beasts';
+import { alive, beastRect, makeBeast, slay, stepBeast, WOLF } from '../src/engine/beasts';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import { loose, stepArrow } from '../src/engine/archery';
 
@@ -28,18 +28,26 @@ describe('the grey wolf', () => {
     expect(calm.state).toBe('patrol');
   });
 
-  it('takes fright at an arrow and runs off the page, away from where it came', () => {
+  it('is killed by an arrow: it falls where it stood, the arrow in its flank, and lies still', () => {
     const wolf = makeBeast(spec);
-    startle(wolf, 1);
-    expect(wolf.state).toBe('fleeing');
-    expect(beastRect(wolf)).not.toBeNull();
-    run(wolf, 4, { x: 0, y: 560 });
-    expect(wolf.state).toBe('gone');
+    run(wolf, 1, null);
+    const at = wolf.x;
+    slay(wolf, { x: at + 30, y: 500, dx: 1, dy: 0 });
+    expect(wolf.state).toBe('dying');
+    // Falling, it is no longer a danger and no longer a mark for arrows.
+    expect(alive(wolf)).toBe(false);
     expect(beastRect(wolf)).toBeNull();
-    expect(wolf.x).toBeGreaterThan(900);
+    run(wolf, 3, { x: at + 10, y: 560 });
+    expect(wolf.state).toBe('dead');
+    expect(wolf.x).toBe(at);
+    // The wound is kept in its own frame, painted facing left, so the arrow falls with the body.
+    expect(wolf.wound).toEqual({ x: wolf.facing === -1 ? 30 : -30, y: -60, dx: wolf.facing === -1 ? 1 : -1, dy: 0 });
+    // A second arrow does not kill it again.
+    slay(wolf, { x: at, y: 520, dx: -1, dy: 0 });
+    expect(wolf.state).toBe('dead');
   });
 
-  it('turns an arrow aside without wounding, and says which beast it startled', () => {
+  it('takes an arrow into its hide, and says which beast it struck and how the arrow flew', () => {
     const field = createField(1280, 720);
     fillRect(field, 'solid', 0, 560, 1280, 160, 'grass');
     finalizeField(field);
@@ -49,7 +57,9 @@ describe('the grey wolf', () => {
     const arrow = loose({ x: 300, y: 490 }, { x: 750, y: 520 });
     let event = null;
     for (let i = 0; i < 400 && !event; i++) event = stepArrow(arrow, field, 1 / 120, { width: 1280, height: 720, unit: 1, beasts: [hide] });
-    expect(event).toMatchObject({ type: 'beast', id: 'wolf', dx: 1 });
-    expect(arrow.state).toBe('glancing');
+    expect(event).toMatchObject({ type: 'beast', id: 'wolf' });
+    expect(event && 'dx' in event && event.dx).toBeGreaterThan(.9);
+    // It stays in the beast, which is drawn with it, rather than flying on.
+    expect(arrow.state).toBe('gone');
   });
 });

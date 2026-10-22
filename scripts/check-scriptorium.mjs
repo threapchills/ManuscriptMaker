@@ -163,7 +163,7 @@ try {
   // A butt that sets the crate rising when struck, and a wolf keeping the far meadow.
   await page.getByRole('button', { name: 'Marks', exact: true }).click();
   await drag(page.getByTitle('A butt to shoot at: struck, it can set pieces moving'), { x: at.x(640), y: at.y(250) });
-  await drag(page.getByTitle('A grey wolf keeping a stretch of ground: an arrow sends him running'), { x: at.x(980), y: at.y(480) });
+  await drag(page.getByTitle('A grey wolf keeping a stretch of ground: an arrow kills him'), { x: at.x(980), y: at.y(480) });
   saved = await book();
   const butt = saved.pages[0].scene.targets?.[0], wolf = saved.pages[0].scene.beasts?.[0];
   assert.ok(butt && butt.kind === 'butt' && Math.abs(butt.x - 640) < 6, `the butt hangs where it was dropped (${JSON.stringify(butt)})`);
@@ -184,7 +184,7 @@ try {
   await page.mouse.move(at.x(wolfAt.x), at.y(wolfAt.y), { steps: 3 });
   await page.waitForTimeout(150);
   await page.mouse.down(); await page.mouse.up();
-  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'fleeing', null, { timeout: 4000 });
+  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'dead', null, { timeout: 4000 });
   await page.screenshot({ path: '.local/scriptorium-wolf.png' });
   await page.mouse.move(at.x(640), at.y(250), { steps: 3 });
   await page.waitForTimeout(200);
@@ -312,5 +312,5 @@ try {
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf driven off, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen), old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen), old desk reachable, no runtime errors');
 } finally { await browser.close(); }

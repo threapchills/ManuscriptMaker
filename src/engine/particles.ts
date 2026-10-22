@@ -1,5 +1,5 @@
 /** Small, cheap particles in ink, dust and gold. Page units throughout. */
-export type ParticleKind = 'dust' | 'spark' | 'ink' | 'mote' | 'petal' | 'splash';
+export type ParticleKind = 'dust' | 'spark' | 'ink' | 'mote' | 'petal' | 'splash' | 'blood';
 
 export interface Particle {
   kind: ParticleKind;
@@ -16,6 +16,7 @@ const GOLD = ['#f6d67a', '#e7b64a', '#fff1bd', '#d49b2c'];
 const INK = ['#2b2118', '#3b2a1d', '#1c1511'];
 const PETAL = ['#d6604a', '#f2e6d0', '#e9b44c', '#8f6bb5'];
 const WATER = ['#7fb3d9', '#a9cfe8', '#dff0fa', '#5e93c2'];
+const BLOOD = ['#7a0c08', '#9b1410', '#b3261e', '#5e0906'];
 const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 const range = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -23,7 +24,8 @@ export class Particles {
   items: Particle[] = [];
   private max = 420;
 
-  emit(kind: ParticleKind, x: number, y: number, count: number, spread = 1, unit = 1): void {
+  /** `lean` tips a spray of blood the way the blow travelled (-1 left, 1 right). */
+  emit(kind: ParticleKind, x: number, y: number, count: number, spread = 1, unit = 1, lean = 0): void {
     for (let i = 0; i < count; i++) {
       if (this.items.length >= this.max) this.items.shift();
       const p: Particle = { kind, x, y, vx: 0, vy: 0, life: 1, age: 0, size: 4, spin: 0, angle: Math.random() * 6.28, color: '#000', gravity: 0, drag: 2 };
@@ -43,6 +45,10 @@ export class Particles {
         const a = -Math.PI / 2 + range(-.9, .9), v = range(150, 460) * spread * unit;
         p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v; p.life = range(.4, .9);
         p.size = range(3, 7) * unit; p.color = pick(WATER); p.gravity = 1500 * unit; p.drag = .5;
+      } else if (kind === 'blood') {
+        const a = -Math.PI / 2 + lean * .7 + range(-1.1, 1.1), v = range(90, 330) * spread * unit;
+        p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v; p.life = range(.45, .85);
+        p.size = range(1.6, 4.2) * unit; p.color = pick(BLOOD); p.gravity = 1500 * unit; p.drag = .7;
       } else if (kind === 'mote') {
         p.vx = range(-8, 8) * unit; p.vy = -range(8, 30) * unit; p.life = range(1.4, 2.6);
         p.size = range(1.5, 3.5) * unit; p.color = pick(GOLD); p.gravity = 0; p.drag = 0;
@@ -83,8 +89,8 @@ export class Particles {
         context.moveTo(0, -r * 1.8); context.lineTo(r * .35, -r * .35); context.lineTo(r * 1.8, 0); context.lineTo(r * .35, r * .35);
         context.lineTo(0, r * 1.8); context.lineTo(-r * .35, r * .35); context.lineTo(-r * 1.8, 0); context.lineTo(-r * .35, -r * .35);
         context.closePath(); context.fill();
-      } else if (p.kind === 'ink' || p.kind === 'splash') {
-        context.globalAlpha = Math.min(1, fade * 1.6) * (p.kind === 'ink' ? .9 : .8);
+      } else if (p.kind === 'ink' || p.kind === 'splash' || p.kind === 'blood') {
+        context.globalAlpha = Math.min(1, fade * 1.6) * (p.kind === 'splash' ? .8 : .9);
         context.fillStyle = p.color;
         const stretch = Math.min(2.4, 1 + Math.hypot(p.vx, p.vy) / 500);
         context.rotate(Math.atan2(p.vy, p.vx));

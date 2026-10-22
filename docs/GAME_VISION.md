@@ -1,6 +1,6 @@
 # Playable manuscript vision
 
-Updated 2026-09-24 from the user's direct brief; archery direction added 2026-10-04. This document is the shared product direction for Codex, Claude, Grok, and any other collaborator. Read with `AGENTS.md`, `TODO.md`, and `docs/HANDOVER.md`. The active conversation wins if it clarifies or changes this brief.
+Updated 2026-09-24 from the user's direct brief; archery direction added 2026-10-04; tone, the third book and big sandbox folios added 2026-10-22. This document is the shared product direction for Codex, Claude, Grok, and any other collaborator. Read with `AGENTS.md`, `TODO.md`, and `docs/HANDOVER.md`. The active conversation wins if it clarifies or changes this brief.
 
 ## What Manuscript Maker is becoming
 
@@ -32,6 +32,7 @@ The latest clarification supersedes the earlier idea that levels and pages were 
 - **Curated problems, flexible solutions.** The campaign sets the situation, available pieces, and objective. Allow different valid arrangements and approaches when they solve the problem and the resulting scene can be played successfully. Avoid brittle checks for a single expected layout.
 - **Play should be one obvious action away.** Return to Edit without losing the arrangement. Repeated testing should be fast.
 - **The manuscript scene is the world.** Artwork, physical objects, text, and manuscript framing should feel integrated; keep the warm dark workshop around parchment. Campaign page order is its level order; sandbox page order remains free-form.
+- **Some darkness.** The user (2026-10-22): the game was "a little too anodyne and SFW … We need to have SOME darkness even if it's PEGI 13 overall, so a little blood effects, and yes, enemies like evil wolves are evil and can be killed. We will add good pet dogs etc. in due course." So: a little blood, never gore; evil creatures can be killed; friendly animals are to come.
 - **A scene must communicate its rules.** The editor should identify play roles and the play view should explain controls, goals, and missing setup in plain language. Mobile/touch controls matter.
 - **Keep authoring data safe.** Play simulations must not move or alter saved artwork. Save/load, undo/redo, page duplication, and exports must preserve every page, source text, uploaded image, and play setting. Old project files remain valid.
 - **Grow incrementally.** The user expects months of core-system work before a finished Level One. Do not describe the current prototype as a complete campaign or claim puzzle rules that are not implemented.
@@ -59,7 +60,8 @@ Current prototype architecture: `src/types.ts` declares an optional `gameRole` o
 ## Open product decisions for the user
 
 - What outcomes beyond reaching the checkpoint should matter when later mechanics arrive? For v0.1, traversal alone is enough.
-- Which mechanics should follow movement first among enemies, archery, and flying? On 2026-10-04 the user named archery ("archery is a thing") and settled what arrows do, in this order: footholds, then targets that work things, then perils and beasts. Aiming is point-and-click, PC first; arrows come from each folio's margin and count toward the frugal seal. Footholds, targets (which set pieces moving to a resting pose or swinging on a hinge: a portcullis wound up, a ladder let down, a drawbridge lowered) and a first beast (a wolf that keeps ground; an arrow drives it off without wounding it) are built, and the second book teaches all three. Flying, and what a third book should teach, are not yet set.
+- Which mechanics should follow movement first among enemies, archery, and flying? On 2026-10-04 the user named archery ("archery is a thing") and settled what arrows do, in this order: footholds, then targets that work things, then perils and beasts. Aiming is point-and-click, PC first; arrows come from each folio's margin and count toward the frugal seal. Footholds, targets (which set pieces moving to a resting pose or swinging on a hinge: a portcullis wound up, a ladder let down, a drawbridge lowered) and a first beast (an evil, red-eyed wolf that keeps ground; since 2026-10-22 an arrow kills it, with a little blood) are built, and the second book teaches all three. The third book (user, 2026-10-04): "more difficult levels where a precise configuration of placements, as well as shooting is required". Flying is not yet set.
+- Big sandbox folios (user, 2026-10-22): folios spanning several screens ("4x or 8x the current level or page size") with the camera following the player, and travel points ("when exiting the play area to the right … set that as the cue to move to a new page") for a larger interconnected world, without "a full blown 'events editor'": choices made naturally as things are placed.
 - Should campaign scenes be copyable into the Manuscript sandbox for unrestricted creation? This has not been specified; do not assume conversion or shared saves.
 
 Do not silently settle these open points in a way that locks the product direction. Build compatible foundations and record assumptions in the handover.

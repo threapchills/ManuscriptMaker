@@ -1,8 +1,32 @@
 # Manuscript — agent handover
 
-Updated: 2026-10-04. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
+Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-04 (evening) Claude session: the book on an upright phone (read first)
+## 2026-10-22 Claude session: some darkness, and what comes next (read first)
+
+- **The user's directions, in their words.**
+  - On the tone (2026-10-22): "The game is FUN! … However it's a little too anodyne and SFW. the thing about shooting the wolf to run away especially. We need to have SOME darkness even if it's PEGI 13 overall, so a little blood effects, and yes, enemies like evil wolves are evil and can be killed. We will add good pet dogs etc. in due course."
+  - On the third book (2026-10-04): "more difficult levels where a precise configuration of placements, as well as shooting is required" (written "shooing"; read as shooting).
+  - On the sandbox (2026-10-22): big levels "4x or 8x the current level or page size" with "the camera following the player", the characters "relatively smaller"; and "way points or travel points", such as leaving the play area to the right, set "as the cue to move to a new page", for "seamless exploration across a larger interconnected world formed of several pages", while avoiding "a full blown 'events editor'".
+- **Wolves are evil, and an arrow kills them** (`src/engine/beasts.ts`).
+  - A wolf's eyes burn red, steady on its round and fierce when it charges.
+  - An arrow that strikes one goes home in its flank and stays there (`ArrowEvent` `beast` now carries the flight's `dx`, `dy`, and the arrow is spent). The wolf is killed (`slay`; states `dying` then `dead`). Over 0.55 s it falls where it stood, legs splayed and head down, the arrow standing out of it. Its eye shuts, and a small dark pool spreads beneath it. It lies there until the run begins again; a tumble does not raise it.
+  - Blood droplets (`'blood'` particles, tipped the way the arrow flew) burst at the wound; a wolf's bite draws a few from the traveller too. The yelp is now `slain`: the arrow going home, a pained cry breaking off, a last whimper, the body falling.
+  - A dying or dead wolf is no danger and no mark for arrows (`alive`, `beastRect` null). The puzzles are unchanged: the harness already treated a struck wolf as gone.
+  - Folio XII's brief now reads "… a grey wolf keeping the road before its door, red-eyed and hungry. His bite will send you back to the start. Climb the palisade, and bring him down with an arrow from above." The cabinet's wolf: "an arrow kills him".
+  - Checked: `tests/beasts.test.ts` (killed where it stood, the wound kept in its own frame, not killed twice; the arrow spent in its hide), `test:chapter` (Folio XII: the wolf shot dead from the palisade), `test:scriptorium` (a wolf shot dead in play), and screenshots of the wolf alive, struck and lying dead. Before pushing: `npm test` (195), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
+- **The third book** is designed in part, not yet built:
+  - *Liber tertius*, *The Narrow Way*. Its motto is HOC OPUS HIC LABOR EST (Aeneid VI.129, "this is the task, this the toil"), 18 letters for six folios.
+  - Principle: precision must come from geometry, not from leaps at the edge of the traveller's reach. That means the narrow bands where an arrow can hold, a single gap a shot can pass through, or the height at which a wolf cannot reach you. The solver leaps perfectly and people do not, so edge-of-reach puzzles prove fragile and play badly.
+  - Folio XIII, *The Stone Keep*, as planned: a keep of three stone courses (about 358 high); the only timber is the margin's crate. Hang the crate high against the keep, loose an arrow into its lower face from the road, then climb arrow, crate, keep. Measured: a crate's timber face is about 82 tall at the default width (96) and 130 at the largest (154).
+  - The other folios are ideas only:
+    - a bell in a belfry opening, reached only from one vantage;
+    - a wolf on a ledge, shot from just below its lip, out of its notice;
+    - a gorge with a plank and a drawbridge;
+    - a finale on a crag.
+- **Next**, in the order the user's messages suggest: big sandbox folios with a following camera and ways between folios; then the third book.
+
+## 2026-10-04 (evening) Claude session: the book on an upright phone
 
 - **A leaf, not a shrunken spread.** The open-book screens are the tale's contents and tailor and the scriptorium's contents. Each is a 1500×960 spread scaled to the window, which left its writing about 8px on a phone. Now, when the screen is upright and the spread would be scaled below 0.6, the screen becomes a single leaf: `LEAF_BELOW` and `useSpread` in `src/tale/scene.tsx`, the same rule as the compact folio (`COMPACT_BELOW`).
   - The left page lies above the right on one sheet of vellum, the width of the screen and at most 640, and the screen scrolls.

@@ -349,7 +349,7 @@ try {
   await expect(page.getByRole('dialog')).toContainText('2 arrows used · par 2');
   await page.screenshot({ path: '.local/chapter-drawbridge.png' });
 
-  // ——— Folio XII: up the palisade on an arrow, the wolf sent running from its top, the abbey door ———
+  // ——— Folio XII: up the palisade on an arrow, the wolf shot dead from its top, the abbey door ———
   await page.getByRole('button', { name: /Turn the page/ }).click();
   await expect(page.getByRole('heading', { name: 'The Grey Wolf' })).toBeVisible({ timeout: 8000 });
   await page.waitForFunction(() => !!window.__playSession && window.__playSession.beasts.length === 1, null, { timeout: 10000 });
@@ -368,15 +368,16 @@ try {
   await page.mouse.move(yard.x + 20, yard.y + 20);
   // Forward to the far edge of the top: from further back, a shot down at a wolf close beneath runs into the palisade's own timber.
   await walkRight(page, { until: p => p.feet < 350 && p.x >= 600 });
-  assert.ok(await page.evaluate(() => { const b = window.__playSession.world.body; return b.y + b.h < 350 && window.__playSession.beasts[0].state !== 'gone'; }), 'the traveller stands on the palisade, and the wolf still keeps the road');
+  assert.ok(await page.evaluate(() => { const b = window.__playSession.world.body; return b.y + b.h < 350 && ['patrol', 'chase'].includes(window.__playSession.beasts[0].state); }), 'the traveller stands on the palisade, and the wolf still keeps the road');
   const wolf = await page.evaluate(() => { const b = window.__playSession.beasts[0]; return { x: b.x, y: b.spec.y - 50 }; });
   await aimAt(wolf.x, wolf.y);
-  await page.waitForFunction(() => ['fleeing', 'gone'].includes(window.__playSession.beasts[0].state), null, { timeout: 4000 }).catch(async error => {
-    console.log('the wolf did not flee:', JSON.stringify(await page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { feet: [b.x + b.w / 2, b.y + b.h], phase: s.world.phase, wolf: s.beasts.map(w => [Math.round(w.x), w.state]), arrows: s.arrows.map(a => [a.state, a.hit && [Math.round(a.hit.x), Math.round(a.hit.y)]]), quiver: s.quiver }; })), 'aimed at', JSON.stringify(wolf));
+  await page.waitForFunction(() => ['dying', 'dead'].includes(window.__playSession.beasts[0].state), null, { timeout: 4000 }).catch(async error => {
+    console.log('the wolf was not struck:', JSON.stringify(await page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { feet: [b.x + b.w / 2, b.y + b.h], phase: s.world.phase, wolf: s.beasts.map(w => [Math.round(w.x), w.state]), arrows: s.arrows.map(a => [a.state, a.hit && [Math.round(a.hit.x), Math.round(a.hit.y)]]), quiver: s.quiver }; })), 'aimed at', JSON.stringify(wolf));
     await page.screenshot({ path: '.local/chapter-wolf-failed.png' });
     throw error;
   });
-  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'gone', null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'dead', null, { timeout: 6000 });
+  await page.screenshot({ path: '.local/chapter-wolf-slain.png' });
   await page.mouse.move(yard.x + 20, yard.y + 20);
   await walkRight(page);
   await expect(page.getByRole('dialog')).toContainText('Here endeth the twelfth folio', { timeout: 5000 });
@@ -393,5 +394,5 @@ try {
   await page.screenshot({ path: '.local/chapter-book-two-ended.png' });
 
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf sent running from the palisade to end the second book, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, no runtime errors');
 } finally { await browser.close(); }

@@ -25,6 +25,10 @@ Last updated: 2026-10-04. This file records the user's requested direction, incl
 - [x] Archery on touch: press the picture to see the shot, lift to loose it, lift off the picture to let it go (2026-10-04; the user put PC first, so this came after).
 - [x] The maker's own pictures in the scriptorium's cabinet, offered on every folio of the book and kept there when no folio shows them, until put away (2026-10-04).
 - [ ] Scriptorium next: behaviours such as moving ledges, switches and doors (shared with the tale). Targets that work things and the wolf already cover some of this.
+- [x] Some darkness (user, 2026-10-22: "PEGI 13 overall … a little blood … evil wolves are evil and can be killed"): an arrow kills a wolf, which falls with the arrow in it and lies in a little blood; red eyes; a little blood when a wolf bites.
+- [ ] Good pet dogs and other friendly animals (user, 2026-10-22: "in due course").
+- [ ] Sandbox big folios (user, 2026-10-22): 2×, 4× or 8× the page, the camera following the traveller; ways out (an edge, or a doorway) leading to another folio, chosen as things are placed rather than in an events editor.
+- [ ] Liber tertius (user, 2026-10-04): harder folios needing a precise configuration of placed pieces as well as shooting.
 
 ## Playable manuscript direction — new top product priority
 
