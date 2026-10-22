@@ -1162,7 +1162,7 @@ export default function FolioStage(props: FolioStageProps) {
       {free ? <Library onPick={startDrag} onUpload={file => void upload(file)} uploads={uploads} onPutAway={props.onPutAway} /> : props.tray?.length ? <div className="tray" aria-label="Pieces in the margin">
         {props.tray.map(t => {
           const left = remaining?.[t.asset] ?? 0;
-          return <button type="button" key={t.asset} className={`tray-piece${left <= 0 ? ' is-spent' : ''}`} onPointerDown={startDrag({ kind: 'piece', asset: t.asset, role: t.role })} onPointerEnter={() => audio.play('tick')} aria-label={`${t.name}: ${left} left. Drag into the picture.`} title={`${t.name} · drag into the picture`}>
+          return <button type="button" key={t.asset} className={`tray-piece${left <= 0 ? ' is-spent' : ''}`} onPointerDown={startDrag({ kind: 'piece', asset: t.asset, role: t.role, width: t.width })} onPointerEnter={() => audio.play('tick')} aria-label={`${t.name}: ${left} left. Drag into the picture.`} title={`${t.name} · drag into the picture`}>
             <img src={srcOf(t.asset)} alt="" draggable={false} />
             <span className="tray-count">{left > 0 ? toRoman(left).toLowerCase() : '—'}</span>
           </button>;

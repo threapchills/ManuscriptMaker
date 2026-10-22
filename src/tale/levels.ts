@@ -26,7 +26,7 @@ export interface ScenePiece {
   /** Moves when the target `by` is struck, to this pose. */
   works?: { by: string; x: number; y: number; rotation: number; pivot?: [number, number] };
 }
-export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder' | 'spring'; name: string }
+export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder' | 'spring'; name: string; /** The width it first lands at, when not the usual (TRAY_WIDTH). */ width?: number }
 export interface Hint { x: number; y: number; text: string; mode: 'build' | 'play' | 'both'; point?: 'left' | 'right' | 'down' }
 export interface LevelDef {
   id: string;
@@ -707,11 +707,13 @@ const folio12: LevelDef = {
 // ——— Folio XIII: the stone keep ———
 // Three courses of masonry, and stone turns every arrow; the only timber in
 // the field is the margin's crate. Set down, it is a step too low to matter.
-// Hung high against the keep and stretched to its largest, its face is tall
-// enough to take an arrow low enough to leap to from the road, while its top
-// is high enough to leap from to the battlements.
+// Hung high against the keep, its face takes an arrow low enough to leap to
+// from the road, while its top is high enough to leap from to the
+// battlements. The crate comes from the margin large, and the keep is low
+// enough, that this holds over a broad band of heights (its top anywhere
+// from about 290 to 385), not only at one exact place.
 const f13Keep = (() => {
-  const course = (base: number) => standing('wall-stone-straight', 980, base, 250, { role: 'solid', layer: 'ground' });
+  const course = (base: number) => standing('wall-stone-straight', 980, base, 226, { role: 'solid', layer: 'ground' });
   const a = course(562), b = course(topOf(a)), c = course(topOf(b));
   return [a, b, c];
 })();
@@ -736,8 +738,8 @@ const folio13: LevelDef = {
     ground('meadow-wide', 410, 562, 500),
     ground('meadow-wide', 860, 562, 500),
     ...f13Keep,
-    standing('window-arrow-slit', 980, 480, 40, { layer: 'ground' }),
-    standing('window-arrow-slit', 980, 360, 40, { layer: 'ground' }),
+    standing('window-arrow-slit', 980, 506, 40, { layer: 'ground' }),
+    standing('window-arrow-slit', 980, 398, 40, { layer: 'ground' }),
     standing('wildflowers', 200, 572, 96, { layer: 'front', anim: 'sway' }),
     standing('grass-tuft', 640, 570, 72, { layer: 'front', anim: 'sway' }),
   ],
@@ -746,39 +748,42 @@ const folio13: LevelDef = {
   reached: 'You came to the door on the battlements.',
   // H by a leap from the road; O only from the crate hung against the keep; C on the battlements.
   letters: [{ x: 440, y: 440, glyph: 'H' }, { x: 790, y: 268, glyph: 'O' }, { x: 900, y: f13Top - 60, glyph: 'C' }],
-  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate' }],
+  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate', width: 140 }],
   quiver: 1,
   par: 2,
   hints: [
     { x: 735, y: 538, text: 'stone turns arrows', mode: 'build', point: 'right' },
+    { x: 720, y: 300, text: 'hang the crate high, then shoot it', mode: 'build', point: 'right' },
   ],
 };
 
 // ——— Folio XIV: the belfry ———
 // The porter's gate is shut by a portcullis, and the bell that wakes him
-// hangs deep within the belfry's louvre: an opening through the stone no
-// taller than an arrow's flight can wander, which only a shot flying level
-// will thread. A bow is drawn with the feet planted, so the vantage must be
-// built from the margin's two crates, at the louvre's own height. The louvre
-// stands so high that an arc from the road, or from one crate hung as high
-// as a leap will carry, could thread it only if loosed from beyond the
-// page's edge; and the tower runs up out of the page, so the crates cannot
-// carry anyone over it instead.
-const F14_W = 312;
-const f14Gate = standing('wall-arch-opening', 430, 562, F14_W, { role: 'solid', layer: 'ground', block: true });
+// hangs within the belfry's louvre, above the gate. From the road an arrow
+// can only rise into the stone below the louvre: a bow is drawn with the
+// feet planted, so the traveller needs a vantage. A stone parapet runs
+// before the louvre a little below its sill, too high to leap to from the
+// road but easy from one crate (set down beneath it or hung near it); from
+// the parapet a level shot finds the bell. A crate hung high enough serves
+// as a vantage too. The margin gives two, so a first try need not be perfect.
+const F14_W = 246, f14X = 560;
+const f14Gate = standing('wall-arch-opening', f14X, 562, F14_W, { role: 'solid', layer: 'ground', block: true });
 const f14Sill = topOf(f14Gate);
-const f14Lintel = f14Sill - 56;
+const f14Lintel = f14Sill - 130;
+const f14Scale = F14_W / 312;
 const f14Portcullis = (() => {
-  const p = piece('door-portcullis', 312, 299, 236, { role: 'solid', layer: 'mid', block: true, clip: 'inset(20% 17% 3% 17%)' });
-  return { ...p, works: { by: 'bell', x: p.x, y: p.y - 150, rotation: 0 } };
+  const p = piece('door-portcullis', f14X - 118 * f14Scale, 562 - 263 * f14Scale, 236 * f14Scale, { role: 'solid', layer: 'mid', block: true, clip: 'inset(20% 17% 3% 17%)' });
+  // Wound up well clear of a traveller's head.
+  return { ...p, works: { by: 'bell', x: p.x, y: p.y - 175, rotation: 0 } };
 })();
 const f14Upper = (() => {
-  const a = standing('wall-stone-straight', 430, f14Lintel, F14_W, { role: 'solid', layer: 'ground' });
-  return [a, standing('wall-stone-straight', 430, topOf(a), F14_W, { role: 'solid', layer: 'ground' })];
+  const a = standing('wall-stone-straight', f14X, f14Lintel, F14_W, { role: 'solid', layer: 'ground' });
+  return [a, standing('wall-stone-straight', f14X, topOf(a), F14_W, { role: 'solid', layer: 'ground' })];
 })();
+const f14Parapet = f14Sill + 30;
 const folio14: LevelDef = {
   id: 'folio-14', numeral: 14, title: 'The Belfry',
-  brief: 'The porter sleeps until his bell is rung, and his bell hangs deep within the louvre, where only an arrow flying level will find it. Wake him, and pass his gate.',
+  brief: 'The porter sleeps until his bell is rung, and his bell hangs high within the louvre, where only an arrow flying level will find it. Wake him, and pass his gate.',
   sky: 'day',
   scene: [
     piece('sun-gold', 980, 60, 100, { layer: 'far', anim: 'turn' }),
@@ -788,7 +793,7 @@ const folio14: LevelDef = {
     piece('hills-blue', 600, 340, 760, { layer: 'far', opacity: .85, flipX: true }),
     piece('forest-line', -20, 404, 660, { layer: 'far' }),
     piece('forest-line', 640, 408, 680, { layer: 'far', flipX: true }),
-    standing('leafy-grove', 860, 568, 300, { layer: 'mid' }),
+    standing('leafy-grove', 960, 568, 280, { layer: 'mid' }),
     standing('pine-single', 1230, 566, 96, { layer: 'mid' }),
     piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
     piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
@@ -796,29 +801,27 @@ const folio14: LevelDef = {
     ground('meadow-wide', 410, 562, 500),
     ground('meadow-wide', 860, 562, 500),
     // The shadowed belfry within, seen through the louvre.
-    piece('wall-stone-straight', 430 - F14_W / 2, f14Lintel - 24, F14_W, { layer: 'mid', filter: 'brightness(.28) saturate(.6)' }),
+    piece('wall-stone-straight', f14X - F14_W * .575, f14Lintel - 16, F14_W * 1.15, { layer: 'mid', filter: 'brightness(.28) saturate(.6)' }),
     f14Portcullis,
-    // Before the louvre runs a low stone parapet. An arc that crests within the louvre must
-    // clear it, and only one loosed from beyond the page's edge could; one who stands on it is
-    // too high to shoot under the lintel. So the bell is rung by a level shot from the louvre's
-    // own height, loosed from beyond the parapet.
-    ground('stone-walkway', 160, f14Sill - 16, 132, { role: 'solid', layer: 'ground', filter: 'saturate(.3) sepia(.25) brightness(1.22)' }),
+    // The parapet before the louvre, a little below its sill: the vantage for a level shot. It stops
+    // short of the tower, so one who has rung the bell can drop from it into the gateway.
+    ground('stone-walkway', f14X - 290, f14Parapet, 128, { role: 'solid', layer: 'ground', filter: 'saturate(.3) sepia(.25) brightness(1.22)' }),
     f14Gate,
     ...f14Upper,
-    standing('column-stone', 560, f14Sill, 22.4, { role: 'solid', layer: 'ground' }),
-    standing('wildflowers', 680, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 800, 572, 96, { layer: 'front', anim: 'sway' }),
     standing('grass-tuft', 1020, 570, 72, { layer: 'front', anim: 'sway' }),
   ],
-  spawn: { x: 104, y: 562 },
+  spawn: { x: 90, y: 562 },
   goal: standing('signpost-blank', 1196, 566, 92, { role: 'goal', layer: 'ground' }),
   reached: 'You passed the porter’s gate.',
-  // U by a leap from the road; O only from a crate; P only beyond the gate.
-  letters: [{ x: 120, y: 250, glyph: 'O' }, { x: 760, y: 440, glyph: 'P' }, { x: 230, y: 452, glyph: 'U' }],
-  targets: [{ id: 'bell', x: 520, y: f14Sill - 28, kind: 'bell' }],
+  // U by a leap from the road; O over the parapet; P only beyond the gate.
+  letters: [{ x: f14X - 300, y: f14Parapet - 100, glyph: 'O' }, { x: 880, y: 440, glyph: 'P' }, { x: 200, y: 405, glyph: 'U' }],
+  targets: [{ id: 'bell', x: f14X + 52, y: f14Sill - 40, kind: 'bell' }],
   tray: [{ asset: 'crate-wood', count: 2, role: 'solid', name: 'Crate' }],
   quiver: 1,
-  par: 3,
+  par: 2,
   hints: [
+    { x: f14X - 222, y: f14Parapet - 90, text: 'a level shot from up here', mode: 'build', point: 'down' },
     { x: 150, y: 150, text: 'a bow wants firm footing', mode: 'play', point: 'down' },
   ],
 };

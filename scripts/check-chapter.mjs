@@ -62,6 +62,50 @@ async function walkRight(page, { edge = false, ms = 20000, until } = {}) {
   await page.keyboard.up('ArrowRight');
 }
 
+/** Where the traveller's feet are on the page. */
+const feetOf = page => page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { x: (b.x + b.w / 2) * s.spec.field.cell, y: (b.y + b.h) * s.spec.field.cell, grounded: b.grounded }; });
+/** Walk to about x, in short presses, as a player lines themselves up. */
+async function walkTo(page, x, ms = 6000) {
+  const began = Date.now();
+  while (Date.now() - began < ms) {
+    const p = await feetOf(page);
+    if (Math.abs(p.x - x) < 8) break;
+    const key = p.x < x ? 'ArrowRight' : 'ArrowLeft';
+    await page.keyboard.down(key); await page.waitForTimeout(Math.min(120, Math.abs(p.x - x) * 2)); await page.keyboard.up(key);
+    await page.waitForTimeout(30);
+  }
+  await page.waitForTimeout(250);
+}
+/** A full leap, steered toward x and eased off over it, the way a player lands where they mean to. */
+async function leapTo(page, x, hold = 420) {
+  await page.keyboard.down('Space');
+  const began = Date.now(); let key = null, released = false;
+  while (Date.now() - began < 1400) {
+    if (!released && Date.now() - began > hold) { await page.keyboard.up('Space'); released = true; }
+    const p = await feetOf(page);
+    const want = Math.abs(p.x - x) < 10 ? null : p.x < x ? 'ArrowRight' : 'ArrowLeft';
+    if (want !== key) { if (key) await page.keyboard.up(key); if (want) await page.keyboard.down(want); key = want; }
+    if (Date.now() - began > 300 && p.grounded) break;
+    await page.waitForTimeout(16);
+  }
+  if (!released) await page.keyboard.up('Space');
+  if (key) await page.keyboard.up(key);
+  await page.waitForTimeout(250);
+}
+/** A piece dragged in from the margin and let go with its middle at about (x, y) on the page: no fine adjustment. */
+async function dropPiece(page, onPage, token, x, y) {
+  const box = await page.locator('.tray-piece').nth(token).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  const to = onPage(x, y);
+  await page.mouse.move(to.x - 30, to.y + 20, { steps: 6 });
+  await page.mouse.move(to.x, to.y, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  await page.mouse.click(onPage(640, 60).x, onPage(640, 60).y);
+  await page.waitForTimeout(200);
+}
+
 try {
   // ——— The contents lists the whole chapter; the margin drags into Folio III ———
   const desk = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -393,7 +437,7 @@ try {
   assert.ok(gathered2 >= 6 && gilded2 === gathered2, `the second book's motto gilds every letter gathered on its walk (${gilded2} gilded, ${gathered2} gathered)`);
   await page.screenshot({ path: '.local/chapter-book-two-ended.png' });
 
-  // ——— The third book: the stone keep, one crate stretched and hung, one arrow in its face ———
+  // ——— The third book: the stone keep, the crate dropped roughly against it, one arrow in its face ———
   await page.getByRole('button', { name: /Turn to Liber tertius: The Narrow Way/ }).click();
   await expect(page.getByRole('heading', { name: 'The Narrow Way' })).toBeVisible({ timeout: 5000 });
   await expect(page.locator('.folio-row.is-coming')).toHaveCount(1);
@@ -403,71 +447,36 @@ try {
   await page.waitForTimeout(400);
   const keep = await page.locator('.scene').boundingBox();
   const onKeep = (x, y) => ({ x: keep.x + x * keep.width / 1280, y: keep.y + y * keep.height / 720 });
-  const token13 = await page.locator('.tray-piece').first().boundingBox();
-  await page.mouse.move(token13.x + token13.width / 2, token13.y + token13.height / 2);
-  await page.mouse.down();
-  const near = onKeep(760, 400);
-  await page.mouse.move(near.x - 40, near.y + 30, { steps: 5 });
-  await page.mouse.move(near.x, near.y, { steps: 5 });
-  await page.mouse.up();
-  await page.waitForTimeout(300);
-  // Stretched to its largest by the handle, then carried so it meets the keep with its top at 340.
-  const stretch = await page.getByRole('button', { name: 'Stretch the piece' }).boundingBox();
-  await page.mouse.move(stretch.x + stretch.width / 2, stretch.y + stretch.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(stretch.x + 160, stretch.y + 160, { steps: 8 });
-  await page.mouse.up();
-  await page.waitForTimeout(300);
-  let crate13 = (await saved(page)).folios['folio-13'].pieces[0];
-  assert.ok(Math.abs(crate13.width - 153.6) < 1, `the crate stretches to its largest (${crate13.width})`);
-  const mid13 = { x: crate13.x + crate13.width / 2, y: crate13.y + crate13.height / 2 };
-  const from13 = onKeep(mid13.x, mid13.y), to13 = onKeep(855 - crate13.width / 2, mid13.y + 340 - (crate13.y + .07 * crate13.height));
-  await page.mouse.move(from13.x, from13.y);
-  await page.mouse.down();
-  await page.mouse.move(to13.x, to13.y, { steps: 10 });
-  await page.mouse.up();
-  await page.waitForTimeout(300);
-  crate13 = (await saved(page)).folios['folio-13'].pieces[0];
-  assert.ok(Math.abs(crate13.x + crate13.width - 855) < 4 && Math.abs(crate13.y + .07 * crate13.height - 340) < 4, 'the crate hangs against the keep, its top at 340');
-  // From the road, the one arrow into the crate's face; then arrow, crate and battlements.
+  // The crate as the margin gives it, dropped roughly against the keep, about two-thirds of the way up: no stretching, no fine adjustment.
+  await dropPiece(page, onKeep, 0, 785, 405);
+  const crate13 = (await saved(page)).folios['folio-13'].pieces[0];
+  assert.ok(Math.abs(crate13.width - 140) < 1, `the crate lands from the margin large (${crate13.width})`);
+  // From the road, the one arrow into the lower part of its face; then arrow, crate and battlements, by steered leaps.
   await page.keyboard.press('Enter');
   await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
-  await page.keyboard.down('ArrowRight');
-  await page.waitForFunction(() => window.__playSession.probe(0).x > 505, null, { timeout: 6000 });
-  await page.keyboard.up('ArrowRight');
-  await page.waitForTimeout(400);
-  const face13 = onKeep(crate13.x + 6, 440);
+  await walkTo(page, 470);
+  const face13 = onKeep(crate13.x + 6, crate13.y + .72 * crate13.height);
   await page.mouse.move(face13.x, face13.y);
   await page.waitForTimeout(250);
   await page.mouse.click(face13.x, face13.y);
   await page.waitForFunction(() => window.__playSession.arrows.some(a => a.state === 'stuck'), null, { timeout: 4000 });
-  const arrow13 = await page.evaluate(() => { const a = window.__playSession.arrows[0]; return { foothold: !!a.hit?.foothold, x: a.x, material: a.hit?.material }; });
+  const arrow13 = await page.evaluate(() => { const a = window.__playSession.arrows[0]; return { foothold: !!a.hit?.foothold, x: a.x, y: a.y, material: a.hit?.material }; });
   assert.ok(arrow13.foothold && arrow13.material === 'wood', 'the arrow holds in the crate’s timber');
   await page.mouse.move(keep.x + 20, keep.y + 20);
+  await walkTo(page, arrow13.x - 34);
+  await leapTo(page, arrow13.x - 30);
+  assert.ok(Math.abs((await feetOf(page)).y - arrow13.y) < 12, 'a leap stands the traveller on the arrow');
+  await leapTo(page, crate13.x + crate13.width / 2);
+  await walkTo(page, crate13.x + crate13.width - 30);
+  await leapTo(page, 930);
   await page.keyboard.down('ArrowRight');
-  await page.waitForFunction(u => window.__playSession.probe(0).x > u, arrow13.x - 30, { timeout: 6000 });
-  await page.keyboard.up('ArrowRight');
-  await page.waitForTimeout(300);
-  const leap = async (right, settle = 700) => {
-    if (right) await page.keyboard.down('ArrowRight');
-    await page.keyboard.down('Space'); await page.waitForTimeout(420); await page.keyboard.up('Space');
-    await page.waitForTimeout(settle);
-    if (right) await page.keyboard.up('ArrowRight');
-  };
-  await leap(false);
-  assert.ok(Math.abs((await page.evaluate(() => { const s = window.__playSession, b = s.world.body; return (b.y + b.h) * s.spec.field.cell; })) - 440) < 12, 'a leap straight up stands the traveller on the arrow');
-  await leap(true, 500);
-  await page.waitForTimeout(300);
-  await page.keyboard.down('ArrowRight');
-  await page.waitForFunction(() => window.__playSession.probe(0).x > 815, null, { timeout: 6000 });
-  await page.keyboard.down('Space'); await page.waitForTimeout(420); await page.keyboard.up('Space');
   await expect(page.getByRole('dialog')).toContainText('Here endeth the thirteenth folio', { timeout: 6000 });
   await page.keyboard.up('ArrowRight');
   await expect(page.getByRole('dialog')).toContainText('You came to the door on the battlements.');
   await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
   await page.screenshot({ path: '.local/chapter-stone-keep.png' });
 
-  // ——— Folio XIV: two crates as the margin gives them, a stair to the louvre's height, and one level shot ———
+  // ——— Folio XIV: one crate set down before the parapet, up onto the parapet, and a level shot at the bell ———
   await expect(page.getByRole('dialog')).toContainText('The Belfry');
   await page.getByRole('button', { name: /Turn the page/ }).click();
   await expect(page.getByRole('heading', { name: 'The Belfry' })).toBeVisible({ timeout: 8000 });
@@ -475,67 +484,18 @@ try {
   await page.waitForTimeout(400);
   const belfry = await page.locator('.scene').boundingBox();
   const onBelfry = (x, y) => ({ x: belfry.x + x * belfry.width / 1280, y: belfry.y + y * belfry.height / 720 });
-  // Each crate is dragged in from the margin, then carried so its middle is at cx and its top at `top`.
-  const place14 = async (n, cx, top) => {
-    const token = await page.locator('.tray-piece').first().boundingBox();
-    await page.mouse.move(token.x + token.width / 2, token.y + token.height / 2);
-    await page.mouse.down();
-    const near = onBelfry(cx + 40, top + 30);
-    await page.mouse.move(near.x - 30, near.y + 20, { steps: 5 });
-    await page.mouse.move(near.x, near.y, { steps: 5 });
-    await page.mouse.up();
-    await page.waitForTimeout(300);
-    let crate = (await saved(page)).folios['folio-14'].pieces[n];
-    const mid = { x: crate.x + crate.width / 2, y: crate.y + crate.height / 2 };
-    const from = onBelfry(mid.x, mid.y), to = onBelfry(cx, mid.y + top - (crate.y + .07 * crate.height));
-    await page.mouse.move(from.x, from.y);
-    await page.mouse.down();
-    await page.mouse.move(to.x, to.y, { steps: 10 });
-    await page.mouse.up();
-    await page.waitForTimeout(300);
-    crate = (await saved(page)).folios['folio-14'].pieces[n];
-    assert.ok(Math.abs(crate.x + crate.width / 2 - cx) < 4 && Math.abs(crate.y + .07 * crate.height - top) < 4, `crate ${n + 1} is set with its middle at ${cx} and its top at ${top} (${Math.round(crate.x + crate.width / 2)}, ${Math.round(crate.y + .07 * crate.height)})`);
-    await page.mouse.click(onBelfry(700, 150).x, onBelfry(700, 150).y);
-    await page.waitForTimeout(200);
-    return crate;
-  };
-  const step14 = await place14(0, 175, 430);
-  const vantage14 = await place14(1, 30, 310);
-  assert.ok(Math.abs(step14.width - 96) < 1 && Math.abs(vantage14.width - 96) < 1, 'both crates are as the margin gives them');
+  // One crate dropped roughly on the road before the parapet; it settles where it is let go.
+  await dropPiece(page, onBelfry, 0, 240, 515);
+  const crate14 = (await saved(page)).folios['folio-14'].pieces[0];
   await page.keyboard.press('Enter');
   await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
-  const feet14 = () => page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { x: (b.x + b.w / 2) * s.spec.field.cell, y: (b.y + b.h) * s.spec.field.cell, grounded: b.grounded }; });
-  const landed14 = () => page.waitForFunction(() => window.__playSession.world.body.grounded, null, { timeout: 4000 });
-  // Up onto the step from the road: a full leap steering right against its face, and the steering let
-  // go as the feet rise past its top, so the traveller comes down on it rather than sailing over.
-  await page.keyboard.down('ArrowRight');
-  await page.keyboard.down('Space');
-  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return (b.y + b.h) * s.spec.field.cell < 424; }, null, { timeout: 3000, polling: 'raf' });
-  await page.keyboard.up('ArrowRight');
-  await page.waitForTimeout(250);
-  await page.keyboard.up('Space');
-  await landed14();
-  await page.waitForTimeout(300);
-  assert.ok(Math.abs((await feet14()).y - 430) < 8, `a leap from the road stands the traveller on the step (${JSON.stringify(await feet14())})`);
-  // Along it to its near end, clear of the parapet overhead.
-  await page.keyboard.down('ArrowLeft');
-  await page.waitForFunction(() => window.__playSession.probe(0).x < 148, null, { timeout: 4000, polling: 'raf' });
-  await page.keyboard.up('ArrowLeft');
-  await page.waitForTimeout(300);
-  // Up and over onto the vantage: a leap straight up, steering left once clear of its edge.
-  await page.keyboard.down('Space');
-  await page.waitForTimeout(200);
-  await page.keyboard.down('ArrowLeft');
-  await page.waitForTimeout(260);
-  await page.keyboard.up('Space');
-  await page.waitForTimeout(200);
-  await page.keyboard.up('ArrowLeft');
-  await landed14();
-  await page.waitForTimeout(300);
-  const up14 = await feet14();
-  assert.ok(Math.abs(up14.y - 310) < 8, `the traveller stands on the vantage, level with the louvre (${JSON.stringify(up14)})`);
+  await walkTo(page, crate14.x - 30);
+  await leapTo(page, crate14.x + crate14.width / 2, 300);
+  await leapTo(page, 340);
+  const up14 = await feetOf(page);
+  assert.ok(Math.abs(up14.y - 360) < 8, `the traveller stands on the parapet, a little below the louvre (${JSON.stringify(up14)})`);
   // A level shot into the louvre: the dotted line ends at the bell, and the arrow wakes the porter.
-  const bellAt = onBelfry(520, 239.4);
+  const bellAt = onBelfry(612, 290);
   await page.mouse.move(bellAt.x, bellAt.y);
   await page.waitForTimeout(250);
   await page.screenshot({ path: '.local/chapter-belfry-aim.png' });
@@ -543,12 +503,12 @@ try {
   await page.waitForFunction(() => window.__playSession.struck.has('bell'), null, { timeout: 4000 });
   await page.mouse.move(belfry.x + 20, belfry.y + 20);
   await page.waitForTimeout(1600);
-  // Down, through the porter's gate, to the signpost.
+  // Down off the parapet into the gateway, through the porter's gate, to the signpost.
   await page.keyboard.down('ArrowRight');
   await expect(page.getByRole('dialog')).toContainText('Here endeth the fourteenth folio', { timeout: 12000 });
   await page.keyboard.up('ArrowRight');
   await expect(page.getByRole('dialog')).toContainText('You passed the porter’s gate.');
-  await expect(page.getByRole('dialog')).toContainText('2 pieces and 1 arrow used · par 3');
+  await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
   await page.screenshot({ path: '.local/chapter-belfry.png' });
 
   // ——— Folio XV: the rope cut while the wolf is beneath, the stone the first step, the crate the second ———
@@ -769,5 +729,5 @@ try {
   await page.screenshot({ path: '.local/chapter-postern.png' });
 
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, Folio XVI’s wolf shot from the watchtower and the gorge crossed by a leap onto springy hay, Folio XVII’s postern bridge cut down from the bluff and reached by a leap thrown on by two trusses of hay, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate dropped roughly against it with an arrow in its face, the page turned to Folio XIV and its bell rung by a level shot from the parapet, reached from one crate dropped roughly on the road, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, Folio XVI’s wolf shot from the watchtower and the gorge crossed by a leap onto springy hay, Folio XVII’s postern bridge cut down from the bluff and reached by a leap thrown on by two trusses of hay, no runtime errors');
 } finally { await browser.close(); }
