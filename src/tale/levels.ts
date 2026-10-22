@@ -750,7 +750,7 @@ const folio13: LevelDef = {
   // H by a leap from the road; O only from the crate hung against the keep; C on the battlements.
   letters: [{ x: 440, y: 440, glyph: 'H' }, { x: 790, y: 268, glyph: 'O' }, { x: 900, y: f13Top - 60, glyph: 'C' }],
   tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate', width: 150 }],
-  quiver: 1,
+  quiver: 3,
   par: 2,
   hints: [
     { x: 735, y: 538, text: 'stone turns arrows', mode: 'build', point: 'right' },
@@ -819,7 +819,7 @@ const folio14: LevelDef = {
   letters: [{ x: f14X - 300, y: f14Parapet - 100, glyph: 'O' }, { x: 880, y: 440, glyph: 'P' }, { x: 200, y: 405, glyph: 'U' }],
   targets: [{ id: 'bell', x: f14X + 52, y: f14Sill - 40, kind: 'bell' }],
   tray: [{ asset: 'crate-wood', count: 2, role: 'solid', name: 'Crate' }],
-  quiver: 1,
+  quiver: 3,
   par: 2,
   hints: [
     { x: f14X - 222, y: f14Parapet - 90, text: 'a level shot from up here', mode: 'build', point: 'down' },
@@ -849,7 +849,7 @@ const f15Pulley: [number, number] = [880, 18];
 const f15Stake: [number, number] = [470, 556];
 const folio15: LevelDef = {
   id: 'folio-15', numeral: 15, title: 'The Hanging Stone',
-  brief: 'A grey wolf keeps the road below the hermit’s tower, and over his road a stone hangs by a rope, run up through a pulley and down to a stake. You have one arrow, and the wolf is not the only thing it may bring down.',
+  brief: 'A grey wolf keeps the road below the hermit’s tower, and over his road a stone hangs by a rope, run up through a pulley and down to a stake. An arrow may bring down more than the wolf.',
   sky: 'dawn',
   scene: [
     piece('cloud-bank', 120, 90, 300, { layer: 'far', anim: 'drift', opacity: .8 }),
@@ -878,7 +878,7 @@ const folio15: LevelDef = {
   targets: [{ id: 'rope', x: 552, y: 448, kind: 'rope', rope: [f15Stake, f15Pulley, [880, 100]] }],
   beasts: [{ id: 'wolf', kind: 'wolf', x0: 600, x1: 900, y: 562 }],
   tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate' }],
-  quiver: 1,
+  quiver: 3,
   par: 2,
   hints: [
     { x: 330, y: 330, text: 'mind where it falls', mode: 'play', point: 'down' },
@@ -947,7 +947,7 @@ const folio16: LevelDef = {
   letters: [{ x: 150, y: 400, glyph: 'C' }, { x: f16Brink - 75, y: f16Top - 60, glyph: 'L' }, { x: 820, y: 160, glyph: 'A' }],
   beasts: [{ id: 'wolf', kind: 'wolf', x0: 1040, x1: 1140, y: f16Crag }],
   tray: [{ asset: 'hay-bale', count: 1, role: 'spring', name: 'Truss of hay' }],
-  quiver: 1,
+  quiver: 3,
   par: 2,
   hints: [
     { x: 640, y: 560, text: 'hay gives back what you fall', mode: 'build', point: 'down' },
@@ -1006,7 +1006,7 @@ const folio17: LevelDef = {
   // The rope runs from a cleat within the arch up over a pulley on its crown and down to the raised bridge's top; its knot hangs over the bridge.
   targets: [{ id: 'rope', x: f17Face - 6, y: f17Sill - 120, kind: 'rope', rope: [[f17Face + 30, f17Sill - 4], [f17Face + 30, f17Sill - 146], [f17Face - 40, f17Sill - 104]] }],
   tray: [{ asset: 'hay-bale', count: 2, role: 'spring', name: 'Truss of hay' }],
-  quiver: 1,
+  quiver: 3,
   par: 3,
   hints: [
     { x: 700, y: 560, text: 'once is not enough', mode: 'build', point: 'down' },
