@@ -8,7 +8,7 @@ import type { Material } from './field';
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
   | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
-  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite' | 'snap' | 'crush';
+  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite' | 'snap' | 'crush' | 'hoot' | 'gild';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -344,6 +344,18 @@ class AudioEngine {
         this.noiseBurst({ gain: .16, decay: .16, type: 'lowpass', freq: 900, pan, wet: .2 });
         for (let i = 0; i < 6; i++) this.noiseBurst({ at: now + .03 + i * .045 + Math.random() * .02, gain: .05, decay: .04, type: 'bandpass', freq: vary(1300, .3), q: 2, pan, wet: .15 });
         this.noiseBurst({ at: now + .08, gain: .05, attack: .05, decay: .6, type: 'lowpass', freq: 260, pan, wet: .3 });
+        break;
+      case 'hoot':
+        // The owl in the margin, pleased: two soft, breathy hoots, the second a little lower.
+        for (const [at, f] of [[0, 392], [.34, 349]] as const) {
+          this.tone({ at: now + at, freq: vary(f, .02), to: f * .94, type: 'sine', gain: .07, attack: .05, decay: .26, pan, wet: .35 });
+          this.noiseBurst({ at: now + at, gain: .015, attack: .05, decay: .22, type: 'bandpass', freq: f * 2, q: 3, pan, wet: .35 });
+        }
+        break;
+      case 'gild':
+        // A letter set into its slot: a small bright chime.
+        this.bell(vary(1568, .01), .045, now, .9, .45);
+        this.bell(vary(2349, .01), .03, now + .06, .7, .5);
         break;
       case 'clink':
         this.bell(vary(1900, .05), .05, now, .35, .25);

@@ -38,6 +38,8 @@ Last updated: 2026-10-22. This file records the user's requested direction, incl
 - [x] Crates collide as the boxes they are (2026-10-22): their painted sides stepped out a pixel, a toehold two-thirds of the way down every crate.
 - [x] A bow is drawn with the feet planted (2026-10-22): no arrow is loosed in mid-leap (a shot asked for then waits a moment for the landing), so a vantage a folio asks for must really be built. Jump-shooting can be restored by making `canDraw` always true.
 - [x] The Belfry's parapet now meets the tower's painted face, and its louvre's column fits the louvre; its proofs ran again and hold.
+- [ ] The charm the user asked for (2026-10-22, the north star: "fun and amazing and charming and whimsical … pentiment and scriptorium meets super mario bros with the attention to detail of elden ring"). Done so far: an owl drollery perched on every folio's frame (it watches, blinks, starts, dozes, flaps and hoots at a win, and hoots when poked), and gathered letters that fly up to their slots and gild. Still to come: more drolleries in the margins, alignment guides and a reach overlay for building.
+- [x] A rope chosen in the scriptorium is named a Rope, and a mark can be made a butt, a bell or a rope.
 
 ## Playable manuscript direction — new top product priority
 

@@ -2,7 +2,23 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (late) Claude session: ropes, falling stones, and the Hanging Stone (read first)
+## 2026-10-22 (evening) Claude session: an owl in the margin, and letters that fly (read first)
+
+The first of the charm the user asked for (the north star in the section below). Pushed as soon as it was checked, as the user asked for pushes after each chunk.
+
+- **The owl** (`src/tale/stage/MarginOwl.tsx`), a drollery perched on the gilded frame's crown on every folio of the tale and the scriptorium (the whole-folio layout; not the compact column).
+  - **Made of the beasts' own parts**: `beast-foot-talon` gripping the frame, `beast-wing-feather` folded at its sides, `beast-body-bird` stood upright, `beast-head-owl` on top. No new art.
+  - **Live eyes** drawn over the painted ones. Their centres and sizes were measured on the head picture by a pixel scan (`EYES`, `IRIS`, `PUPIL`, `RIM`).
+  - **What it does**: watches the traveller in play and the pen while building; blinks now and then (sometimes twice); cocks its head; squeezes its eyes shut (> <) and shudders at a tumble; starts wide-eyed and hops at a gathered letter or a struck mark; flaps, hops and hoots, eyes creased (^ ^), at a folio won; nods off after 14 seconds of stillness, its lower lids rising as an owl's do, with a small rubric *z* drifting up, and wakes with a start when anything moves. Poked, it hoots (once, from the click itself) and starts.
+  - **Where it perches**: over the middle of the crown, moved along for a long title (measured after the fonts load), and left off where the title leaves no room before the gilded letters.
+  - **Reduced motion**: no hops, shudders, flaps, head-cocking or dozing; it still looks and blinks.
+  - **Sound**: `hoot`, two soft breathy notes, the second lower.
+- **Letters fly to their slots** (`flyRef` in `FolioStage`). A gathered letter leaves the picture as its vermilion medallion, flies up and over to its slot in 0.76 s, turning to gold as it goes, and the slot gilds with a small chime (`gild`) as it lands. The slot shows the letter only once it has landed. With reduced motion it is simply there. The medallion is drawn inside `.tale-screen`, whose fonts it needs.
+- **The scriptorium names a rope a Rope**, and a selected mark offers Butt, Bell and Rope (`TARGET_KINDS`). It had been named "Butt" and could only be made a butt or a bell.
+- **How it was checked**: the owl's moods were drawn offline from its own drawing code and looked at closely (the first lids read as blank white eyes, and were remade as the pale feathers round the eye with drooping lashes); then the real app was opened at 1440 × 900 on Folios I, VI and XIII, a letter gathered and its flight caught, the owl poked and left to doze. No page errors.
+- **Checks run before pushing**: `npm test` (229), `npm run build`, `test:tale`, `test:chapter` (which gathers letters on Folios XIII to XV with the flights in play), `test:scriptorium`, `test:play` and `test:browser` pass. `test:levels` and `test:solidity` were not re-run: their harness pages import none of what changed (the stage, its styles and the sounds).
+
+## 2026-10-22 (late) Claude session: ropes, falling stones, and the Hanging Stone
 
 The user's north star (2026-10-22): "make it fun and amazing and charming and whimsical, with a unique AAA feel, think pentiment and scriptorium meets super mario bros with the attention to detail of elden ring". They asked for more levels, quality-of-life and sandbox upgrades after the current to-dos, and for a push after each major chunk.
 
@@ -57,11 +73,11 @@ The user's north star (2026-10-22): "make it fun and amazing and charming and wh
   - `npm test` (229) and `npm run build` pass.
   - `test:levels`, `test:scriptorium`, `test:chapter`, `test:solidity`, `test:tale`, `test:play` and `test:browser` pass.
   - On the way there, `test:solidity` failed on the flat-topped crate (fixed by the rounding), `test:scriptorium` twice on the Marks shelf (fixed as above), and `test:levels` once on XV's window edges, re-measured for the rounded crates.
-- **Known**: a rope selected in the scriptorium is still named "Butt" and offered only Butt and Bell; mended in the next batch.
+- **Known** (when pushed): a rope selected in the scriptorium was still named "Butt" and offered only Butt and Bell; mended in the next batch (above).
 - **Next**:
   - Folio XVI, *The Gorge*.
   - In the scriptorium, "Drops" should fall to the ground.
-  - The charm pass the user asked for: inked briefs that write themselves, letters that fly to their slots, drolleries in the margins, and alignment guides and a reach overlay for building.
+  - The charm pass the user asked for: letters that fly to their slots and an owl in the margin (both done, above); more drolleries, and alignment guides and a reach overlay for building.
 
 ## 2026-10-22 (night) Claude session: a bow drawn standing, and the Belfry
 

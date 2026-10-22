@@ -192,6 +192,14 @@
 .quiver-left { flex-wrap: wrap; white-space: nowrap; }
 .quiver-left small { flex: 1 1 100%; font-size: 15px; color: var(--ink-soft); white-space: normal; }
 .scene.can-shoot { cursor: crosshair; }
+/* The owl in the margin, perched on the frame's crown (MarginOwl). */
+.margin-owl { position: absolute; z-index: 6; filter: drop-shadow(0 3px 3px rgba(40, 24, 10, .35)); }
+/* A gathered letter on its way up to its slot (FolioStage flyRef). */
+.flying-letter { position: fixed; left: 0; top: 0; z-index: 80; border-radius: 50%; display: grid; place-items: center; pointer-events: none; font-family: var(--fraktur); line-height: 1; color: #fff1c4; text-shadow: 0 1px 1px rgba(80, 20, 10, .75);
+  background: radial-gradient(circle at 34% 28%, #e0574a 0%, #b3261e 48%, #6d130e 90%);
+  box-shadow: inset 0 0 0 3px #e8c46a, 0 4px 12px rgba(60, 35, 10, .45), 0 0 22px rgba(255, 214, 110, .75); }
+.flying-letter i { position: absolute; inset: 0; border-radius: 50%; opacity: 0; background: radial-gradient(circle at 34% 28%, #fff4c8 0%, #e5b451 42%, #9a6b1c 82%); box-shadow: inset 0 0 0 4px #b3261e, inset 0 0 0 6px #f1d27f; }
+.flying-letter b { position: relative; font-weight: 400; margin-top: 6%; }
 /* A piece a target works glides to rest (FolioStage WORKS_MS). */
 .scene-layer.has-works { transition: left .9s cubic-bezier(.45, 0, .3, 1), top .9s cubic-bezier(.45, 0, .3, 1), transform .9s cubic-bezier(.45, 0, .3, 1); }
 .scene-swing { position: absolute; inset: 0; transition: transform .9s cubic-bezier(.5, 0, .75, 1); }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import type { GameRole, SkySetting } from '../../types';
 import type { Hint, TrayItem } from '../levels';
@@ -26,6 +26,8 @@ import { AVATAR_HEIGHT, WOLF_PARTS, boundsOf, buildStageField, doorRects, loadSt
 import Library from './Library';
 import type { LibraryPick } from './Library';
 import PassageEditor from './PassageEditor';
+import { MarginOwl, OWL_H, OWL_W } from './MarginOwl';
+import type { OwlNews } from './MarginOwl';
 import { readPicture } from './upload';
 
 export const FOLIO_W = 1520, FOLIO_H = 1010;
@@ -138,6 +140,10 @@ export default function FolioStage(props: FolioStageProps) {
   const [lens, setLens] = useState(false);
   const [ghost, setGhost] = useState<{ pick: LibraryPick; x: number; y: number; over: boolean } | null>(null);
   const [lettersNow, setLettersNow] = useState<boolean[]>([]);
+  /** Letters gathered and still on their way up to their slots. */
+  const [flying, setFlying] = useState<number[]>([]);
+  /** What the owl in the margin has just seen. */
+  const owlNews = useRef<OwlNews | null>(null);
   const [falls, setFalls] = useState(0);
   const quiver = props.quiver ?? 0;
   const [arrows, setArrows] = useState({ left: quiver, loosed: 0 });
@@ -224,6 +230,7 @@ export default function FolioStage(props: FolioStageProps) {
    */
   const strikeRef = useRef<(id: string) => void>(() => undefined);
   strikeRef.current = (id: string) => {
+    owlNews.current = { kind: 'struck', at: performance.now() };
     const moving = stateRef.current.pieces.filter(p => p.works?.by === id);
     setStruck(prev => new Set(prev).add(id));
     if (!moving.length) return;
@@ -250,9 +257,9 @@ export default function FolioStage(props: FolioStageProps) {
       onShake: amount => { shake.current = Math.max(shake.current, amount); },
       onEvents: (events, s) => {
         for (const e of events) {
-          if (e.type === 'collect') setLettersNow([...s.world.collected]);
-          if (e.type === 'death') setFalls(s.world.deaths);
-          if (e.type === 'win') winRef.current(s);
+          if (e.type === 'collect') { setLettersNow([...s.world.collected]); flyRef.current(e.index ?? 0, e.x, e.y); owlNews.current = { kind: 'letter', at: performance.now() }; }
+          if (e.type === 'death') { setFalls(s.world.deaths); owlNews.current = { kind: 'tumble', at: performance.now() }; }
+          if (e.type === 'win') { winRef.current(s); owlNews.current = { kind: 'win', at: performance.now() }; }
           if (e.type === 'exit') {
             const facing = s.world.body.facing < 0 ? -1 : 1, to = e.door ? stateRef.current.pieces.find(p => p.id === e.door)?.way : undefined;
             if (e.edge) travelRef.current?.({ edge: e.edge }, { x: e.x, y: e.y }, facing, [...s.world.collected]);
@@ -576,6 +583,50 @@ export default function FolioStage(props: FolioStageProps) {
     setLifted(hit.id);
     audio.play('lift');
   };
+  /**
+   * A gathered letter flies up from where it hung, over and down into its
+   * slot, which gilds as it lands. (With reduced motion it is simply there.)
+   */
+  const flyRef = useRef<(index: number, x: number, y: number) => void>(() => undefined);
+  flyRef.current = (index: number, x: number, y: number) => {
+    const scene = sceneRef.current, glyph = stateRef.current.letters[index]?.glyph ?? '';
+    const slot = [...document.querySelectorAll<HTMLElement>('.folio-letters .letter-slot')].filter(el => el.offsetParent)[index];
+    if (!scene || !slot || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const r = scene.getBoundingClientRect(), to = slot.getBoundingClientRect();
+    const from = { x: r.left + x * r.width / W, y: r.top + y * r.height / H }, end = { x: to.left + to.width / 2, y: to.top + to.height / 2 };
+    const size = Math.max(26, to.width * .92);
+    // It leaves the picture as the vermilion medallion it was, and is gilt by the time it lands.
+    const coin = document.createElement('div'), gilt = document.createElement('i'), letter = document.createElement('b');
+    coin.className = 'flying-letter';
+    letter.textContent = glyph;
+    coin.append(gilt, letter);
+    coin.style.width = coin.style.height = `${size}px`;
+    coin.style.fontSize = `${size * .6}px`;
+    // Within the tale's screen, whose letters it is drawn in.
+    (scene.closest('.tale-screen') ?? document.body).appendChild(coin);
+    // Up and over: a curve through a point above the higher end.
+    const lift = 60 + Math.min(140, Math.abs(end.x - from.x) * .25);
+    const mid = { x: (from.x + end.x) / 2, y: Math.min(from.y, end.y) - lift };
+    const frames = Array.from({ length: 17 }, (_, i) => {
+      const t = i / 16, u = 1 - t;
+      const px = u * u * from.x + 2 * u * t * mid.x + t * t * end.x, py = u * u * from.y + 2 * u * t * mid.y + t * t * end.y;
+      return { transform: `translate(${px - size / 2}px, ${py - size / 2}px) scale(${1 + Math.sin(t * Math.PI) * .45}) rotate(${(1 - t) * -40}deg)` };
+    });
+    setFlying(f => [...f, index]);
+    const flight = coin.animate(frames, { duration: 760, easing: 'cubic-bezier(.4, 0, .3, 1)' });
+    gilt.animate([{ opacity: 0 }, { opacity: 0, offset: .45 }, { opacity: 1 }], { duration: 760, fill: 'forwards' });
+    let landed = false;
+    const land = () => { if (landed) return; landed = true; coin.remove(); setFlying(f => f.filter(i => i !== index)); audio.play('gild'); };
+    flight.onfinish = land; flight.oncancel = land;
+    window.setTimeout(land, 1200);
+  };
+  /** Where the owl looks in play: at the traveller. (While building it follows the pen.) */
+  const owlWatch = useCallback(() => {
+    const s = sessionRef.current, scene = sceneRef.current;
+    if (modeRef.current !== 'play' || !s || !scene) return null;
+    const r = scene.getBoundingClientRect(), b = s.world.body, c = s.spec.field.cell;
+    return { x: r.left + (b.x + b.w / 2) * c * r.width / W, y: r.top + (b.y + b.h * .3) * c * r.height / H };
+  }, [W, H]);
   const onScenePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (modeRef.current === 'play' && sessionRef.current) { const { x, y, inside } = toScene(event.clientX, event.clientY); sessionRef.current.aimAt = inside ? { x, y } : null; }
     moveGesture(event.clientX, event.clientY, event.pointerId, event.shiftKey);
@@ -800,7 +851,7 @@ export default function FolioStage(props: FolioStageProps) {
 
   const sel = selection?.kind === 'piece' ? state.pieces.find(p => p.id === selection.id) : undefined;
   const selLetter = selection?.kind === 'letter' ? state.letters.find(l => l.id === selection.id) : undefined;
-  const lettersShown = mode === 'build' ? (props.lettersKept ?? []) : lettersNow;
+  const lettersShown = mode === 'build' ? (props.lettersKept ?? []) : lettersNow.map((found, i) => found && !flying.includes(i));
   const briefFirst = props.brief.charAt(0), briefRest = props.brief.slice(1);
   const tool = (name: IconName, label: string, action: () => void, disabled = false, active = false) =>
     <button type="button" className={`ink-tool${active ? ' is-active' : ''}`} onClick={() => { audio.unlock(); action(); }} onPointerEnter={() => audio.play('tick')} disabled={disabled} aria-label={label} title={label}><InkIcon name={name} /></button>;
@@ -865,9 +916,32 @@ export default function FolioStage(props: FolioStageProps) {
   // The dotted line of a shot keeps a visible size however small the picture is shown.
   const markScale = Math.max(1, Math.min(3, .9 / onScreen));
   useEffect(() => { if (sessionRef.current) sessionRef.current.markScale = markScale; }, [markScale, images]);
+  // The owl perches over the middle of the frame's crown, moved along for a
+  // long title, and stays away where the title leaves it no room.
+  const titleRef = useRef<HTMLDivElement>(null);
+  const [owlLeft, setOwlLeft] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const title = titleRef.current, h1 = title?.querySelector('h1'), folio = title?.closest<HTMLElement>('.folio');
+      if (!title || !h1 || !folio) return;
+      const box = folio.getBoundingClientRect(), scale = box.width / FOLIO_W;
+      if (!scale) return;
+      const words = document.createRange();
+      words.selectNodeContents(h1);
+      const titleEnd = (words.getBoundingClientRect().right - box.left) / scale;
+      const next = title.nextElementSibling;
+      const room = next ? (next.getBoundingClientRect().left - box.left) / scale : FOLIO_W - 120;
+      const left = Math.max(BOX_X + BOX_W / 2 - OWL_W / 2, titleEnd + 16);
+      setOwlLeft(left + OWL_W + 12 <= room ? left : null);
+    };
+    measure();
+    let live = true;
+    document.fonts?.ready.then(() => { if (live) measure(); });
+    return () => { live = false; };
+  }, [props.title, editingTitle, state.letters.length, fit, compact, props.headerExtra]);
   const contents = () => { audio.play('page'); props.onContents(); };
 
-  const titleBlock = <div className="folio-title">
+  const titleBlock = <div className="folio-title" ref={titleRef}>
     <span className="rubric">{props.rubric}</span>
     {props.onTitle && editingTitle
       ? <input className="folio-title-input" autoFocus defaultValue={props.title} maxLength={80} aria-label="Folio title"
@@ -880,7 +954,7 @@ export default function FolioStage(props: FolioStageProps) {
     <div>{state.letters.slice(0, 8).map((l, i) => <span key={l.id} className={`letter-slot${lettersShown[i] ? ' is-found' : ''}`}><b>{lettersShown[i] ? l.glyph : ''}</b></span>)}</div>
   </div>;
   const targets = state.targets ?? [];
-  const targetName = (t: StageTarget) => `${t.kind === 'bell' ? 'Bell' : 'Butt'} ${toRoman(targets.findIndex(q => q.id === t.id) + 1).toLowerCase()}`;
+  const targetName = (t: StageTarget) => `${TARGET_KINDS.find(([kind]) => kind === (t.kind ?? 'butt'))![1]} ${toRoman(targets.findIndex(q => q.id === t.id) + 1).toLowerCase()}`;
   const setWorks = (id: string, works: StagePiece['works']) => { transform(id, () => ({ works })); audio.play('tick'); };
   const struckRow = free && sel?.kind === 'image' && targets.length > 0 && mode === 'build' && <div className="role-row struck-row" role="group" aria-label="When a target is struck">
     <span className="motion-label">When struck</span>
@@ -920,8 +994,7 @@ export default function FolioStage(props: FolioStageProps) {
   const selBeast = selection?.kind === 'beast' ? (state.beasts ?? []).find(b => b.id === selection.id) : undefined;
   const markTools = mode === 'build' && (selTarget ? <div className="piece-tools-row">
     <span className="piece-name">{targetName(selTarget)}</span>
-    <button type="button" className={`role-chip motion-chip${selTarget.kind !== 'bell' ? ' is-chosen' : ''}`} aria-pressed={selTarget.kind !== 'bell'} onClick={() => commit({ ...stateRef.current, targets: targets.map(t => t.id === selTarget.id ? { ...t, kind: 'butt' } : t) })}>Butt</button>
-    <button type="button" className={`role-chip motion-chip${selTarget.kind === 'bell' ? ' is-chosen' : ''}`} aria-pressed={selTarget.kind === 'bell'} onClick={() => commit({ ...stateRef.current, targets: targets.map(t => t.id === selTarget.id ? { ...t, kind: 'bell' } : t) })}>Bell</button>
+    {TARGET_KINDS.map(([kind, label]) => <button type="button" key={kind} className={`role-chip motion-chip${(selTarget.kind ?? 'butt') === kind ? ' is-chosen' : ''}`} aria-pressed={(selTarget.kind ?? 'butt') === kind} onClick={() => commit({ ...stateRef.current, targets: targets.map(t => t.id === selTarget.id ? { ...t, kind } : t) })}>{label}</button>)}
     {tool('bin', 'Take it down (Delete)', removeSelected)}
   </div> : selBeast ? <div className="piece-tools-row">
     <span className="piece-name">Grey wolf</span>
@@ -1152,6 +1225,7 @@ export default function FolioStage(props: FolioStageProps) {
           <SoundToggles className="folio-settings" />
         </header>
         {miniature({ left: BOX_X + (BOX_W - frameW) / 2, top: BOX_Y + (BOX_H - frameH) / 2 })}
+        {owlLeft !== null && <MarginOwl watch={owlWatch} news={owlNews} style={{ left: owlLeft, top: BOX_Y + (BOX_H - frameH) / 2 - 20 + 12 - OWL_H }} />}
         <footer className={`folio-foot${free ? ' has-library' : ''}`}>
           {brief(70)}
           {margin}
@@ -1164,6 +1238,9 @@ export default function FolioStage(props: FolioStageProps) {
     {touchPad}
   </div>;
 }
+
+/** The kinds of mark an arrow can strike, as the scriptorium names them. */
+const TARGET_KINDS = [['butt', 'Butt'], ['bell', 'Bell'], ['rope', 'Rope']] as const;
 
 /** How long a piece that drops takes to fall (tale.css .has-works.is-drop matches it). */
 const DROP_MS = 550;
