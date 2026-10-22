@@ -16,6 +16,9 @@ describe('playable manuscript foundations', () => {
     expect(playSetup(crossing)).toMatchObject({message:undefined});
     expect(validateManuscript(JSON.parse(JSON.stringify(crossing)))).toEqual(crossing);
     expect(() => validateManuscript({...crossing,layers:[{...crossing.layers[1],gameRole:'teleport'}]})).toThrow(/play role/);
+    // A springy picture (2026-10-22) is saved and read back like any other role.
+    const springy = {...crossing,layers:[{...crossing.layers[1],gameRole:'spring' as const}]};
+    expect(validateManuscript(JSON.parse(JSON.stringify(springy)))).toEqual(springy);
   });
 
   it('lands on solids and one-way platforms without changing the page', () => {

@@ -16,6 +16,10 @@ export interface Collider {
   kind: SurfaceKind;
   material?: Material;
   physics?: AssetPhysics;
+  /** Springy: a traveller who falls on it is thrown back up. */
+  spring?: boolean;
+  /** The piece it was painted from, for feedback on the page. */
+  id?: string;
 }
 
 /** The size the picture is actually drawn at inside its layer box (object-fit). */
@@ -107,6 +111,8 @@ export function rasterizeField(pageWidth: number, pageHeight: number, colliders:
 
     const mask = field[kind];
     const owner = kind === 'solid' || kind === 'platform' ? field.materials.push(collider.material ?? physics.material ?? DEFAULT_MATERIAL[kind]) : 0;
+    if (owner && collider.spring) field.springs.add(owner);
+    if (owner && collider.id) field.ids[owner - 1] = collider.id;
     for (let y = 0; y < rh; y++) {
       const row = (y + y0) * field.width + x0;
       for (let x = 0; x < rw; x++) if (local[y * rw + x]) {

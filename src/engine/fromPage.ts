@@ -21,6 +21,7 @@ const kindFor = (layer: ImageLayer): SurfaceKind | null => {
   const role = layer.gameRole;
   if (role === 'solid' || role === 'platform') return physicsFor(layer.assetId).climbable ? 'ladder' : role;
   if (role === 'hazard' || role === 'ladder') return role;
+  if (role === 'spring') return 'solid';
   return null;
 };
 
@@ -45,7 +46,7 @@ export async function preparePage(page: Manuscript, design?: CharacterDesignLike
   for (const layer of images) {
     const kind = kindFor(layer), image = loaded.get(layer.src);
     if (!kind || !image) continue;
-    colliders.push({ placement: placementOf(layer), image, kind, physics: physicsFor(layer.assetId) });
+    colliders.push({ placement: placementOf(layer), image, kind, physics: physicsFor(layer.assetId), spring: layer.gameRole === 'spring', id: layer.id });
   }
   const field = rasterizeField(page.width, page.height, colliders);
   const unit = Math.max(.6, Math.min(2, page.height / 720));

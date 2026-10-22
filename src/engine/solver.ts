@@ -46,7 +46,8 @@ export interface SolveResult {
   places?: Array<{ x: number; y: number; climbing: boolean }>;
 }
 
-interface Seg { steps: number; x: number; jump?: boolean; up?: boolean; down?: boolean; press?: boolean; untilGround?: boolean }
+/** `untilBounce`: until thrown up by something springy (or come to ground without). */
+interface Seg { steps: number; x: number; jump?: boolean; up?: boolean; down?: boolean; press?: boolean; untilGround?: boolean; untilBounce?: boolean }
 interface Node { body: Body; parent: number; how: string }
 
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -56,6 +57,7 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
   const tuning = scaleTuning(unit, cell, spec.tuning ?? TUNING);
   const maxNodes = options.maxNodes ?? 5000, grid = options.grid ?? 6;
   const hasLadders = field.sums.ladder[field.sums.ladder.length - 1] > 0;
+  const springy = field.springs.size > 0;
   let steps = 0;
 
   const rectOf = (b: Body): Rect => ({ x: b.x * cell, y: b.y * cell, width: b.w * cell, height: b.h * cell });
@@ -71,6 +73,7 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
         if (spec.goals.some(g => overlaps(rectOf(b), g))) return { body: b, won: true, dead: false };
         if (fell(b) || touchingHazard(b, field)) return { body: b, won: false, dead: true };
         if (seg.untilGround && i >= 5 && (b.grounded || b.climbing)) break;
+        if (seg.untilBounce && (b.sprung > 0 || (i >= 5 && (b.grounded || b.climbing)))) break;
       }
     }
     return { body: b, won: false, dead: false };
@@ -79,7 +82,8 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
   /** Let the traveller come to rest: no input until grounded and still, or hanging on a ladder. */
   function settle(b: Body): { body: Body; won: boolean; dead: boolean } {
     let result = play(b, [{ steps: 1, x: 0 }]);
-    for (let i = 0; i < 40 && !result.won && !result.dead; i++) {
+    // Bouncing on something springy takes a while to settle.
+    for (let i = 0; i < (springy ? 90 : 40) && !result.won && !result.dead; i++) {
       const s = result.body;
       if ((s.grounded && Math.abs(s.vx) < 2 && Math.abs(s.vy) < 2) || (s.climbing && Math.abs(s.vx) < 2)) break;
       result = play(s, [{ steps: 6, x: 0 }]);
@@ -117,6 +121,7 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
   const HOLDS = [10, 22, 34, 46, 62];
   const RELEASES = [0, 22, 38]; // 0: keep steering to the end
   const CLIMBS = [20, 44, 80, 130, 200];
+  const SPRING_LEADS: Array<{ walk?: number; hold?: number }> = [{ walk: 24 }, { walk: 60 }, { walk: 140 }, { hold: 22 }, { hold: 46 }, { hold: 62 }];
 
   function consider(parent: number, result: { body: Body; won: boolean; dead: boolean }, how: string): SolveResult | null {
     lastParent = parent;
@@ -160,6 +165,17 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
       for (const rise of [12, 24]) for (const hold of [46, 62]) {
         // Leap straight up, then steer: clears the edge overhead before drifting onto the step above.
         const hit = consider(index, play(body, [{ steps: rise, x: 0, jump: true, press: true }, { steps: hold - rise, x: dir, jump: true }, { steps: 200, x: dir, untilGround: true }]), `leap up, then ${d} after ${rise} hold ${hold}`);
+        if (hit) return hit;
+      }
+      if (springy && !body.climbing) for (const lead of SPRING_LEADS) for (const falling of [dir, 0]) for (const then of [dir, -dir, 0]) {
+        // Walk off or leap onto something springy, steering on the way down or not,
+        // and steer as it throws you back up: onward, back the way you came, or not at all.
+        const segs: Seg[] = lead.walk
+          ? [{ steps: lead.walk, x: dir }, { steps: 240, x: falling, untilBounce: true }]
+          : [{ steps: lead.hold!, x: dir, jump: true, press: true }, { steps: 240, x: falling, untilBounce: true }];
+        segs.push({ steps: 240, x: then, untilGround: true });
+        const after = then === dir ? `on ${d}` : then ? `back ${then > 0 ? 'right' : 'left'}` : 'straight';
+        const hit = consider(index, play(body, segs), `${lead.walk ? `walk ${d} ${lead.walk}` : `leap ${d} hold ${lead.hold}`}${falling ? '' : ', drop'}, bounce ${after}`);
         if (hit) return hit;
       }
       if (hasLadders) for (const n of CLIMBS) {

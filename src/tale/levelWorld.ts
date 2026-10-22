@@ -49,11 +49,11 @@ export const beastGround = (b: NonNullable<LevelDef['beasts']>[number]) => ({ x:
  */
 export function buildLevelField(level: LevelDef, pieces: PlacedPiece[], images: Map<string, LoadedImage>, struck?: { has: (id: string) => boolean }, gone?: { has: (id: string) => boolean }, withBeasts = false): Field {
   const colliders: Collider[] = [];
-  const add = (p: ScenePiece | PlacedPiece, kind: 'solid' | 'platform' | 'ladder' | 'hazard') => {
+  const add = (p: ScenePiece | PlacedPiece, role: 'solid' | 'platform' | 'ladder' | 'hazard' | 'spring') => {
     const image = images.get(srcOf(p.asset));
-    if (image) colliders.push({ placement: placementOfPiece(p), image, kind, physics: piecePhysics(p.asset, (p as ScenePiece).block) });
+    if (image) colliders.push({ placement: placementOfPiece(p), image, kind: role === 'spring' ? 'solid' : role, spring: role === 'spring', physics: piecePhysics(p.asset, (p as ScenePiece).block) });
   };
-  for (const q of level.scene) { const p = posed(q, struck); if (p.role === 'solid' || p.role === 'platform' || p.role === 'ladder' || p.role === 'hazard') add(p, p.role); }
+  for (const q of level.scene) { const p = posed(q, struck); if (p.role === 'solid' || p.role === 'platform' || p.role === 'ladder' || p.role === 'hazard' || p.role === 'spring') add(p, p.role); }
   for (const p of pieces) add(p, roleOfPlaced(level, p.asset));
   const field = rasterizeField(SCENE_W, SCENE_H, colliders);
   if (withBeasts) for (const b of level.beasts ?? []) if (!gone?.has(b.id)) { const g = beastGround(b); fillRect(field, 'hazard', g.x, g.y, g.width, g.height); }

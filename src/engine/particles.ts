@@ -1,5 +1,5 @@
 /** Small, cheap particles in ink, dust and gold. Page units throughout. */
-export type ParticleKind = 'dust' | 'spark' | 'ink' | 'mote' | 'petal' | 'splash' | 'blood';
+export type ParticleKind = 'dust' | 'spark' | 'ink' | 'mote' | 'petal' | 'splash' | 'blood' | 'straw';
 
 export interface Particle {
   kind: ParticleKind;
@@ -17,6 +17,7 @@ const INK = ['#2b2118', '#3b2a1d', '#1c1511'];
 const PETAL = ['#d6604a', '#f2e6d0', '#e9b44c', '#8f6bb5'];
 const WATER = ['#7fb3d9', '#a9cfe8', '#dff0fa', '#5e93c2'];
 const BLOOD = ['#7a0c08', '#9b1410', '#b3261e', '#5e0906'];
+const STRAW = ['#e8c766', '#d4a940', '#f3dc8a', '#b98a2c'];
 const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 const range = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -52,6 +53,10 @@ export class Particles {
       } else if (kind === 'mote') {
         p.vx = range(-8, 8) * unit; p.vy = -range(8, 30) * unit; p.life = range(1.4, 2.6);
         p.size = range(1.5, 3.5) * unit; p.color = pick(GOLD); p.gravity = 0; p.drag = 0;
+      } else if (kind === 'straw') {
+        const a = -Math.PI / 2 + range(-1.25, 1.25), v = range(80, 260) * spread * unit;
+        p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v; p.life = range(.7, 1.3);
+        p.size = range(4, 8) * unit; p.color = pick(STRAW); p.gravity = 420 * unit; p.drag = 2.2; p.spin = range(-10, 10);
       } else if (kind === 'petal') {
         p.vx = range(-60, 60) * spread * unit; p.vy = -range(60, 180) * unit; p.life = range(1, 1.8);
         p.size = range(4, 7) * unit; p.color = pick(PETAL); p.gravity = 160 * unit; p.drag = 1.8; p.spin = range(-8, 8);
@@ -95,6 +100,11 @@ export class Particles {
         const stretch = Math.min(2.4, 1 + Math.hypot(p.vx, p.vy) / 500);
         context.rotate(Math.atan2(p.vy, p.vx));
         context.beginPath(); context.ellipse(0, 0, p.size * stretch, p.size, 0, 0, Math.PI * 2); context.fill();
+      } else if (p.kind === 'straw') {
+        context.globalAlpha = Math.min(1, fade * 2);
+        context.rotate(p.angle);
+        context.strokeStyle = p.color; context.lineWidth = Math.max(1, p.size * .2); context.lineCap = 'round';
+        context.beginPath(); context.moveTo(-p.size, 0); context.lineTo(p.size, 0); context.stroke();
       } else if (p.kind === 'petal') {
         context.globalAlpha = Math.min(1, fade * 2);
         context.rotate(p.angle);

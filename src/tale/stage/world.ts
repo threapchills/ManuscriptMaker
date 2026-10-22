@@ -32,7 +32,7 @@ export function loadStageImages(pieces: StagePiece[], traveller: Traveller | nul
   ]);
 }
 
-const COLLIDING = new Set(['solid', 'platform', 'ladder', 'hazard']);
+const COLLIDING = new Set(['solid', 'platform', 'ladder', 'hazard', 'spring']);
 
 /** Collision for the stage exactly as painted, plus the stream along the bottom. */
 export function buildStageField(pieces: StagePiece[], width: number, height: number, waterY: number | undefined, images: Map<string, LoadedImage>, struck?: { has: (id: string) => boolean }): Field {
@@ -43,8 +43,10 @@ export function buildStageField(pieces: StagePiece[], width: number, height: num
     const image = images.get(p.src);
     if (!image) continue;
     const physics = piecePhysics(p.asset, p.block);
-    const kind = p.role === 'solid' || p.role === 'platform' ? (physics.climbable ? 'ladder' : p.role) : p.role as 'ladder' | 'hazard';
-    colliders.push({ placement: placementOf(p), image, kind, physics });
+    // Something springy is ground that throws back up whoever falls on it.
+    const spring = p.role === 'spring';
+    const kind = spring ? 'solid' : p.role === 'solid' || p.role === 'platform' ? (physics.climbable ? 'ladder' : p.role) : p.role as 'ladder' | 'hazard';
+    colliders.push({ placement: placementOf(p), image, kind, physics, spring, id: p.id });
   }
   const field = rasterizeField(width, height, colliders);
   if (waterY !== undefined && waterY < height) {

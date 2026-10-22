@@ -8,7 +8,7 @@ import type { Material } from './field';
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
   | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
-  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite' | 'snap' | 'crush' | 'hoot' | 'gild';
+  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite' | 'snap' | 'crush' | 'hoot' | 'gild' | 'boing';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -345,6 +345,22 @@ class AudioEngine {
         for (let i = 0; i < 6; i++) this.noiseBurst({ at: now + .03 + i * .045 + Math.random() * .02, gain: .05, decay: .04, type: 'bandpass', freq: vary(1300, .3), q: 2, pan, wet: .15 });
         this.noiseBurst({ at: now + .08, gain: .05, attack: .05, decay: .6, type: 'lowpass', freq: 260, pan, wet: .3 });
         break;
+      case 'boing': {
+        // A jaw harp's twang over a thump of straw: its note steady, the mouth about it opening and closing.
+        const s = Math.max(0, Math.min(1, (o.strength ?? 150) / 300)), dur = .45 + s * .35;
+        const harp = ctx.createOscillator(); harp.type = 'sawtooth'; harp.frequency.setValueAtTime(vary(98, .03), now);
+        const mouth = ctx.createBiquadFilter(); mouth.type = 'bandpass'; mouth.Q.value = 9;
+        mouth.frequency.setValueAtTime(380, now);
+        mouth.frequency.exponentialRampToValueAtTime(1500 + s * 600, now + .08);
+        mouth.frequency.exponentialRampToValueAtTime(520, now + .2);
+        mouth.frequency.exponentialRampToValueAtTime(1150, now + .31);
+        mouth.frequency.exponentialRampToValueAtTime(460, now + dur);
+        const env = this.out(0, pan, .2);
+        env.gain.setValueAtTime(0, now); env.gain.linearRampToValueAtTime(.15 + s * .08, now + .006); env.gain.exponentialRampToValueAtTime(.0001, now + dur);
+        harp.connect(mouth).connect(env); harp.start(now); harp.stop(now + dur + .05);
+        this.noiseBurst({ gain: .09 + s * .09, decay: .13, type: 'lowpass', freq: 900, pan, wet: .05 });
+        break;
+      }
       case 'hoot':
         // The owl in the margin, pleased: two soft, breathy hoots, the second a little lower.
         for (const [at, f] of [[0, 392], [.34, 349]] as const) {

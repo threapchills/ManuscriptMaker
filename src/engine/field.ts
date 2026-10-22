@@ -20,6 +20,10 @@ export interface Field {
   /** Index + 1 of the piece that owns each walkable cell, for footsteps and feedback. */
   owner: Uint16Array;
   materials: Material[];
+  /** Owners (index + 1) that are springy: a traveller who falls on one is thrown back up. */
+  springs: Set<number>;
+  /** The piece each owner was painted from, where it is known (index + 1 → its id). */
+  ids: Array<string | undefined>;
   sums: { solid: Int32Array; platform: Int32Array; hazard: Int32Array; ladder: Int32Array };
 }
 
@@ -31,7 +35,7 @@ export function createField(pageWidth: number, pageHeight: number, cell = cellFo
   return {
     width, height, cell,
     solid: new Uint8Array(size), platform: new Uint8Array(size), hazard: new Uint8Array(size), ladder: new Uint8Array(size),
-    owner: new Uint16Array(size), materials: [],
+    owner: new Uint16Array(size), materials: [], springs: new Set(), ids: [],
     sums: { solid: sum(), platform: sum(), hazard: sum(), ladder: sum() },
   };
 }
@@ -102,6 +106,14 @@ export function materialAt(field: Field, x: number, y: number): Material | undef
   if (cx < 0 || cy < 0 || cx >= field.width || cy >= field.height) return undefined;
   const owner = field.owner[cy * field.width + cx];
   return owner ? field.materials[owner - 1] : undefined;
+}
+
+/** The springy owner (index + 1) at a cell, or 0. */
+export function springAt(field: Field, x: number, y: number): number {
+  const cx = Math.floor(x), cy = Math.floor(y);
+  if (cx < 0 || cy < 0 || cx >= field.width || cy >= field.height) return 0;
+  const owner = field.owner[cy * field.width + cx];
+  return owner && field.springs.has(owner) ? owner : 0;
 }
 
 /** The first walkable row at or below `fromRow` in a column, for shadows and landing previews. */

@@ -94,4 +94,19 @@ describe('the reachability solver', () => {
     const bridged = terrain(f => { f.solid.fill(0); fillRect(f, 'solid', 0, GROUND, 400, H - GROUND, 'grass'); fillRect(f, 'solid', 880, GROUND, W - 880, H - GROUND, 'grass'); fillRect(f, 'hazard', 400, GROUND + 20, 480, H - GROUND); fillRect(f, 'platform', 380, GROUND - 4, 520, 12, 'wood'); });
     expect(attempt(bridged).solved).toBe(true);
   }, SEARCH);
+  it('falls from a height onto something springy and is thrown over a wall too tall to leap', () => {
+    // A stair up to a perch 390 above the ground; beyond it, where a running fall from the perch
+    // lands, a springy patch; then a wall 260 high, too far to leap to from the perch.
+    const stage = (springy: boolean) => terrain(f => {
+      fillRect(f, 'solid', 180, GROUND - 130, 80, 130, 'stone');
+      fillRect(f, 'solid', 300, GROUND - 260, 80, 260, 'stone');
+      fillRect(f, 'solid', 380, GROUND - 390, 60, 390, 'stone');
+      fillRect(f, 'solid', 520, GROUND, 160, H - GROUND, 'hay');
+      if (springy) f.springs.add(f.materials.length);
+      fillRect(f, 'solid', 800, GROUND - 260, 80, 260, 'stone');
+    });
+    // (A walk off the perch that keeps steering is carried through the bounce; the path need not name it.)
+    expect(attempt(stage(true)).solved).toBe(true);
+    expect(attempt(stage(false)).solved).toBe(false);
+  }, SEARCH);
 });

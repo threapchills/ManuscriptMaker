@@ -49,6 +49,8 @@ export interface SessionCallbacks {
   onArrows?: (left: number, loosed: number) => void;
   /** A target was struck: whatever it works should begin to move. */
   onStrike?: (id: string) => void;
+  /** Something springy was bounced on: the piece, where it is known, and the height fallen onto it. */
+  onBounce?: (piece: string | undefined, strength: number) => void;
 }
 
 /** Everything a running playtest needs: physics, feel, particles and drawing. */
@@ -59,6 +61,9 @@ export class PlaySession {
   private phase = 0;
   private squash = 0;
   private stretch = 0;
+  /** A somersault, thrown by a big bounce: when it began, and which way it turns. */
+  private flipAt = -1;
+  private flipDir = 1;
   private time = 0;
   private alpha = 0;
   private lastFacing: 1 | -1 = 1;
@@ -227,7 +232,7 @@ export class PlaySession {
     this.world = createWorld({ ...this.world.spec, field: this.baseField });
     this.particles = new Particles();
     this.collectedAt = [];
-    this.squash = 0; this.stretch = 0;
+    this.squash = 0; this.stretch = 0; this.flipAt = -1;
     this.refillQuiver();
   }
 
@@ -343,6 +348,15 @@ export class PlaySession {
         this.particles.emit('dust', e.x, e.y - 2, Math.round(3 + strength / 180), 1 + strength / 1200, unit);
         audio.play('land', { strength, material: e.material, pan: pan(e.x) });
         if (strength > 950) this.callbacks.onShake?.(Math.min(8, (strength - 900) / 90));
+      } else if (e.type === 'bounce') {
+        const strength = e.strength ?? 0;
+        this.squash = 0; this.stretch = 1;
+        this.particles.emit('straw', e.x, e.y - 4 * unit, Math.round(5 + strength / 22), .8 + strength / 300, unit);
+        this.particles.emit('dust', e.x, e.y - 2, 3, 1, unit);
+        audio.play('boing', { strength, pan: pan(e.x) });
+        // Thrown high, the traveller turns head over heels the way they face.
+        if (strength >= 170 && this.time - this.flipAt > FLIP) { this.flipAt = this.time; this.flipDir = this.world.body.facing; }
+        this.callbacks.onBounce?.(e.piece, strength);
       } else if (e.type === 'step') {
         audio.play('step', { material: e.material, pan: pan(e.x) });
         if (Math.random() < .5) this.particles.emit('dust', e.x - this.world.body.facing * 6 * unit, e.y - 1, 1, .4, unit);
@@ -485,6 +499,11 @@ export class PlaySession {
       context.save();
       context.translate(feet.x, feet.y + (spec.sink ?? 3 * unit) + sinkBy);
       context.scale(extraScale, extraScale);
+      const turning = (this.time - this.flipAt) / FLIP;
+      if (this.flipAt >= 0 && turning < 1 && !b.grounded) {
+        const half = spec.avatarHeight / 2;
+        context.translate(0, -half); context.rotate(this.flipDir * Math.PI * 2 * (turning * turning * (3 - 2 * turning))); context.translate(0, half);
+      }
       drawAvatar(context, spec.avatar, 0, 0, spec.avatarHeight, {
         time: this.time, phase: this.phase, speed: Math.min(1, Math.abs(b.vx) / Math.max(1, world.tuning.runSpeed)),
         grounded: b.grounded, climbing: b.climbing, vy: b.vy * spec.field.cell / unit, facing: b.facing,
@@ -560,6 +579,8 @@ function drawBow(c: CanvasRenderingContext2D, at: { x: number; y: number }, faci
   c.restore();
 }
 
+/** How long a somersault takes (seconds). */
+const FLIP = .62;
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
 const easeOutBack = (t: number) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 

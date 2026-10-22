@@ -26,7 +26,7 @@ export interface ScenePiece {
   /** Moves when the target `by` is struck, to this pose. */
   works?: { by: string; x: number; y: number; rotation: number; pivot?: [number, number] };
 }
-export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder'; name: string }
+export interface TrayItem { asset: string; count: number; role: 'solid' | 'platform' | 'ladder' | 'spring'; name: string }
 export interface Hint { x: number; y: number; text: string; mode: 'build' | 'play' | 'both'; point?: 'left' | 'right' | 'down' }
 export interface LevelDef {
   id: string;
@@ -899,6 +899,58 @@ export interface BookDef {
   coming: Array<{ numeral: number; title: string }>;
 }
 
+// ——— Folio XVI: the gorge ———
+// The road ends at a gorge some 480 wide, past any leap, with a river far
+// below. Beyond it a crag 210 above the road, where a grey wolf keeps the way
+// to the hermitage door. An old watchtower stands at the near brink with a
+// ladder up its side; from its top the wolf can be seen and shot. The margin
+// gives a truss of hay, springy: hung in the gorge, it throws a traveller who
+// leaps down onto it back up by most of the height fallen, and onto the crag.
+const f16Road = 470, f16Crag = 230, f16Brink = 400, f16Face = 960;
+const f16Tower = (() => {
+  const a = standing('wall-stone-straight', f16Brink - 75, f16Road, 150, { role: 'solid', layer: 'ground', block: true });
+  const b = standing('wall-stone-straight', f16Brink - 75, topOf(a), 150, { role: 'solid', layer: 'ground', block: true });
+  return [a, b, standing('wall-stone-straight', f16Brink - 75, topOf(b), 150, { role: 'solid', layer: 'ground', block: true })];
+})();
+const f16Top = topOf(f16Tower[2]);
+const folio16: LevelDef = {
+  id: 'folio-16', numeral: 16, title: 'The Gorge',
+  brief: 'The road ends at a gorge too wide for any leap, and over it a hermit’s crag where a grey wolf keeps the door. From the old watchtower you may see him. The margin gives you a truss of hay: whoever falls on hay is thrown back up.',
+  sky: 'day', waterY: 664,
+  scene: [
+    piece('sun-gold', 560, 36, 100, { layer: 'far', anim: 'turn' }),
+    piece('cloud-bank', 120, 70, 300, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('cloud-curl', 700, 130, 160, { layer: 'far', anim: 'drift', opacity: .8 }),
+    piece('hills-blue', -60, 300, 800, { layer: 'far', opacity: .8, filter: 'saturate(.75)' }),
+    piece('hills-blue', 560, 316, 780, { layer: 'far', opacity: .75, flipX: true, filter: 'saturate(.75)' }),
+    piece('forest-line', 330, 372, 700, { layer: 'far', opacity: .75, filter: 'saturate(.7) brightness(.92)' }),
+    // The near brink: one deep bank of earth down to the river.
+    ground('earth-ledge-long', f16Brink - 700, f16Road, 700, { block: true }),
+    ...f16Tower,
+    standing('stairs-ladder', f16Brink - 169, f16Road, 104, { role: 'ladder', layer: 'ground' }),
+    // The crag: turf and rock, and below it the same upside down, so the joint reads as a crack.
+    piece('earth-ledge-long', f16Face + 8, f16Crag + 207, 700, { role: 'solid', layer: 'ground', block: true, flipX: true, flipY: true, filter: 'brightness(.86)' }),
+    ground('earth-ledge-long', f16Face, f16Crag, 700, { block: true }),
+    standing('cottage-stone', 1170, f16Crag + 4, 150, { layer: 'mid' }),
+    standing('pine-single', 70, f16Road + 4, 92, { layer: 'mid' }),
+    standing('pine-single', 1000, f16Crag + 6, 70, { layer: 'mid', flipX: true }),
+    standing('grass-tuft', 380, f16Road + 8, 60, { layer: 'front', anim: 'sway' }),
+    standing('wildflowers', 1100, f16Crag + 10, 70, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 60, y: f16Road },
+  goal: standing('door-oak', 1240, f16Crag + 2, 78, { role: 'goal', layer: 'ground' }),
+  reached: 'You knocked at the hermitage door.',
+  // C on the road; L over the watchtower; A high over the gorge, where only a bounce from the hay reaches.
+  letters: [{ x: 150, y: 400, glyph: 'C' }, { x: f16Brink - 75, y: f16Top - 60, glyph: 'L' }, { x: 820, y: 160, glyph: 'A' }],
+  beasts: [{ id: 'wolf', kind: 'wolf', x0: 1040, x1: 1140, y: f16Crag }],
+  tray: [{ asset: 'hay-bale', count: 1, role: 'spring', name: 'Truss of hay' }],
+  quiver: 1,
+  par: 2,
+  hints: [
+    { x: 640, y: 560, text: 'hay gives back what you fall', mode: 'build', point: 'down' },
+  ],
+};
+
 export const BOOKS: BookDef[] = [
   {
     id: 'liber-primus', rubric: 'Liber primus', title: 'The Hare’s Road',
@@ -921,8 +973,8 @@ export const BOOKS: BookDef[] = [
     intro: 'Beyond the greenwood the road narrows between walls of stone. Here nothing is given twice: each piece must stand exactly where it is wanted, and each arrow fly true.',
     motto: 'HOC OPUS HIC LABOR EST',
     explicit: { rubric: 'Explicit liber tertius', line: 'The third book is ended. Hoc opus, hic labor est.' },
-    levels: [folio13, folio14, folio15],
-    coming: [{ numeral: 16, title: 'The Gorge' }, { numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
+    levels: [folio13, folio14, folio15, folio16],
+    coming: [{ numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
   },
 ];
 

@@ -118,6 +118,7 @@ export interface StageResult { letters: boolean[]; letterCount: number; pieces: 
 export const ROLE_LABELS: Record<GameRole, { name: string; note: string }> = {
   solid: { name: 'Ground', note: 'stood on and bumped into' },
   platform: { name: 'Ledge', note: 'landed on from above, jumped through from below' },
+  spring: { name: 'Springy', note: 'throws back up a traveller who falls on it' },
   scenery: { name: 'Scenery', note: 'walked past' },
   hazard: { name: 'Peril', note: 'sends the traveller back to the start' },
   ladder: { name: 'Ladder', note: 'climbed with up and down' },

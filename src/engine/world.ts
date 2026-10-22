@@ -28,7 +28,7 @@ export interface WorldSpec {
 export type Phase = 'playing' | 'dying' | 'respawning' | 'won' | 'away';
 
 export interface WorldEvent {
-  type: 'jump' | 'land' | 'step' | 'bonk' | 'collect' | 'win' | 'death' | 'respawn' | 'exit';
+  type: 'jump' | 'land' | 'step' | 'bonk' | 'collect' | 'win' | 'death' | 'respawn' | 'exit' | 'bounce';
   x: number;
   y: number;
   strength?: number;
@@ -38,6 +38,8 @@ export interface WorldEvent {
   /** The edge gone off, or the doorway gone in at, for an exit. */
   edge?: Edge;
   door?: string;
+  /** The springy piece bounced on, where it is known. */
+  piece?: string;
 }
 
 export interface World {
@@ -123,6 +125,7 @@ export function stepWorld(world: World, input: ControlInput, dt = STEP): WorldEv
   const feet = feetOf(world.body, spec.field);
   if (result.jumped) { world.jumps++; events.push({ type: 'jump', x: feet.x, y: feet.y }); }
   if (result.landed) events.push({ type: 'land', x: feet.x, y: feet.y, strength: result.landed / spec.unit, material: groundMaterial(world.body, spec.field) });
+  if (result.bounced) events.push({ type: 'bounce', x: feet.x, y: feet.y, strength: result.bounced / spec.unit, piece: spec.field.ids[result.spring - 1] });
   if (result.steps) events.push({ type: 'step', x: feet.x, y: feet.y, material: groundMaterial(world.body, spec.field) });
   if (result.bonked) events.push({ type: 'bonk', x: feet.x, y: feet.y - world.body.h * spec.field.cell });
   if (world.phase === 'won' || world.phase === 'away') return events;

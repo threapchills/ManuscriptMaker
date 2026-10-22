@@ -1,5 +1,5 @@
 import type { Field } from './field';
-import { hazardIn, ladderIn, materialAt, platformRow, solidIn, solidRow } from './field';
+import { hazardIn, ladderIn, materialAt, platformRow, solidIn, solidRow, springAt } from './field';
 
 /**
  * A kinematic platformer controller that moves one cell at a time through a
@@ -33,6 +33,12 @@ export interface Tuning {
   cornerCorrection: number;
   climbSpeed: number;
   dropThroughTime: number;
+  /** A fall onto something springy throws the traveller back up this share of the height fallen… */
+  springiness: number;
+  /** …and each further bounce, before they touch other ground, this share: they settle. */
+  springSettle: number;
+  /** Falls shorter than this onto a springy piece are simply landings. */
+  springMin: number;
 }
 
 export const TUNING: Tuning = {
@@ -59,6 +65,9 @@ export const TUNING: Tuning = {
   cornerCorrection: 7,
   climbSpeed: 230,
   dropThroughTime: .3,
+  springiness: .86,
+  springSettle: .5,
+  springMin: 40,
 };
 
 export interface ControlInput {
@@ -92,6 +101,10 @@ export interface Body {
   fallSpeed: number;
   /** Distance walked on the ground, for footsteps and walk cycles (cells). */
   stride: number;
+  /** The highest the feet have been since last on the ground (cells), for the height of a fall. */
+  peak: number;
+  /** Bounces off springy pieces since last on other ground. */
+  sprung: number;
 }
 
 export interface StepEvents {
@@ -102,15 +115,18 @@ export interface StepEvents {
   walled: boolean;
   steps: number; // footfalls this step
   climbed: boolean;
+  /** Thrown back up by something springy: the height fallen onto it (page units), and its owner. */
+  bounced: number;
+  spring: number;
 }
 
-export const noEvents = (): StepEvents => ({ jumped: false, landed: 0, bonked: false, walled: false, steps: 0, climbed: false });
+export const noEvents = (): StepEvents => ({ jumped: false, landed: 0, bonked: false, walled: false, steps: 0, climbed: false, bounced: 0, spring: 0 });
 
 /** Scale a tuning to a page and a field. Distances are cells, time is seconds. */
 export function scaleTuning(unit: number, cell: number, tuning: Tuning = TUNING): Tuning {
   const k = unit / cell;
   const scaled = { ...tuning };
-  for (const key of ['runSpeed', 'groundAccel', 'groundDecel', 'turnAccel', 'airAccel', 'airDecel', 'jumpSpeed', 'gravityUp', 'gravityDown', 'apexThreshold', 'maxFall', 'climbSpeed'] as const) scaled[key] = tuning[key] * k;
+  for (const key of ['runSpeed', 'groundAccel', 'groundDecel', 'turnAccel', 'airAccel', 'airDecel', 'jumpSpeed', 'gravityUp', 'gravityDown', 'apexThreshold', 'maxFall', 'climbSpeed', 'springMin'] as const) scaled[key] = tuning[key] * k;
   for (const key of ['stepUp', 'lipHeight', 'snapDown', 'ledgeAssist', 'cornerCorrection'] as const) scaled[key] = Math.max(1, Math.round(tuning[key] * k));
   return scaled;
 }
@@ -122,9 +138,11 @@ export function makeBody(field: Field, feetX: number, feetY: number, width: numb
   const body: Body = {
     x: Math.round(feetX / c - w / 2), y: Math.round(feetY / c) - h, rx: 0, ry: 0, w, h, vx: 0, vy: 0,
     grounded: false, coyote: 0, buffer: 0, jumpHeld: false, dropTimer: 0, climbing: false, facing: 1, airTime: 0, fallSpeed: 0, stride: 0,
+    peak: 0, sprung: 0,
   };
   depenetrate(body, field);
   body.grounded = supported(body, field);
+  body.peak = body.y;
   return body;
 }
 
@@ -254,7 +272,7 @@ export function stepBody(b: Body, f: Field, input: ControlInput, dt: number, t: 
 
   const canJump = b.grounded || b.coyote > 0 || b.climbing;
   if (b.buffer > 0 && canJump) {
-    b.vy = -t.jumpSpeed; b.buffer = 0; b.coyote = 0; b.grounded = false; b.climbing = false; b.jumpHeld = true; ev.jumped = true;
+    b.vy = -t.jumpSpeed; b.buffer = 0; b.coyote = 0; b.grounded = false; b.climbing = false; b.jumpHeld = true; ev.jumped = true; b.sprung = 0;
   }
   const holding = input.jump || (input.up && !b.climbing);
   if (b.jumpHeld && (!holding || b.vy >= 0)) {
@@ -283,15 +301,27 @@ export function stepBody(b: Body, f: Field, input: ControlInput, dt: number, t: 
       if (supported(b, f, b.y + k)) { b.y += k; b.ry = 0; grounded = true; break; }
     }
   }
-  if (grounded) {
+  // Something springy throws back up a traveller who falls on it, by a share
+  // of the height fallen; bounce after bounce they settle, unless they steer off.
+  const spring = grounded && !groundedAtStart && !b.climbing ? springUnder(b, f) : 0;
+  const fell = b.y - b.peak;
+  if (spring && fell >= t.springMin) {
+    const rise = fell * (b.sprung ? t.springSettle : t.springiness);
+    b.vy = -Math.sqrt(2 * t.gravityUp * rise);
+    b.sprung++; b.peak = b.y; b.jumpHeld = false; b.coyote = 0; b.fallSpeed = 0;
+    ev.bounced = fell * f.cell; ev.spring = spring;
+    grounded = false;
+  } else if (grounded) {
     if (!groundedAtStart) {
       ev.landed = Math.max(1, Math.max(b.fallSpeed, b.vy) * f.cell);
       b.stride = 0;
     }
     b.vy = 0; b.airTime = 0; b.fallSpeed = 0; b.coyote = t.coyoteTime;
+    b.peak = b.y; b.sprung = 0;
   } else {
     b.airTime += dt; b.coyote = Math.max(0, b.coyote - dt);
     if (b.vy > b.fallSpeed) b.fallSpeed = b.vy;
+    if (b.y < b.peak || b.climbing) b.peak = b.y;
   }
   b.grounded = grounded;
   if (b.climbing) { b.grounded = false; b.coyote = t.coyoteTime; }
@@ -306,6 +336,15 @@ export function stepBody(b: Body, f: Field, input: ControlInput, dt: number, t: 
 export function touchingHazard(b: Body, f: Field): boolean {
   const insetX = Math.round(b.w * .22), insetY = Math.round(b.h * .18);
   return hazardIn(f, b.x + insetX, b.y + insetY, b.w - insetX * 2, b.h - insetY * 1.4) > 3;
+}
+
+/**
+ * The springy owner anywhere under the feet, if any: a painted top is uneven
+ * (straw, turf), and what holds the traveller up may be under any part of them.
+ */
+function springUnder(b: Body, f: Field): number {
+  for (let x = b.x; x < b.x + b.w; x++) { const owner = springAt(f, x, b.y + b.h); if (owner) return owner; }
+  return 0;
 }
 
 export function groundMaterial(b: Body, f: Field) {

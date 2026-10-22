@@ -3,7 +3,7 @@ export type GlyphSettings = Record<GlyphKey, boolean>;
 export type AssetCategory = 'Beasts' | 'Botanicals' | 'Architecture' | 'Curiosities' | 'Ornaments' | 'Beast parts' | 'Armor' | 'Textiles' | 'Castle parts' | 'Flora' | 'Household' | 'Symbols' | 'Scene skies' | 'Scene landscape' | 'Scene homes' | 'Scene terrain' | 'Scene details' | 'Character parts';
 export interface ArtAsset { id: string; name: string; category: AssetCategory; src: string; tags: string[]; width: number; height: number; kind?: 'part' | 'complete'; }
 export interface BaseLayer { id: string; name: string; x: number; y: number; width: number; height: number; rotation: number; opacity: number; locked: boolean; hidden: boolean; flipX: boolean; flipY: boolean; /** Drawn in front of the traveller in play. */ front?: boolean; }
-export type GameRole = 'scenery' | 'player' | 'solid' | 'platform' | 'goal' | 'hazard' | 'ladder';
+export type GameRole = 'scenery' | 'player' | 'solid' | 'platform' | 'goal' | 'hazard' | 'ladder' | 'spring';
 export type Motion = 'drift' | 'sway' | 'bob' | 'turn';
 export interface ImageLayer extends BaseLayer { type: 'image'; src: string; assetId?: string; gameRole?: GameRole; imageFit?: 'contain' | 'fill'; /** A gentle painted motion for scenery in play (Scriptorium). */ motion?: Motion; /** How it moves when the target `by` is struck (Scriptorium). */ works?: { by: string; motion: StruckMotion }; /** A doorway (Scriptorium): up, pressed before this picture, leads to the folio with this id. */ way?: string; }
 /** How a piece moves once its target is struck. */

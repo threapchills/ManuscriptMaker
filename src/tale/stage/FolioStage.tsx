@@ -269,6 +269,7 @@ export default function FolioStage(props: FolioStageProps) {
       },
       onArrows: (left, loosed) => setArrows({ left, loosed }),
       onStrike: id => strikeRef.current(id),
+      onBounce: (id, strength) => bounceRef.current(id, strength),
     });
     session.frozen = true;
     setPlayerId(spec.playerId);
@@ -583,6 +584,19 @@ export default function FolioStage(props: FolioStageProps) {
     setLifted(hit.id);
     audio.play('lift');
   };
+  /** Something springy, bounced on, gives under the feet and springs back. */
+  const bounceRef = useRef<(id: string | undefined, strength: number) => void>(() => undefined);
+  bounceRef.current = (id: string | undefined, strength: number) => {
+    if (!id || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const el = sceneRef.current?.querySelector<HTMLElement>(`[data-piece="${CSS.escape(id)}"] .scene-anim`);
+    if (!el) return;
+    const s = Math.min(1, strength / 300), give = .1 + .16 * s;
+    el.style.transformOrigin = '50% 92%';
+    const spring = el.animate([
+      { scale: '1 1' }, { scale: `${1 + give * .5} ${1 - give}`, offset: .2 }, { scale: `${1 - give * .2} ${1 + give * .4}`, offset: .55 }, { scale: '1 1' },
+    ], { duration: 420 + 220 * s, easing: 'ease-out' });
+    spring.onfinish = () => { el.style.transformOrigin = ''; };
+  };
   /**
    * A gathered letter flies up from where it hung, over and down into its
    * slot, which gilds as it lands. (With reduced motion it is simply there.)
@@ -872,11 +886,11 @@ export default function FolioStage(props: FolioStageProps) {
     if (p.works) {
       const moved = mode !== 'build' && struck.has(p.works.by);
       const rest = workedPose(p)!;
-      if (rest.pivot) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
+      if (rest.pivot) return <SceneLayer key={`${p.id}:${run}`} dataId={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
         swing={{ degrees: moved ? rest.rotation - p.rotation : 0, origin: localPoint(p, rest.pivot) }} />;
-      return <SceneLayer key={`${p.id}:${run}`} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works${drops(p) ? ' is-drop' : ''}`} srcOverride={p.src} />;
+      return <SceneLayer key={`${p.id}:${run}`} dataId={p.id} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works${drops(p) ? ' is-drop' : ''}`} srcOverride={p.src} />;
     }
-    return <SceneLayer key={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
+    return <SceneLayer key={p.id} dataId={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
   };
   /**
    * Below the piece when there is room, else above it, always on the page.
@@ -974,7 +988,7 @@ export default function FolioStage(props: FolioStageProps) {
       {tool('bin', 'Return to the margin (Delete)', removeSelected)}
     </div>
     {free && sel.kind === 'image' && <div className="role-row" role="radiogroup" aria-label="What this piece does">
-      {(['solid', 'platform', 'scenery', 'hazard', 'ladder', 'goal', 'player'] as GameRole[]).map(role => <button type="button" role="radio" aria-checked={sel.role === role} key={role} className={`role-chip role-chip--${role}${sel.role === role ? ' is-chosen' : ''}`} title={`${ROLE_LABELS[role].name}: ${ROLE_LABELS[role].note}`} onClick={() => setRole(sel.id, role)}>{ROLE_LABELS[role].name}</button>)}
+      {(['solid', 'platform', 'spring', 'scenery', 'hazard', 'ladder', 'goal', 'player'] as GameRole[]).map(role => <button type="button" role="radio" aria-checked={sel.role === role} key={role} className={`role-chip role-chip--${role}${sel.role === role ? ' is-chosen' : ''}`} title={`${ROLE_LABELS[role].name}: ${ROLE_LABELS[role].note}`} onClick={() => setRole(sel.id, role)}>{ROLE_LABELS[role].name}</button>)}
       <button type="button" className={`role-chip role-chip--depth${sel.front ? ' is-chosen' : ''}`} title="Draw in front of the traveller" onClick={() => transform(sel.id, p => ({ front: !p.front }))}>{sel.front ? 'In front' : 'Behind'}</button>
     </div>}
     {free && sel.kind === 'image' && sel.role === 'scenery' && props.wayCard && <div className="role-row way-row">

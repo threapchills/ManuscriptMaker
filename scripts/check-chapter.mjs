@@ -396,7 +396,7 @@ try {
   // ——— The third book: the stone keep, one crate stretched and hung, one arrow in its face ———
   await page.getByRole('button', { name: /Turn to Liber tertius: The Narrow Way/ }).click();
   await expect(page.getByRole('heading', { name: 'The Narrow Way' })).toBeVisible({ timeout: 5000 });
-  await expect(page.locator('.folio-row.is-coming')).toHaveCount(3);
+  await expect(page.locator('.folio-row.is-coming')).toHaveCount(2);
   await page.getByRole('button', { name: /The Stone Keep/ }).click();
   await expect(page.getByRole('heading', { name: 'The Stone Keep' })).toBeVisible({ timeout: 8000 });
   await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length === 2, null, { timeout: 10000 });
@@ -618,9 +618,83 @@ try {
   await page.keyboard.up('ArrowRight');
   await expect(page.getByRole('dialog')).toContainText('You knocked at the hermit’s door.');
   await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-stone.png' });
 
+  // ——— Folio XVI: the wolf shot from the watchtower, then a leap from its top onto springy hay in the gorge ———
+  await expect(page.getByRole('dialog')).toContainText('The Gorge');
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Gorge' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length >= 2, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  const gorge = await page.locator('.scene').boundingBox();
+  const onGorge = (x, y) => ({ x: gorge.x + x * gorge.width / 1280, y: gorge.y + y * gorge.height / 720 });
+  // The hay, as the margin gives it, hung deep in the gorge.
+  const hayToken = await page.locator('.tray-piece').first().boundingBox();
+  await page.mouse.move(hayToken.x + hayToken.width / 2, hayToken.y + hayToken.height / 2);
+  await page.mouse.down();
+  const nearHay = onGorge(720, 630);
+  await page.mouse.move(nearHay.x - 30, nearHay.y + 20, { steps: 5 });
+  await page.mouse.move(nearHay.x, nearHay.y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  let hay16 = (await saved(page)).folios['folio-16'].pieces[0];
+  const mid16 = { x: hay16.x + hay16.width / 2, y: hay16.y + hay16.height / 2 };
+  const from16 = onGorge(mid16.x, mid16.y), to16 = onGorge(720, mid16.y + 600 - (hay16.y + .105 * hay16.height));
+  await page.mouse.move(from16.x, from16.y);
+  await page.mouse.down();
+  await page.mouse.move(to16.x, to16.y, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  hay16 = (await saved(page)).folios['folio-16'].pieces[0];
+  assert.ok(Math.abs(hay16.x + hay16.width / 2 - 720) < 4 && Math.abs(hay16.y + .105 * hay16.height - 600) < 4, `the hay hangs with its middle at 720 and its top at 600 (${Math.round(hay16.x + hay16.width / 2)}, ${Math.round(hay16.y + .105 * hay16.height)})`);
+  await page.mouse.click(onGorge(300, 120).x, onGorge(300, 120).y);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  // To the ladder, up it, and off its top onto the tower.
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return (b.x + b.w / 2) * s.spec.field.cell >= 200; }, null, { timeout: 6000, polling: 'raf' });
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.down('ArrowUp');
+  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return (b.y + b.h) * s.spec.field.cell < 262; }, null, { timeout: 6000, polling: 'raf' });
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(300);
+  await page.keyboard.up('ArrowUp');
+  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return b.grounded && (b.x + b.w / 2) * s.spec.field.cell > 290 && (b.y + b.h) * s.spec.field.cell < 262; }, null, { timeout: 4000, polling: 'raf' });
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(250);
+  // From the tower's top the wolf on the crag is in sight: an arrow kills him.
+  const wolf16 = await page.evaluate(() => { const w = window.__playSession.beasts[0]; return { x: w.x, y: w.spec.y }; });
+  const aim16 = onGorge(wolf16.x, wolf16.y - 46);
+  await page.mouse.move(aim16.x, aim16.y);
+  await page.waitForTimeout(80);
+  await page.mouse.click(aim16.x, aim16.y);
+  await page.waitForFunction(() => window.__playSession.beasts[0].state === 'dead', null, { timeout: 4000 });
+  await page.mouse.move(gorge.x + 10, gorge.y + 10);
+  // The leap: run to the tower's edge and leap into the gorge, steering on through the bounce.
+  await page.keyboard.down('ArrowRight');
+  // Where the traveller first stands after the bounce, recorded in the page (a screenshot in flight would stall it).
+  await page.evaluate(() => {
+    const s = window.__playSession; window.__landed16 = null;
+    const watch = () => { const b = s.world.body; if (b.sprung > 0) window.__sprung16 = true; if (window.__sprung16 && b.grounded && !window.__landed16) window.__landed16 = { x: Math.round((b.x + b.w / 2) * s.spec.field.cell), y: Math.round((b.y + b.h) * s.spec.field.cell) }; if (!window.__landed16) requestAnimationFrame(watch); };
+    requestAnimationFrame(watch);
+  });
+  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return (b.x + b.w / 2) * s.spec.field.cell >= 385; }, null, { timeout: 4000, polling: 'raf' });
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(380);
+  await page.keyboard.up('Space');
+  await page.waitForFunction(() => window.__landed16, null, { timeout: 5000, polling: 'raf' });
+  const landed16 = await page.evaluate(() => window.__landed16);
+  assert.ok(landed16.x > 960 && landed16.y < 240, `the hay throws the traveller up onto the crag (${JSON.stringify(landed16)})`);
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the sixteenth folio', { timeout: 8000 });
+  await page.keyboard.up('ArrowRight');
+  await expect(page.getByRole('dialog')).toContainText('You knocked at the hermitage door.');
+  // C on the road, L over the tower, and A high over the gorge, caught in the bounce.
+  await expect(page.getByRole('dialog')).toContainText('All three gathered');
+  await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-gorge.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, Folio XVI’s wolf shot from the watchtower and the gorge crossed by a leap onto springy hay, no runtime errors');
 } finally { await browser.close(); }
