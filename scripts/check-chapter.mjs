@@ -393,6 +393,81 @@ try {
   assert.ok(gathered2 >= 6 && gilded2 === gathered2, `the second book's motto gilds every letter gathered on its walk (${gilded2} gilded, ${gathered2} gathered)`);
   await page.screenshot({ path: '.local/chapter-book-two-ended.png' });
 
+  // ——— The third book: the stone keep, one crate stretched and hung, one arrow in its face ———
+  await page.getByRole('button', { name: /Turn to Liber tertius: The Narrow Way/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Narrow Way' })).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.folio-row.is-coming')).toHaveCount(5);
+  await page.getByRole('button', { name: /The Stone Keep/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Stone Keep' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length === 2, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  const keep = await page.locator('.scene').boundingBox();
+  const onKeep = (x, y) => ({ x: keep.x + x * keep.width / 1280, y: keep.y + y * keep.height / 720 });
+  const token13 = await page.locator('.tray-piece').first().boundingBox();
+  await page.mouse.move(token13.x + token13.width / 2, token13.y + token13.height / 2);
+  await page.mouse.down();
+  const near = onKeep(760, 400);
+  await page.mouse.move(near.x - 40, near.y + 30, { steps: 5 });
+  await page.mouse.move(near.x, near.y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  // Stretched to its largest by the handle, then carried so it meets the keep with its top at 340.
+  const stretch = await page.getByRole('button', { name: 'Stretch the piece' }).boundingBox();
+  await page.mouse.move(stretch.x + stretch.width / 2, stretch.y + stretch.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(stretch.x + 160, stretch.y + 160, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  let crate13 = (await saved(page)).folios['folio-13'].pieces[0];
+  assert.ok(Math.abs(crate13.width - 153.6) < 1, `the crate stretches to its largest (${crate13.width})`);
+  const mid13 = { x: crate13.x + crate13.width / 2, y: crate13.y + crate13.height / 2 };
+  const from13 = onKeep(mid13.x, mid13.y), to13 = onKeep(855 - crate13.width / 2, mid13.y + 340 - (crate13.y + .07 * crate13.height));
+  await page.mouse.move(from13.x, from13.y);
+  await page.mouse.down();
+  await page.mouse.move(to13.x, to13.y, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  crate13 = (await saved(page)).folios['folio-13'].pieces[0];
+  assert.ok(Math.abs(crate13.x + crate13.width - 855) < 4 && Math.abs(crate13.y + .07 * crate13.height - 340) < 4, 'the crate hangs against the keep, its top at 340');
+  // From the road, the one arrow into the crate's face; then arrow, crate and battlements.
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__playSession.probe(0).x > 505, null, { timeout: 6000 });
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(400);
+  const face13 = onKeep(crate13.x + 6, 440);
+  await page.mouse.move(face13.x, face13.y);
+  await page.waitForTimeout(250);
+  await page.mouse.click(face13.x, face13.y);
+  await page.waitForFunction(() => window.__playSession.arrows.some(a => a.state === 'stuck'), null, { timeout: 4000 });
+  const arrow13 = await page.evaluate(() => { const a = window.__playSession.arrows[0]; return { foothold: !!a.hit?.foothold, x: a.x, material: a.hit?.material }; });
+  assert.ok(arrow13.foothold && arrow13.material === 'wood', 'the arrow holds in the crate’s timber');
+  await page.mouse.move(keep.x + 20, keep.y + 20);
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(u => window.__playSession.probe(0).x > u, arrow13.x - 30, { timeout: 6000 });
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(300);
+  const leap = async (right, settle = 700) => {
+    if (right) await page.keyboard.down('ArrowRight');
+    await page.keyboard.down('Space'); await page.waitForTimeout(420); await page.keyboard.up('Space');
+    await page.waitForTimeout(settle);
+    if (right) await page.keyboard.up('ArrowRight');
+  };
+  await leap(false);
+  assert.ok(Math.abs((await page.evaluate(() => { const s = window.__playSession, b = s.world.body; return (b.y + b.h) * s.spec.field.cell; })) - 440) < 12, 'a leap straight up stands the traveller on the arrow');
+  await leap(true, 500);
+  await page.waitForTimeout(300);
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__playSession.probe(0).x > 815, null, { timeout: 6000 });
+  await page.keyboard.down('Space'); await page.waitForTimeout(420); await page.keyboard.up('Space');
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the thirteenth folio', { timeout: 6000 });
+  await page.keyboard.up('ArrowRight');
+  await expect(page.getByRole('dialog')).toContainText('You came to the door on the battlements.');
+  await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-stone-keep.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, no runtime errors');
 } finally { await browser.close(); }

@@ -51,6 +51,14 @@ export async function tryLevel(index: number, pieces: PlacedPiece[] = [], second
   return { id: level.id, won: world.phase === 'won', time: +world.time.toFixed(2), letters: world.collected, deathsAt, maxX };
 }
 (window as unknown as Record<string, unknown>).tryLevel = tryLevel;
+
+/** For designing: where a folio's solid pieces, goal and letters lie, with each solid's walkable top. */
+export function levelGeometry(index: number) {
+  const level: LevelDef = LEVELS[index];
+  const box = (p: { asset: string; x: number; y: number; width: number; height: number }) => ({ asset: p.asset, x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height), right: Math.round(p.x + p.width), top: Math.round(topOf(p as never) * 10) / 10 });
+  return { id: level.id, solids: level.scene.filter(p => p.role !== 'scenery').map(box), goal: box(level.goal), letters: level.letters, spawn: level.spawn, quiver: level.quiver, tray: level.tray };
+}
+(window as unknown as Record<string, unknown>).levelGeometry = levelGeometry;
 (window as unknown as Record<string, unknown>).harnessReady = true;
 
 export async function traceLevel(index: number, from: number, to: number, pieces: PlacedPiece[] = []) {

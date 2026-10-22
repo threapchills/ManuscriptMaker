@@ -75,7 +75,7 @@ export default function Contents({ tale, book: shownBook, onBook, onOpen, onTail
           <div className="vellum-sheet" aria-hidden="true" />
           <SoundToggles className="spread-sound" />
           <span className="rubric">Here be the folios</span>
-          <ol className="folio-list">
+          <ol className={`folio-list${[...book.levels, ...book.coming].some(f => toRoman(f.numeral).length > 4) ? ' has-long-numerals' : ''}`}>
             {book.levels.map((level, n) => {
               const index = first + n;
               const record = recordFor(tale, level.id), locked = index > tale.unlocked;

@@ -2,7 +2,45 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (later) Claude session: ways between folios (read first)
+## 2026-10-22 (evening) Claude session: the third book begun (read first)
+
+The user (2026-10-04): "The third book should be more difficult levels where a precise configuration of placements, as well as shooting is required".
+
+- **Liber tertius, *The Narrow Way*** (`BOOKS` in `src/tale/levels.ts`).
+  - Intro: "Beyond the greenwood the road narrows between walls of stone. Here nothing is given twice: each piece must stand exactly where it is wanted, and each arrow fly true."
+  - Motto: HOC OPUS HIC LABOR EST. Explicit: "The third book is ended. Hoc opus, hic labor est."
+  - Folio XIII is written. XIV to XVIII stand in the contents as being written, with provisional titles: The Belfry, The Wolf's Ledge, The Gorge, The Postern, The Crag.
+- **The principle**, kept from the earlier design: precision comes from geometry, never from leaps at the very edge of reach. The solver leaps perfectly; people do not.
+- **Folio XIII, *The Stone Keep*.**
+  - **The scene.** A keep of three courses of masonry, x 855–1105, its top at 202.7, 359 above the road. Stone turns every arrow, and the margin's crate is the only timber. The quiver holds one arrow; par is 2.
+  - **The solution.** Hang the crate high against the keep's left face and loose the arrow from the road into its face. Then leap from the road onto the arrow, from the arrow onto the crate, and from the crate to the door on the battlements.
+  - **Measured by the solver.** Hung against the keep, the crate works with its top between about 300 and 360 and the arrow 385 to 475 down its face.
+    - The largest crate (153.6) has the widest band: 56 working pairs of crate top and arrow height, against 34 at width 125 and 16 at the usual 96.
+    - So stretching it is the wise choice, not the only one.
+    - The solver's own path for a high arrow stands on the shaft's tail: a shot that rises into the face sticks with its tail lower, about 151 above the road, at the edge of reach. Players do better with a lower arrow in a larger crate.
+  - **Proved closed** (`test:levels`):
+    - bare;
+    - to the crate alone, at two widths, three places and eight heights (a scan of 351 placements found none either);
+    - to the arrow alone: with no crate, only two footholds can be made anywhere, and neither opens it (`oneShotOpens`);
+    - to the crate set down as a step with the arrow in its face (highest 429);
+    - to the crate hung too high, with the arrow out of reach.
+  - **Proved open** three ways: with the largest crate, a middling one and the usual one, each hung against the keep with the arrow in its timber.
+  - **The letters.** H is free from the road. O hangs beside the keep, only from the hung crate with the arrow (not with the crate alone); it was raised from 300 to 268 because a full leap from the road brushed it. C is on the battlements.
+  - **Played** (`test:chapter`, new steps):
+    - after the second book ends, the third is turned to (five folios still being written);
+    - the crate is dragged in, stretched to its largest by its handle, and carried against the keep with its top at 340;
+    - from x 520 one arrow sticks in its timber at 440;
+    - three full leaps (to the shaft, to the crate, to the battlements) win it: "1 piece and 1 arrow used · par 2", "More folios are being written".
+- **The contents** give a book whose numerals run to five letters (XVIII) a wider numeral column (`has-long-numerals`); XVII and XVIII ran into their titles.
+- **The harness** has `levelGeometry(index)`: a folio's solids, goal and letters, with each solid's walkable top, for designing.
+- **The README's archery paragraph** still said an arrow only drives the wolf off; it now says an arrow kills him.
+- **Checks run before pushing**: `npm test` (225), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:play` and `test:browser` all pass. `test:scriptorium` failed once in this run and was mended before passing twice:
+  - **The step.** "Plain ground walks to its signpost", while the whole book is played, ended still playing.
+  - **The cause.** The check's walker leaps wherever the turf dips just ahead. A leap begun between about 1050 and 1100 clears the plain template's signpost above its painted bounds and pins the traveller at the right edge, past the goal. Six separate walks of the plain ground all won, so it was the walker, not the folio.
+  - **The mend.** The walker now turns back onto the signpost when pinned at the far edge, as a player would. A walk that ends short logs where it stopped.
+- **Next**: Folio XIV, *The Belfry*. A bell seen only through an opening, from one vantage that a placed piece must make, so the precision is a line of sight.
+
+## 2026-10-22 (later) Claude session: ways between folios
 
 The second half of the user's sandbox request: "when exiting the play area to the right … set that as the cue to move to a new page", for "seamless exploration across a larger interconnected world formed of several pages", without "a full blown 'events editor'".
 

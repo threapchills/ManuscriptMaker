@@ -32,7 +32,7 @@ Last updated: 2026-10-22. This file records the user's requested direction, incl
 - [x] Doorways: a scenery picture made to lead to another folio from its tools (or to a new folio beyond, with the same picture there leading back); up, pressed before it, goes in, and the traveller comes out before the doorway that leads back.
 - [x] Letters gathered in a folio stay gathered when the traveller comes back to it by a way, for as long as the journey lasts.
 - [x] Walking back over the plain ground's meadow joins: the traveller steps over a tuft ten tall (the step was 7, and leftward walking stopped at every join).
-- [ ] Liber tertius (user, 2026-10-04): harder folios needing a precise configuration of placed pieces as well as shooting.
+- [ ] Liber tertius (user, 2026-10-04): harder folios needing a precise configuration of placed pieces as well as shooting. *The Narrow Way* is begun: Folio XIII, *The Stone Keep* (the crate the only timber, hung high against a stone keep to take the one arrow), is written, proved and played; XIV to XVIII are still being written.
 
 ## Playable manuscript direction — new top product priority
 

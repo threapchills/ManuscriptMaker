@@ -699,6 +699,62 @@ const folio12: LevelDef = {
   ],
 };
 
+// ——— Liber tertius: the narrow way ———
+// Here nothing is given twice: a piece must stand exactly where it is wanted,
+// and an arrow fly to exactly the right place. The precision is in the
+// geometry, a band where timber is, a line a shot must pass, never in leaps
+// at the very edge of the traveller's reach.
+
+// ——— Folio XIII: the stone keep ———
+// Three courses of masonry, and stone turns every arrow; the only timber in
+// the field is the margin's crate. Set down, it is a step too low to matter.
+// Hung high against the keep and stretched to its largest, its face is tall
+// enough to take an arrow low enough to leap to from the road, while its top
+// is high enough to leap from to the battlements.
+const f13Keep = (() => {
+  const course = (base: number) => standing('wall-stone-straight', 980, base, 250, { role: 'solid', layer: 'ground' });
+  const a = course(562), b = course(topOf(a)), c = course(topOf(b));
+  return [a, b, c];
+})();
+const f13Top = topOf(f13Keep[2]);
+const folio13: LevelDef = {
+  id: 'folio-13', numeral: 13, title: 'The Stone Keep',
+  brief: 'A keep all of stone, and stone turns an arrow aside. Yet there is timber to be had, if you set it where it is wanted. Climb to the door upon the battlements.',
+  sky: 'dawn',
+  scene: [
+    piece('sun-gold', 120, 70, 100, { layer: 'far', anim: 'turn', opacity: .85 }),
+    piece('cloud-bank', 300, 80, 320, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('cloud-curl', 1000, 60, 160, { layer: 'far', anim: 'drift', opacity: .8 }),
+    piece('hills-blue', -60, 330, 800, { layer: 'far', opacity: .9 }),
+    piece('hills-blue', 600, 344, 760, { layer: 'far', opacity: .85, flipX: true }),
+    piece('forest-line', -20, 410, 640, { layer: 'far' }),
+    piece('forest-line', 600, 416, 700, { layer: 'far', flipX: true }),
+    standing('pine-single', 70, 565, 92, { layer: 'mid' }),
+    standing('leafy-grove', 330, 568, 210, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    ...f13Keep,
+    standing('window-arrow-slit', 980, 480, 40, { layer: 'ground' }),
+    standing('window-arrow-slit', 980, 360, 40, { layer: 'ground' }),
+    standing('wildflowers', 200, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 640, 570, 72, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('door-oak', 1010, f13Top, 80, { role: 'goal', layer: 'ground' }),
+  reached: 'You came to the door on the battlements.',
+  // H by a leap from the road; O only from the crate hung against the keep; C on the battlements.
+  letters: [{ x: 440, y: 440, glyph: 'H' }, { x: 790, y: 268, glyph: 'O' }, { x: 900, y: f13Top - 60, glyph: 'C' }],
+  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate' }],
+  quiver: 1,
+  par: 2,
+  hints: [
+    { x: 735, y: 538, text: 'stone turns arrows', mode: 'build', point: 'right' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -732,6 +788,14 @@ export const BOOKS: BookDef[] = [
     explicit: { rubric: 'Explicit liber secundus', line: 'The second book is ended. Fortes fortuna iuvat.' },
     levels: [folio7, folio8, folio9, folio10, folio11, folio12],
     coming: [],
+  },
+  {
+    id: 'liber-tertius', rubric: 'Liber tertius', title: 'The Narrow Way',
+    intro: 'Beyond the greenwood the road narrows between walls of stone. Here nothing is given twice: each piece must stand exactly where it is wanted, and each arrow fly true.',
+    motto: 'HOC OPUS HIC LABOR EST',
+    explicit: { rubric: 'Explicit liber tertius', line: 'The third book is ended. Hoc opus, hic labor est.' },
+    levels: [folio13],
+    coming: [{ numeral: 14, title: 'The Belfry' }, { numeral: 15, title: 'The Wolf’s Ledge' }, { numeral: 16, title: 'The Gorge' }, { numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
   },
 ];
 

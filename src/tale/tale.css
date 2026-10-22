@@ -442,6 +442,8 @@
 .folio-row { width: 100%; display: flex; align-items: center; gap: 18px; padding: 13px 10px; border-radius: 8px; text-align: left; transition: background .18s, transform .18s; }
 .folio-row:hover:not(:disabled):not(.is-coming) { background: rgba(179, 38, 30, .07); transform: translateX(4px); }
 .folio-numeral { width: 54px; flex-shrink: 0; text-align: right; font: 30px var(--caps); color: var(--vermilion); }
+/* A book whose numerals run to five letters (XVIII) gives them a wider column. */
+.has-long-numerals .folio-numeral { width: 84px; }
 .folio-name { font: 600 34px/1.05 var(--blackletter); color: var(--ink); white-space: nowrap; }
 .leader { flex: 1; min-width: 20px; height: 1px; margin-top: 12px; border-bottom: 2px dotted rgba(90, 60, 30, .38); }
 .folio-seals { display: flex; gap: 6px; align-items: center; min-width: 108px; justify-content: flex-end; }
@@ -549,6 +551,7 @@
 .is-leaf .folio-row { gap: 10px; min-height: 50px; padding: 9px 6px; }
 .is-leaf .folio-row:hover:not(:disabled):not(.is-coming) { transform: none; }
 .is-leaf .folio-numeral { width: 34px; font-size: 19px; }
+.is-leaf .has-long-numerals .folio-numeral { width: 54px; }
 .is-leaf .folio-name { font-size: 21px; white-space: normal; }
 .is-leaf .leader { min-width: 6px; margin-top: 8px; }
 .is-leaf .folio-seals { min-width: 0; gap: 2px; }

@@ -6,7 +6,7 @@ Manuscript Maker is an illuminated manuscript you build and then walk. It has th
 
 ## Walk the tale
 
-Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or take a ready-made one), then open the contents of *Liber primus: The Hare's Road*; turn the dog-eared corner of the page for *Liber secundus: The Greenwood*. Each folio is a level: a fixed miniature, a few pieces in the margin, three gilded letters and a goal. Drag pieces into the picture, stretch and turn them, press **Play**, and walk what you have made. Reaching the goal unlocks the next folio, and most folios can be solved more than one way.
+Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or take a ready-made one), then open the contents of *Liber primus: The Hare's Road*; turn the dog-eared corner of the page for *Liber secundus: The Greenwood*, and again for *Liber tertius: The Narrow Way*. Each folio is a level: a fixed miniature, a few pieces in the margin, three gilded letters and a goal. Drag pieces into the picture, stretch and turn them, press **Play**, and walk what you have made. Reaching the goal unlocks the next folio, and most folios can be solved more than one way.
 
 | Folio | What it asks of you |
 | --- | --- |
@@ -22,12 +22,13 @@ Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or ta
 | X · The Bell in the Oak | ring the bell with an arrow, and the gatekeeper winds up his portcullis |
 | XI · The Drawbridge | strike the butt to let the drawbridge down, and find what the raised bridge was hiding |
 | XII · The Grey Wolf | an evil wolf keeps the road to the abbey: climb the palisade and bring him down with an arrow |
+| XIII · The Stone Keep | the third book's first folio: a keep all of stone, and the margin's crate the only timber; hung high against the keep, it takes the one arrow that begins the climb |
 
 Each folio presses up to three seals: the road walked, every gilded letter gathered, and a frugal scribe (no more pieces and arrows than the folio's par). Across each book the letters spell its motto.
 
 **Controls:** ← → or A/D walk · Space leaps (hold it to leap higher) · ↑ ↓ climb a ladder · R begins again · Esc returns to building · L shows the scribe's lens, which outlines solid ground. On touch screens a pad appears during play, with climbing buttons whenever a ladder is on the page. Progress is saved in this browser.
 
-**Archery:** a folio may offer a few arrows in its margin. In play, rest the pointer where you want to shoot to see the arrow's arc, and click to loose it; on a touch screen, press the picture to see the arc, and lift your finger to loose it. An arrow that strikes wood or earth roughly level sticks fast and makes a foothold you can stand on; stone turns arrows aside and water swallows them. Some folios hang targets, a painted butt or a bell: strike one and something on the page starts working, such as a portcullis wound up, a ladder let down or a drawbridge swung across a moat. A grey wolf keeps the road in the last folio. His touch sends you back to the start; an arrow will not wound him, but it will send him running. Arrows count toward a folio's par like pieces, and beginning again refills the quiver and puts everything back. The first book needs none; the second begins with them.
+**Archery:** a folio may offer a few arrows in its margin. In play, rest the pointer where you want to shoot to see the arrow's arc, and click to loose it; on a touch screen, press the picture to see the arc, and lift your finger to loose it. An arrow that strikes wood or earth roughly level sticks fast and makes a foothold you can stand on; stone turns arrows aside and water swallows them. Some folios hang targets, a painted butt or a bell: strike one and something on the page starts working, such as a portcullis wound up, a ladder let down or a drawbridge swung across a moat. A grey wolf keeps the road in the second book's last folio. His bite sends you back to the start, and an arrow kills him. Arrows count toward a folio's par like pieces, and beginning again refills the quiver and puts everything back. The first book needs none; the second begins with them; the third asks for pieces and arrows together, each set exactly where it is wanted.
 
 ## Make your own folios: the scriptorium
 

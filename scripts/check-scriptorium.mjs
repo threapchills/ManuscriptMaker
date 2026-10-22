@@ -14,16 +14,26 @@ page.on('pageerror', error => errors.push(error.message));
 const book = async () => { await page.waitForTimeout(600); return page.evaluate(() => JSON.parse(localStorage.getItem('manuscript-maker:scriptorium-v1') || 'null')); };
 const phase = () => page.evaluate(() => window.__playSession?.world.phase);
 
-/** Hold right and leap at edges and walls, like a player who knows the road; `watch` sees each step. */
+/**
+ * Hold right and leap at edges and walls, like a player who knows the road; `watch` sees each step.
+ * A leap that carries them clean over a signpost by the far edge leaves them pinned there, past it,
+ * so they turn back and step onto it, as a player would.
+ */
 async function walk(timeout = 16000, watch = async () => {}) {
   await page.keyboard.down('ArrowRight');
-  const start = Date.now();
+  const start = Date.now(), width = await page.evaluate(() => window.__playSession.spec.pageWidth);
   let lastLeap = 0;
   while (Date.now() - start < timeout) {
     const p = await page.evaluate(() => window.__playSession.probe(34));
     if (p.phase === 'won') break;
     await watch(p);
     const now = Date.now();
+    if (p.grounded && p.x > width - 60 && (p.wall || p.stuck)) {
+      await page.keyboard.up('ArrowRight'); await page.keyboard.down('ArrowLeft');
+      await page.waitForFunction(() => window.__playSession.world.phase === 'won', null, { timeout: 1500 }).catch(() => {});
+      await page.keyboard.up('ArrowLeft'); await page.keyboard.down('ArrowRight');
+      continue;
+    }
     if (p.grounded && (!p.support || p.wall || (p.stuck && now - start > 500)) && now - lastLeap > 500) {
       lastLeap = now;
       await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
@@ -31,7 +41,10 @@ async function walk(timeout = 16000, watch = async () => {}) {
     await page.waitForTimeout(8);
   }
   await page.keyboard.up('ArrowRight');
-  return phase();
+  const ended = await phase();
+  // A walk that ends short says where it stopped, for whoever reads the log.
+  if (ended !== 'won') console.log('  walk ended short:', JSON.stringify(await page.evaluate(() => ({ ...window.__playSession.probe(34), jumps: window.__playSession.world.jumps, deaths: window.__playSession.world.deaths, heading: document.querySelector('h1, h2')?.textContent }))));
+  return ended;
 }
 const stage = async () => {
   await page.waitForFunction(() => !!window.__playSession && !document.querySelector('.scene-loading'));
