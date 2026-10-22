@@ -11,7 +11,9 @@ import SoundToggles from '../SoundToggles';
 import { FONT_OPTIONS, transformText } from '../../text';
 import { PlaySession } from '../../engine/session';
 import { drawnFeet } from '../../engine/world';
-import { InputController } from '../../engine/input';
+import { InputController, movementHeld } from '../../engine/input';
+import type { Arrival, Edge } from '../../engine/ways';
+import { EDGES, arrivalPoint } from '../../engine/ways';
 import type { LoadedImage } from '../../engine/images';
 import { alphaAt, loadImages } from '../../engine/images';
 import { toImage } from '../../engine/rasterize';
@@ -98,6 +100,14 @@ export interface FolioStageProps {
   onPutAway?: (src: string) => void;
   /** A big folio's screens: the picture shows one at a time, and a camera moves over the whole. */
   screens?: { wide: number; tall: number };
+  /** Edges that lead on into other folios of the book (the scriptorium), with the numeral and title of each folio beyond. */
+  ways?: Partial<Record<Edge, { numeral: string; title: string }>>;
+  /** The card for choosing where an edge leads, opened by the edge's tab while building. */
+  wayCard?: (edge: Edge, close: () => void) => ReactNode;
+  /** The traveller went off an edge that leads on, their feet at `at`. */
+  onTravel?: (edge: Edge, at: { x: number; y: number }, facing: 1 | -1) => void;
+  /** Come in from another folio by a way: the first run begins where they came in, and begins again there. */
+  arrival?: Arrival;
 }
 
 export default function FolioStage(props: FolioStageProps) {
@@ -131,6 +141,12 @@ export default function FolioStage(props: FolioStageProps) {
   const working = useRef<number[]>([]);
   const [result, setResult] = useState<StageResult | null>(null);
   const [showCard, setShowCard] = useState(false);
+  /** The edge whose way is being chosen, its card open. */
+  const [wayEdge, setWayEdge] = useState<Edge | null>(null);
+  const arrivalRef = useRef(props.arrival ?? null);
+  const travelRef = useRef(props.onTravel); travelRef.current = props.onTravel;
+  /** The edges that lead on, as a stable key for the play spec. */
+  const waysOn = EDGES.filter(e => props.ways?.[e]).join(' ');
   const [settling, setSettling] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -188,8 +204,8 @@ export default function FolioStage(props: FolioStageProps) {
   const specFor = useCallback((s: StageState, imgs: Map<string, LoadedImage>) => {
     const field = buildStageField(s.pieces, W, H, props.waterY, imgs);
     const spec = stageSpec({ pieces: s.pieces, letters: s.letters, spawn: s.spawn, width: W, height: H, viewHeight: VH, waterY: props.waterY, field, images: imgs, traveller: props.traveller, targets: s.targets, beasts: s.beasts });
-    return spec && { ...spec, quiver };
-  }, [W, H, VH, props.waterY, props.traveller, quiver]);
+    return spec && { ...spec, quiver, ...(waysOn ? { ways: Object.fromEntries(waysOn.split(' ').map(e => [e, true])) } : {}) };
+  }, [W, H, VH, props.waterY, props.traveller, quiver, waysOn]);
 
   const winRef = useRef<(s: PlaySession) => void>(() => undefined);
   /**
@@ -225,6 +241,7 @@ export default function FolioStage(props: FolioStageProps) {
           if (e.type === 'collect') setLettersNow([...s.world.collected]);
           if (e.type === 'death') setFalls(s.world.deaths);
           if (e.type === 'win') winRef.current(s);
+          if (e.type === 'exit' && e.edge) travelRef.current?.(e.edge, { x: e.x, y: e.y }, s.world.body.facing < 0 ? -1 : 1);
         }
       },
       onArrows: (left, loosed) => setArrows({ left, loosed }),
@@ -505,6 +522,7 @@ export default function FolioStage(props: FolioStageProps) {
     }
     if (mode !== 'build' || event.button !== 0) return;
     audio.unlock();
+    if (wayEdge) setWayEdge(null);
     const { x, y } = toScene(event.clientX, event.clientY);
     const before = stateRef.current;
     const capture = () => { event.preventDefault(); sceneRef.current?.setPointerCapture(event.pointerId); setEditingText(null); audio.play('lift'); };
@@ -667,12 +685,20 @@ export default function FolioStage(props: FolioStageProps) {
     audio.unlock();
     const imgs = await ensureImages([...stateRef.current.pieces.filter(p => p.kind === 'image').map(p => p.src), ...(stateRef.current.beasts?.length ? Object.values(WOLF_PARTS).map(srcOf) : [])]);
     if (!imgs) return;
-    const spec = specFor(stateRef.current, imgs);
+    let spec = specFor(stateRef.current, imgs);
     if (!spec) return;
+    // Come in by a way from another folio: the run begins, and begins again, where they came in.
+    const arrive = arrivalRef.current; arrivalRef.current = null;
+    const at = arrive ? arrivalPoint(spec.field, arrive, { width: W, height: H }, spec.unit, props.waterY) : null;
+    if (at) spec = { ...spec, spawn: at };
     session.configure(spec); setPlayerId(spec.playerId);
+    if (at && arrive) session.world.body.facing = arrive.facing;
     if (big) { cam.current = clampCam(spec.spawn.x - VW * .5, spec.spawn.y - VH * .6); placeCamera(); }
     unwork();
     inputRef.current.reset();
+    // Still walking as they came, they walk on.
+    if (at) inputRef.current.hold(movementHeld());
+    setWayEdge(null);
     session.frozen = false;
     setSelection(null); setEditingText(null); setLettersNow(stateRef.current.letters.map(() => false)); setFalls(0); setResult(null); setShowCard(false);
     startedAt.current = performance.now();
@@ -716,6 +742,8 @@ export default function FolioStage(props: FolioStageProps) {
       if ((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable="true"]')) return;
       const k = e.key.toLowerCase();
       if (modeRef.current !== 'build') return;
+      // Within a card, Enter and Space press its buttons; they do not begin a run.
+      if ((k === 'enter' || k === ' ') && (e.target as HTMLElement)?.closest?.('[role="dialog"]')) return;
       if (k === 'enter' || k === ' ' || k === 'p') { e.preventDefault(); void play(); return; }
       if (k === 'l') { setLens(v => !v); return; }
       if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
@@ -876,6 +904,42 @@ export default function FolioStage(props: FolioStageProps) {
   const passageEditor = (left: number, top: number) => editingText && sel?.kind === 'text' && sel.text && mode === 'build' && <PassageEditor style={sel.text} left={left} top={top}
     onChange={text => commit(withPieces(stateRef.current, stateRef.current.pieces.map(q => q.id === sel.id ? { ...q, text } : q)))} onClose={() => setEditingText(null)} />;
 
+  // ——— ways on to other folios (the scriptorium) ———
+  /** A soft light along an edge that leads on, so it reads as a way rather than a wall. */
+  const glowAt = (edge: Edge): CSSProperties => {
+    const t = 34 * unit;
+    return edge === 'left' ? { left: 0, top: 0, width: t, height: H } : edge === 'right' ? { left: W - t, top: 0, width: t, height: H }
+      : edge === 'top' ? { left: 0, top: 0, width: W, height: t } : { left: 0, top: H - t, width: W, height: t };
+  };
+  const EDGE_ICON: Record<Edge, IconName> = { left: 'left', right: 'right', top: 'up', bottom: 'down' };
+  const EDGE_NAME: Record<Edge, string> = { left: 'the left edge', right: 'the right edge', top: 'the top', bottom: 'the foot' };
+  /** An edge's tab pressed: its card opens; on a big folio the view goes to that edge, where the way begins. */
+  const openWay = (edge: Edge) => {
+    audio.play('tick');
+    setSelection(null); setEditingText(null);
+    if (big && wayEdge !== edge) {
+      const c = cam.current;
+      cam.current = clampCam(edge === 'left' ? 0 : edge === 'right' ? W : c.x, edge === 'top' ? 0 : edge === 'bottom' ? H : c.y);
+      placeCamera();
+    }
+    setWayEdge(e => e === edge ? null : edge);
+  };
+  const wayTabs = free && mode === 'build' && props.wayCard && EDGES.map(edge => {
+    const to = props.ways?.[edge];
+    return <button type="button" key={edge} className={`way-tab is-${edge}${to ? ' is-on' : ''}${wayEdge === edge ? ' is-open' : ''}`}
+      aria-label={to ? `${EDGE_NAME[edge][0].toUpperCase()}${EDGE_NAME[edge].slice(1)} leads to folio ${to.numeral}, ${to.title}` : `Where ${EDGE_NAME[edge]} leads`}
+      aria-expanded={wayEdge === edge} title={to ? `Going off ${EDGE_NAME[edge]} leads to folio ${to.numeral}, ${to.title}` : `Lead ${EDGE_NAME[edge]} on to another folio`}
+      onPointerDown={e => e.stopPropagation()} onClick={() => openWay(edge)}>
+      <InkIcon name={EDGE_ICON[edge]} size={15} />{to && <span>{to.numeral}</span>}
+    </button>;
+  });
+  useEffect(() => {
+    if (!wayEdge) return;
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setWayEdge(null); };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [wayEdge]);
+
   const miniature = (place: CSSProperties) => <div className="miniature" ref={shakeRef} style={{ ...place, width: frameW, height: frameH }}>
     <GildedFrame width={frameW} height={frameH} band={compact ? COMPACT_BAND : undefined} />
     <div ref={viewRef} className={`scene-view${big ? ` is-big paper-${props.paper ?? 'vellum'}` : ''}`} style={{ width: frameW, height: frameH }}>
@@ -888,6 +952,7 @@ export default function FolioStage(props: FolioStageProps) {
       {!big && props.sky !== 'none' && <Sky kind={props.sky} seed={props.skySeed} width={W} height={H} />}
       {back.map(renderPiece)}
       <canvas ref={overlayRef} className="scene-overlay" aria-hidden="true" style={big ? { left: vx, top: vy, width: VW, height: VH } : undefined} />
+      {(Object.keys(props.ways ?? {}) as Edge[]).map(edge => <div key={edge} className={`way-glow is-${edge}`} style={glowAt(edge)} aria-hidden="true" />)}
       {front.map(renderPiece)}
       {(props.hints ?? []).filter(h => h.mode === 'both' || h.mode === (mode === 'build' ? 'build' : 'play')).map((h, i) => <div key={`${mode}-${i}`} className={`marginal-hint point-${h.point ?? 'down'}`} style={{ left: h.x, top: h.y, animationDelay: `${.6 + i * .5}s` }}><span className="manicule">☞</span>{h.text}</div>)}
       {sel && mode === 'build' && <div className="selection" style={{ left: sel.x, top: sel.y, width: sel.width, height: sel.height, transform: `rotate(${sel.rotation}deg)` }}>
@@ -908,6 +973,8 @@ export default function FolioStage(props: FolioStageProps) {
     </div>
     </div>
     </div>
+    {wayTabs}
+    {!compact && wayEdge && props.wayCard && <div className="way-card-holder">{props.wayCard(wayEdge, () => setWayEdge(null))}</div>}
     {!compact && folioMap}
   </div>;
 
@@ -1004,6 +1071,7 @@ export default function FolioStage(props: FolioStageProps) {
         <div className="compact-title">{titleBlock}{lettersBlock}</div>
         {miniature({ position: 'relative', margin: `${COMPACT_BAND + 4}px 0` })}
         {folioMap}
+        {wayEdge && props.wayCard && <div className="way-card-holder is-docked">{props.wayCard(wayEdge, () => setWayEdge(null))}</div>}
         {(pieceTools || letterTools || (sel && passageEditor(0, 0))) && <div className="compact-dock" onPointerDown={e => e.stopPropagation()}>
           {pieceTools && <div className="piece-tools is-docked">{pieceTools}</div>}
           {letterTools && <div className="piece-tools is-docked">{letterTools}</div>}

@@ -1,6 +1,7 @@
 import type { Field, Material } from './field';
 import type { Body, ControlInput, Tuning } from './controller';
 import { feetOf, groundMaterial, makeBody, NO_INPUT, scaleTuning, stepBody, touchingHazard, TUNING } from './controller';
+import type { Edge } from './ways';
 
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface Collectible { x: number; y: number; radius: number; glyph?: string }
@@ -17,18 +18,23 @@ export interface WorldSpec {
   goals: Rect[];
   collectibles?: Collectible[];
   tuning?: Tuning;
+  /** Edges that lead on into another folio: going off one ends the run there, and the book turns. */
+  ways?: Partial<Record<Edge, boolean>>;
 }
 
-export type Phase = 'playing' | 'dying' | 'respawning' | 'won';
+/** `away`: gone off an edge that leads on, into the folio beyond. */
+export type Phase = 'playing' | 'dying' | 'respawning' | 'won' | 'away';
 
 export interface WorldEvent {
-  type: 'jump' | 'land' | 'step' | 'bonk' | 'collect' | 'win' | 'death' | 'respawn';
+  type: 'jump' | 'land' | 'step' | 'bonk' | 'collect' | 'win' | 'death' | 'respawn' | 'exit';
   x: number;
   y: number;
   strength?: number;
   material?: Material;
   index?: number;
   cause?: 'fall' | 'hazard' | 'beast';
+  /** The edge gone off, for an exit. */
+  edge?: Edge;
 }
 
 export interface World {
@@ -45,11 +51,24 @@ export interface World {
   jumps: number;
   wonAt: number | null;
   accumulator: number;
+  /**
+   * The edges the traveller has been well away from since they last came
+   * into the folio, so a way cannot take them straight back as they arrive.
+   */
+  ready: Record<Edge, boolean>;
 }
 
 export const STEP = 1 / 120;
 const DYING = .5;
 const RESPAWNING = .26;
+/** How far from an edge counts as well away from it. */
+const EDGE_CLEAR = 60;
+
+/** The edges these feet are well away from. */
+function readyAt(spec: WorldSpec, feet: { x: number; y: number }): Record<Edge, boolean> {
+  const m = EDGE_CLEAR * spec.unit;
+  return { left: feet.x > m, right: feet.x < spec.pageWidth - m, top: feet.y - spec.hitbox.height > m, bottom: true };
+}
 
 export function createWorld(spec: WorldSpec): World {
   const body = makeBody(spec.field, spec.spawn.x, spec.spawn.y, spec.hitbox.width, spec.hitbox.height);
@@ -58,6 +77,7 @@ export function createWorld(spec: WorldSpec): World {
     spec, tuning: scaleTuning(spec.unit, spec.field.cell, spec.tuning ?? TUNING), body, previous: feet,
     phase: 'playing', phaseTime: 0, time: 0,
     collected: (spec.collectibles ?? []).map(() => false), deaths: 0, jumps: 0, wonAt: null, accumulator: 0,
+    ready: readyAt(spec, feet),
   };
 }
 
@@ -76,6 +96,7 @@ function respawn(world: World) {
   const { spec } = world;
   world.body = makeBody(spec.field, spec.spawn.x, spec.spawn.y, spec.hitbox.width, spec.hitbox.height);
   world.previous = feetOf(world.body, spec.field);
+  world.ready = readyAt(spec, world.previous);
   world.phase = 'respawning'; world.phaseTime = 0;
 }
 
@@ -99,7 +120,7 @@ export function stepWorld(world: World, input: ControlInput, dt = STEP): WorldEv
   if (result.landed) events.push({ type: 'land', x: feet.x, y: feet.y, strength: result.landed / spec.unit, material: groundMaterial(world.body, spec.field) });
   if (result.steps) events.push({ type: 'step', x: feet.x, y: feet.y, material: groundMaterial(world.body, spec.field) });
   if (result.bonked) events.push({ type: 'bonk', x: feet.x, y: feet.y - world.body.h * spec.field.cell });
-  if (world.phase === 'won') return events;
+  if (world.phase === 'won' || world.phase === 'away') return events;
 
   const rect = bodyRect(world);
   (spec.collectibles ?? []).forEach((item, index) => {
@@ -114,6 +135,23 @@ export function stepWorld(world: World, input: ControlInput, dt = STEP): WorldEv
     return events;
   }
   const fell = world.body.y * spec.field.cell > spec.pageHeight + 40 * spec.unit;
+  // Off an edge that leads on: walking off a side, climbing or leaping off the top, falling off the foot.
+  if (spec.ways && world.phase === 'playing') {
+    const m = EDGE_CLEAR * spec.unit, b = world.body, ready = world.ready, ways = spec.ways;
+    if (feet.x > m) ready.left = true;
+    if (feet.x < spec.pageWidth - m) ready.right = true;
+    if (feet.y - spec.hitbox.height > m) ready.top = true;
+    const off: Edge | null =
+      ways.right && ready.right && b.x + b.w >= spec.field.width && input.x > 0 ? 'right'
+      : ways.left && ready.left && b.x <= 0 && input.x < 0 ? 'left'
+      : ways.top && ready.top && (feet.y < 0 || (b.climbing && b.y <= 0 && input.up)) ? 'top'
+      : ways.bottom && fell ? 'bottom' : null;
+    if (off) {
+      world.phase = 'away'; world.phaseTime = 0;
+      events.push({ type: 'exit', x: feet.x, y: feet.y, edge: off });
+      return events;
+    }
+  }
   if (fell || touchingHazard(world.body, spec.field)) {
     world.phase = 'dying'; world.phaseTime = 0; world.deaths++;
     events.push({ type: 'death', x: feet.x, y: Math.min(feet.y, spec.pageHeight), cause: fell ? 'fall' : 'hazard' });

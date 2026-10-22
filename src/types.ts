@@ -18,6 +18,7 @@ export interface SceneSettings {
   /** Butts and bells to shoot at; a struck one sets moving the pieces it works. */ targets?: Array<{ id: string; x: number; y: number; kind: 'butt' | 'bell' }>;
   /** Beasts keeping ground; an arrow kills them. */ beasts?: Array<{ id: string; kind: 'wolf'; x0: number; x1: number; y: number }>;
   /** A big folio: so many screens wide and tall, one shown at a time as the camera follows. Absent for one screen. */ screens?: { wide: number; tall: number };
+  /** Ways on: the folio each edge leads to, by id. Absent when every edge holds. */ ways?: Partial<Record<'left' | 'right' | 'top' | 'bottom', string>>;
 }
 export interface Manuscript { version: 1; id: string; title: string; width: number; height: number; paper: 'vellum'|'ivory'|'rose'|'midnight'; border: 'illuminated'|'double'|'none'; layers: Layer[]; updatedAt: string; scene?: SceneSettings; }
 export interface CanvasProps { manuscript: Manuscript; selectedId: string | null; onSelect: (id: string | null) => void; onChangeLayer: (id: string, patch: Partial<Layer>, commit?: boolean) => void; onDropAsset: (assetId: string, x: number, y: number) => void; onEditText: (id: string) => void; zoom: number; showGuides: boolean; }

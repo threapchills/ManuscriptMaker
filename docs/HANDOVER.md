@@ -2,9 +2,69 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (later) Claude session: big folios in the scriptorium (read first)
+## 2026-10-22 (later) Claude session: ways between folios (read first)
 
-The first half of the user's sandbox request: folios several screens big, with the camera following the traveller. Ways out to other folios are the second half and are not built yet (see Next).
+The second half of the user's sandbox request: "when exiting the play area to the right … set that as the cue to move to a new page", for "seamless exploration across a larger interconnected world formed of several pages", without "a full blown 'events editor'".
+
+- **Any edge of a scriptorium folio may lead to another folio of the book**: left, right, the top and the foot. This is saved as the optional `scene.ways: { left?, right?, top?, bottom? }`, holding folio ids, and validated as such (`src/document.ts`). A folio whose edges all hold keeps no `ways` at all.
+- **Chosen on the edge itself.**
+  - While building, each edge of the picture has a small tab on the frame (`way-tab`). A tab that leads on shows the folio's numeral in vermilion ("‹ II").
+  - A tab opens a card (`src/scriptorium/WayCard.tsx`): "Walking off the right edge leads to…" (or "Climbing off the top", "Falling off the foot"), offering:
+    - the book's other folios in miniature, the one chosen marked;
+    - **A new folio beyond**: plain ground with no signpost, since the road runs on through it, bound in just after this folio;
+    - "No way on: the edge holds";
+    - "Turn to folio III".
+  - On a big folio, the view goes to that edge first. On an upright phone, the card docks beneath the picture.
+  - An edge that leads on has a soft gilt light along it, in building and in play (`way-glow`), so it reads as a way, not a wall.
+- **Ways are made in pairs** (`linkWay` in `src/scriptorium/ways.ts`).
+  - Leading this folio's right edge to folio III also leads III's left edge back here, unless that edge already leads elsewhere, when the way runs one way only.
+  - Changing or shutting a way also shuts the way back it had, if that still leads here.
+  - Tearing out a folio shuts every way to it (`shutWaysTo`).
+  - A toast says what became of the way back, in words ("… and the left edge there leads back here").
+- **In play** (`src/engine/world.ts`):
+  - **Off an edge.** The traveller goes off an edge that leads on by:
+    - pressing on against a side;
+    - leaping or climbing off the top;
+    - falling below the foot, instead of tumbling back to the start.
+  - **The page turns.** The world's phase becomes `away`, with an `exit` event. The stage tells the scriptorium (`onTravel`), and the book turns to the folio beyond, which plays at once.
+  - **Coming in.** The traveller comes in by the opposite edge, at the same height above the foot (`arrivalFrom`, `arrivalPoint` in `src/engine/ways.ts`). They stand on the ground there: a road a little higher or lower is found, the highest ground otherwise. Where the edge itself is open, the ground is sought a little inward. Ground under a peril or the stream is never chosen. With no ground at all, the folio's own start serves.
+  - **The place to return to.** Where they came in is the start for that run: a tumble or **R** returns them there, not to the folio's own start, which may lie on the far side. Returning to building and pressing Play starts from the folio's own start again.
+  - **Walking on.** A movement key still held as the page turns keeps them walking (`movementHeld`, `InputController.hold`).
+  - **No going straight back.** An edge cannot be gone off until the traveller has been 60 units away from it (`World.ready`), so arriving by an edge cannot send them straight back through it.
+- **While the stream flows along the foot**, a fall ends in its water (the stream is a peril in the field), so the foot's card says to stop the stream for the foot to lead on.
+- **Within a card, Enter and Space press its buttons and no longer begin a run.** Before this, Enter on a size in the settings card also started play.
+- **The book's contents** name each folio's ways ("a way on to III"). A folio with a way on is no longer marked "no goal yet", since it can be left.
+- **Checked.**
+  - `npm test` (217), with the new `tests/ways.test.ts`:
+    - arrival heights;
+    - a road a little higher or lower;
+    - a taller folio beyond;
+    - an open edge, a peril and a flooded edge;
+    - falling in from above and climbing in from below;
+    - no ground at all;
+    - pairs made, kept apart and undone;
+    - ways shut with a torn-out folio;
+    - a new folio beyond;
+    - validation;
+    - in the world: walking off a side that leads on but not one that holds, no going straight back, falling through the foot instead of tumbling, climbing off the top by a ladder.
+  - `test:scriptorium`, new steps:
+    - the big folio's left edge is led to a new folio beyond from its tab, with the way back made and no signpost there;
+    - walked off that edge, the book turns and the traveller comes in by the far edge, walking on with the key held;
+    - walked back, they come in by the left edge;
+    - the contents read "a way on to III";
+    - tearing that folio out shuts the way.
+  - A scratch browser script (not committed) also showed the tabs, the card, the glow, the arrival 880 ms after the edge, and the card docked on an upright phone.
+- **Checks run before pushing**: `npm test` (217), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:play` and `test:browser` all pass.
+  - `test:scriptorium` first failed to start: its closing message had a straight apostrophe inside a single-quoted string.
+  - Mended, it passed.
+- **Not done.**
+  - Doorways (a picture leading to another folio when the traveller presses up before it) were planned with the ways but are not built.
+  - Gilded letters gathered in one folio are gathered again on coming back to it, since each arrival begins that folio's run afresh.
+  - "Play the whole book" still turns the folios in order.
+
+## 2026-10-22 (later) Claude session: big folios in the scriptorium
+
+The first half of the user's sandbox request: folios several screens big, with the camera following the traveller.
 
 - **The size.**
   - A scriptorium folio may be 1 to 8 screens wide and 1 to 4 tall, at most eight screens in all.
@@ -69,10 +129,6 @@ The first half of the user's sandbox request: folios several screens big, with t
   - No parallax: the far hills move with everything else.
   - A big folio cannot yet be made from the tale.
   - The old desk knows nothing of screens.
-- **Next: ways out**, the second half of the request.
-  - An edge of a folio (or a doorway picture) leads to another folio of the book.
-  - The way is chosen where it is made: a tab on the edge opens the book's folios in miniature, with "a new folio beyond", and the way back is made too. There is no events editor.
-  - In play, the page turns and the traveller comes in by the opposite edge, which serves as their place to return to.
 
 ## 2026-10-22 Claude session: some darkness, and what comes next
 

@@ -377,8 +377,53 @@ try {
   await expect(page.locator('.maker-row')).toHaveCount(2, { timeout: 5000 });
   await page.setViewportSize({ width: 1440, height: 900 });
 
+  // Ways between folios: the big folio's left edge is led on to a new folio beyond, chosen on the edge itself.
+  await page.locator('.maker-open').nth(1).click();
+  await expect(page.getByRole('heading', { name: 'Over the Brook by Night' })).toBeVisible({ timeout: 5000 });
+  await stage();
+  await page.getByRole('button', { name: 'Where the left edge leads' }).click();
+  await expect(page.getByRole('dialog', { name: 'Where the left edge leads' })).toBeVisible();
+  await page.screenshot({ path: '.local/scriptorium-way-card.png' });
+  await page.getByRole('button', { name: 'A new folio beyond' }).click();
+  await expect(page.locator('.tale-toast')).toContainText('Walking off the left edge now leads to a new folio, III');
+  saved = await book();
+  assert.equal(saved.pages.length, 3);
+  assert.equal(saved.pages[2].title, 'The third folio');
+  assert.deepEqual(saved.pages[1].scene.ways, { left: saved.pages[2].id });
+  assert.deepEqual(saved.pages[2].scene.ways, { right: saved.pages[1].id }, 'the way back is made');
+  assert.equal(saved.pages[2].layers.some(l => l.gameRole === 'goal'), false, 'the road runs on through it, with no signpost');
+  await expect(page.getByRole('button', { name: /The left edge leads to folio III/ })).toBeVisible();
+  // Walked off that edge, the book turns and the traveller comes in by the far edge of the folio beyond, walking on.
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('.level-screen')?.classList.contains('mode-play'), null, { timeout: 5000 });
+  await page.keyboard.down('ArrowLeft');
+  await expect(page.getByRole('heading', { name: 'The third folio' })).toBeVisible({ timeout: 6000 });
+  await page.waitForFunction(() => document.querySelector('.level-screen')?.classList.contains('mode-play') && window.__playSession?.world.phase === 'playing', null, { timeout: 6000 });
+  await page.waitForTimeout(500);
+  await page.keyboard.up('ArrowLeft');
+  const cameIn = await page.evaluate(() => window.__playSession.probe(0));
+  assert.ok(cameIn.x > 900 && cameIn.x < 1220, `came in by the right edge and walked on (at ${Math.round(cameIn.x)})`);
+  await page.screenshot({ path: '.local/scriptorium-way-beyond.png' });
+  // And back the way they came.
+  await page.keyboard.down('ArrowRight');
+  await expect(page.getByRole('heading', { name: 'Over the Brook by Night' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => window.__playSession?.world.phase === 'playing' && document.querySelector('.level-screen')?.classList.contains('mode-play'), null, { timeout: 6000 });
+  await page.keyboard.up('ArrowRight');
+  const home = await page.evaluate(() => window.__playSession.probe(0));
+  assert.ok(home.x < 400, `came back in by the left edge (at ${Math.round(home.x)})`);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'The book', exact: true }).click();
+  await expect(page.locator('.maker-row').nth(1)).toContainText('a way on to III');
+  // Torn out, the folio beyond takes its ways with it.
+  await page.locator('.maker-row').nth(2).hover();
+  await page.getByRole('button', { name: 'Remove this folio' }).nth(2).click();
+  await page.getByRole('button', { name: 'Tear it out' }).click();
+  saved = await book();
+  assert.equal(saved.pages.length, 2);
+  assert.equal(saved.pages[1].scene.ways, undefined, 'no way leads to a folio torn out');
+
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), a way from the big folio’s left edge to a new folio beyond (chosen on the edge, the way back made), walked there and back, and shut when that folio was torn out, old desk reachable, no runtime errors');
 } finally { await browser.close(); }

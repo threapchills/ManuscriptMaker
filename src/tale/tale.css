@@ -673,3 +673,27 @@
 .ink-swatch.is-on { box-shadow: 0 0 0 2px var(--vellum-hi), 0 0 0 4px var(--vermilion); }
 .glyph-chip { min-width: 34px; height: 32px; border-radius: 8px; font: 22px var(--book); color: var(--ink-soft); border: 1px dashed rgba(90, 60, 30, .35); }
 .glyph-chip.is-on { color: var(--vermilion); border-style: solid; border-color: var(--vermilion); background: rgba(179, 38, 30, .08); }
+
+/* Ways on to other folios (the scriptorium): a tab on each edge of the picture while building, and a soft light along an edge that leads on. */
+.way-tab { position: absolute; z-index: 7; display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 15px; border: 1.5px dashed rgba(143, 98, 27, .8); background: rgba(250, 240, 214, .92); color: #8f621b; font: 600 15px/1 var(--caps); cursor: pointer; box-shadow: 0 2px 6px rgba(40, 25, 10, .28); transition: transform .12s, background .12s; }
+.way-tab:hover, .way-tab.is-open { transform: scale(1.1); background: #fff6dc; }
+.way-tab.is-on { border-style: solid; border-color: #6d140f; background: linear-gradient(#c0392b, #7d1812); color: #fff4dc; }
+.way-tab:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+.way-tab.is-left { left: -15px; top: 50%; margin-top: -15px; }
+.way-tab.is-right { right: -15px; top: 50%; margin-top: -15px; }
+.way-tab.is-top { top: -15px; left: calc(50% + 44px); }
+.way-tab.is-bottom { bottom: -15px; left: calc(50% + 44px); }
+.is-compact .way-tab { min-width: 34px; height: 34px; border-radius: 17px; }
+.is-compact .way-tab.is-left { left: -10px; margin-top: -17px; }
+.is-compact .way-tab.is-right { right: -10px; margin-top: -17px; }
+.is-compact .way-tab.is-top { top: -12px; }
+.is-compact .way-tab.is-bottom { bottom: -12px; }
+.way-glow { position: absolute; pointer-events: none; animation: way-glow 2.8s ease-in-out infinite; }
+.way-glow.is-left { background: linear-gradient(90deg, rgba(255, 224, 138, .6), rgba(255, 224, 138, 0)); }
+.way-glow.is-right { background: linear-gradient(270deg, rgba(255, 224, 138, .6), rgba(255, 224, 138, 0)); }
+.way-glow.is-top { background: linear-gradient(180deg, rgba(255, 224, 138, .55), rgba(255, 224, 138, 0)); }
+.way-glow.is-bottom { background: linear-gradient(0deg, rgba(255, 224, 138, .55), rgba(255, 224, 138, 0)); }
+@keyframes way-glow { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .way-glow { animation: none; opacity: .8; } }
+.way-card-holder { position: absolute; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(600px, calc(100% - 48px)); max-height: calc(100% - 48px); display: flex; }
+.way-card-holder.is-docked { position: relative; left: auto; top: auto; transform: none; width: auto; max-height: 60vh; margin: 2px 0 10px; }

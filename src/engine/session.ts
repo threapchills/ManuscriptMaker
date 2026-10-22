@@ -11,6 +11,7 @@ import type { Beast, BeastRig, BeastSpec } from './beasts';
 import { alive, beastRect, drawBeast, makeBeast, slay, stepBeast } from './beasts';
 import { audio } from './audio';
 import type { Arrow, Target } from './archery';
+import type { Edge } from './ways';
 import { addFoothold, bowPoint, drawAim, drawArrow, drawTarget, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
 
 export interface SessionSpec {
@@ -35,6 +36,8 @@ export interface SessionSpec {
   targets?: Target[];
   /** Beasts keeping ground, with the pictures they are drawn from. */
   beasts?: Array<BeastSpec & { rig: BeastRig }>;
+  /** Edges that lead on into other folios. */
+  ways?: Partial<Record<Edge, boolean>>;
 }
 
 export interface SessionCallbacks {
@@ -86,7 +89,7 @@ export class PlaySession {
 
   constructor(spec: SessionSpec, private input: InputController, private callbacks: SessionCallbacks = {}) {
     this.spec = spec;
-    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
+    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles, ways: spec.ways });
     this.platforms = snapshotPlatforms(spec.field);
     this.baseField = spec.field;
     this.quiver = spec.quiver ?? 0;
@@ -110,7 +113,7 @@ export class PlaySession {
     const lettersChanged = JSON.stringify(spec.collectibles ?? []) !== JSON.stringify(this.spec.collectibles ?? []);
     this.spec = spec;
     this.lensImage = null;
-    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles });
+    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles, ways: spec.ways });
     this.collectedAt = [];
     this.platforms = snapshotPlatforms(spec.field);
     this.baseField = spec.field;

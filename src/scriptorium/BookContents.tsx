@@ -14,15 +14,17 @@ import { audio } from '../engine/audio';
 
 const W = 1500, H = 960;
 
-/** What a folio holds, in a few words: and a gentle warning when it cannot be finished. */
-function summaryOf(page: Manuscript) {
+/** What a folio holds, in a few words, and where it leads: and a gentle warning when it cannot be finished or left. */
+function summaryOf(page: Manuscript, pages: Manuscript[]) {
   const shown = page.layers.filter(l => !l.hidden);
-  const goal = shown.some(l => l.type === 'image' && l.gameRole === 'goal');
+  const onward = [...new Set(Object.values(page.scene?.ways ?? {}))].map(id => pages.findIndex(p => p.id === id)).filter(i => i >= 0).sort((a, b) => a - b).map(i => toRoman(i + 1));
+  const goal = onward.length > 0 || shown.some(l => l.type === 'image' && l.gameRole === 'goal');
   const letters = page.scene?.letters?.length ?? 0;
   const parts = [shown.length === 1 ? 'one piece' : `${shown.length} pieces`];
   if (letters) parts.push(letters === 1 ? 'one letter' : `${letters} letters`);
   const size = screensOf(page);
   if (size.wide * size.tall > 1) parts.push(sizeWords(size));
+  if (onward.length) parts.push(`${onward.length === 1 ? 'a way' : 'ways'} on to ${onward.length === 1 ? onward[0] : `${onward.slice(0, -1).join(', ')} and ${onward.at(-1)}`}`);
   return goal ? parts.join(' · ') : <>{parts.join(' · ')} · <em>no goal yet</em></>;
 }
 
@@ -92,7 +94,7 @@ export default function BookContents({ book, traveller, walked, onOpen, onPlayBo
                 <button type="button" className="maker-open" onClick={() => { audio.unlock(); audio.play('page'); onOpen(index); }} onPointerEnter={() => audio.play('tick')} aria-label={`Open folio ${index + 1}: ${page.title}`}>
                   <span className="folio-numeral">{toRoman(index + 1)}</span>
                   <FolioThumb page={page} width={leaf ? 84 : 132} />
-                  <span className="maker-name"><span className="folio-name">{page.title}</span><small>{summaryOf(page)}</small></span>
+                  <span className="maker-name"><span className="folio-name">{page.title}</span><small>{summaryOf(page, book.pages)}</small></span>
                   <span className="maker-note" title={walked.has(page.id) ? 'Walked to its end' : 'Not yet walked'}>{walked.has(page.id) ? <WaxSeal glyph="none" size={30} seed={index + 3} /> : <span className="seal-ring" />}</span>
                 </button>
                 <span className="maker-tools">

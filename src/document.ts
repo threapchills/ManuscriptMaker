@@ -88,6 +88,10 @@ function validateScene(scene: unknown, page: Manuscript) {
   if(s.brief !== undefined && (typeof s.brief !== 'string' || s.brief.length > 4000)) bad();
   if(s.arrows !== undefined && !(Number.isInteger(s.arrows) && (s.arrows as number) >= 0 && (s.arrows as number) <= MAX_ARROWS)) bad();
   if(s.screens !== undefined) { const q = s.screens as { wide: unknown; tall: unknown }; if(!q || !Number.isInteger(q.wide) || !Number.isInteger(q.tall) || (q.wide as number) < 1 || (q.tall as number) < 1 || (q.wide as number) > MAX_SCREENS || (q.tall as number) > MAX_TALL || (q.wide as number) * (q.tall as number) > MAX_SCREENS) bad(); }
+  if(s.ways !== undefined) {
+    if(!s.ways || typeof s.ways !== 'object' || Array.isArray(s.ways)) bad();
+    for(const [edge, to] of Object.entries(s.ways as Record<string, unknown>)) if(!['left','right','top','bottom'].includes(edge) || typeof to !== 'string' || to.length < 1 || to.length > 64) bad();
+  }
   if(s.spawn !== undefined) { const p = s.spawn as { x: unknown; y: unknown }; if(!p || !numeric(p.x, -MAX_REACH, MAX_REACH) || !numeric(p.y, -MAX_REACH, MAX_REACH)) bad(); }
   if(s.letters !== undefined) {
     if(!Array.isArray(s.letters) || s.letters.length > 60) bad();

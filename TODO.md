@@ -28,7 +28,9 @@ Last updated: 2026-10-22. This file records the user's requested direction, incl
 - [x] Some darkness (user, 2026-10-22: "PEGI 13 overall … a little blood … evil wolves are evil and can be killed"): an arrow kills a wolf, which falls with the arrow in it and lies in a little blood; red eyes; a little blood when a wolf bites.
 - [ ] Good pet dogs and other friendly animals (user, 2026-10-22: "in due course").
 - [x] Sandbox big folios (user, 2026-10-22: "4x or 8x the current level or page size … the camera following the player"): up to eight screens (8 wide, or 4 tall), sized in the folio's settings; the camera follows the traveller in play; the view moves by dragging open ground, the wheel, a map of the whole, or carrying a piece to an edge.
-- [ ] Ways out (user, 2026-10-22: "when exiting the play area to the right … set that as the cue to move to a new page"): an edge, or a doorway, leading to another folio, chosen as things are placed rather than in an events editor.
+- [x] Ways out (user, 2026-10-22: "when exiting the play area to the right … set that as the cue to move to a new page"): any edge of a folio may lead to another folio of the book, chosen on a tab on that edge (the book's folios in miniature, or a new folio beyond), with the way back made too; in play the page turns and the traveller comes in by the opposite edge, which serves as their place to return to.
+- [ ] Doorways: a picture that leads to another folio when the traveller presses up before it, arriving at the doorway that leads back.
+- [ ] Letters gathered in a folio stay gathered when the traveller comes back to it by a way.
 - [ ] Liber tertius (user, 2026-10-04): harder folios needing a precise configuration of placed pieces as well as shooting.
 
 ## Playable manuscript direction — new top product priority

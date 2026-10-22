@@ -9,6 +9,19 @@ export type GameAction = 'restart' | 'exit' | 'pause' | 'lens';
 const LEFT = ['ArrowLeft', 'KeyA'], RIGHT = ['ArrowRight', 'KeyD'], UP = ['ArrowUp', 'KeyW'], DOWN = ['ArrowDown', 'KeyS'];
 const JUMP = ['Space', 'KeyZ', 'KeyK', 'KeyJ'];
 
+/**
+ * The movement keys held down right now, known across stages: a traveller
+ * who walks off one folio into the next keeps walking if the key is still
+ * held when the next begins.
+ */
+const held = new Set<string>();
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', e => { if ([...LEFT, ...RIGHT, ...UP, ...DOWN].includes(e.code)) held.add(e.code); });
+  window.addEventListener('keyup', e => held.delete(e.code));
+  window.addEventListener('blur', () => held.clear());
+}
+export const movementHeld = (): string[] => [...held];
+
 export class InputController {
   private keys = new Set<string>();
   private touch = { left: false, right: false, up: false, down: false, jump: false };
@@ -44,6 +57,9 @@ export class InputController {
     target.addEventListener('blur', clear);
     return () => { target.removeEventListener('keydown', down); target.removeEventListener('keyup', up); target.removeEventListener('blur', clear); };
   }
+
+  /** Take these keys as already held down (walking on into a new folio). */
+  hold(codes: string[]): void { for (const code of codes) this.keys.add(code); }
 
   setTouch(button: keyof InputController['touch'], held: boolean): void {
     if (button === 'jump' && held && !this.touch.jump) this.jumpLatch = true;

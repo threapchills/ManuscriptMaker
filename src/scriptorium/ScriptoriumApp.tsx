@@ -17,6 +17,10 @@ import { music } from '../engine/music';
 import BookContents from './BookContents';
 import FolioSettings from './FolioSettings';
 import SandboxExplicit from './SandboxExplicit';
+import WayCard, { EDGE_WORDS } from './WayCard';
+import { folioBeyond, linkWay, shutWaysTo, waysOf } from './ways';
+import type { Arrival, Edge } from '../engine/ways';
+import { OPPOSITE, arrivalFrom } from '../engine/ways';
 import type { FolioTemplate } from './convert';
 import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, pageToStage, putPictureAway, readScriptorium, reidentify, resizeFolio, screensOf, skySeedOf, stageToPage, writeScriptorium } from './convert';
 import '../tale/tale.css';
@@ -25,7 +29,7 @@ import './scriptorium.css';
 type Screen =
   | { kind: 'contents' }
   | { kind: 'tailor' }
-  | { kind: 'folio'; id: string; chain: boolean; autoPlay: boolean };
+  | { kind: 'folio'; id: string; chain: boolean; autoPlay: boolean; arrive?: Arrival };
 
 /** The book that was open before another was opened from a file. */
 const PREVIOUS_KEY = `${SCRIPTORIUM_KEY}:previous`;
@@ -127,9 +131,43 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
     const b = bookRef.current;
     if (b.pages.length <= 1) return;
     const gone = b.pages[index];
-    setBook(withPages(b, b.pages.filter((_, i) => i !== index)));
+    setBook(withPages(b, shutWaysTo(b.pages.filter((_, i) => i !== index), gone.id)));
     audio.play('drop');
     setToast(`“${gone.title}” has been torn out.`);
+  };
+  // ——— ways between folios ———
+  /** Off an edge that leads on: the book turns to the folio beyond, and the traveller comes in by its opposite edge. */
+  const travel = (from: string, edge: Edge, at: { x: number; y: number }, facing: 1 | -1) => {
+    const b = bookRef.current, page = b.pages.find(p => p.id === from), to = page && waysOf(page)[edge];
+    const beyond = to ? b.pages.find(p => p.id === to) : undefined;
+    if (!page || !beyond) return;
+    setBook(x => ({ ...x, activePageId: beyond.id }));
+    go({ kind: 'folio', id: beyond.id, chain: screen.kind === 'folio' && screen.chain, autoPlay: true, arrive: arrivalFrom(edge, at, page, facing) }, edge === 'left' || edge === 'top');
+  };
+  /** Lead an edge on to another folio, or shut it; the way back follows, and the maker is told what became of it. */
+  const linkEdge = (from: string, edge: Edge, to: string | null) => {
+    const b = bookRef.current, { pages, back } = linkWay(b.pages, from, edge, to);
+    if (pages === b.pages) return;
+    setBook(withPages(b, pages));
+    const going = EDGE_WORDS[edge].going, there = EDGE_WORDS[OPPOSITE[edge]].name;
+    if (!to) { setToast(back === 'shut' ? `${going} leads nowhere now, and the way back is shut with it.` : `${going} leads nowhere now.`); return; }
+    const numeral = toRoman(pages.findIndex(p => p.id === to) + 1);
+    setToast(back === 'made' ? `${going} now leads to folio ${numeral}, and ${there} there leads back here.`
+      : back === 'elsewhere' ? `${going} now leads to folio ${numeral}. Its ${there.replace('the ', '')} already leads elsewhere, so this way runs one way only.`
+      : `${going} now leads to folio ${numeral}.`);
+  };
+  /** A new folio bound in beyond an edge, the way there and back made. */
+  const folioOnward = (from: string, edge: Edge) => {
+    const b = bookRef.current;
+    if (b.pages.length >= MAX_PAGES) { setToast(`A book holds at most ${MAX_PAGES} folios.`); return; }
+    const made = folioBeyond(b.pages, from, edge);
+    if (!made) return;
+    setBook(withPages(b, made.pages));
+    setToast(`${EDGE_WORDS[edge].going} now leads to a new folio, ${toRoman(made.pages.findIndex(p => p.id === made.id) + 1)}, bound in after this one, with the way back made.`);
+  };
+  const turnTo = (id: string) => {
+    setBook(b => ({ ...b, activePageId: id }));
+    go({ kind: 'folio', id, chain: false, autoPlay: false });
   };
   const saveBook = () => {
     try { downloadBookProject(bookRef.current); setToast('The book is saved to a file. Open it here, or at the old desk, whenever you like.'); }
@@ -192,6 +230,8 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
       ? () => go({ kind: 'folio', id: next.id, chain, autoPlay: chain })
       : chain ? () => { go({ kind: 'contents' }, true); setToast('Every folio walked, from the first to the last.'); } : undefined;
     body = <MakerFolio key={page.id} page={page} index={folioIndex} traveller={traveller} autoPlay={screen.autoPlay} chain={chain}
+      pages={book.pages} arrival={screen.arrive} onTravel={(edge, at, facing) => travel(page.id, edge, at, facing)}
+      onLink={(edge, to) => linkEdge(page.id, edge, to)} onBeyond={edge => folioOnward(page.id, edge)} onTurn={turnTo}
       onUpdate={updatePage} pictures={pictures} onPutAway={src => { setBook(b => putPictureAway(b, src)); audio.play('drop'); }}
       onWalked={id => setWalked(w => w.has(id) ? w : new Set([...w, id]))}
       onNext={onNext}
@@ -217,8 +257,12 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
 }
 
 /** One of the maker's folios on the shared stage. */
-function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
+function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, onTravel, onLink, onBeyond, onTurn, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
   page: Manuscript; index: number; traveller: Traveller; autoPlay: boolean; chain: boolean;
+  /** The whole book, for choosing where an edge leads; and how the traveller came in, if by a way. */
+  pages: Manuscript[]; arrival?: Arrival;
+  onTravel: (edge: Edge, at: { x: number; y: number }, facing: 1 | -1) => void;
+  onLink: (edge: Edge, to: string | null) => void; onBeyond: (edge: Edge) => void; onTurn: (id: string) => void;
   onUpdate: (id: string, change: (page: Manuscript) => Manuscript) => void;
   /** Every picture of the maker's own in the book, offered in this folio's cabinet. */
   pictures: Array<{ src: string; kept: boolean }>;
@@ -239,6 +283,11 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, picture
   const waterY = typeof scene.waterY === 'number' ? scene.waterY : undefined;
   const brief = scene.brief?.trim() ? scene.brief : DEFAULT_BRIEF;
   const [settings, setSettings] = useState({ open: false, refocus: false });
+  // Each edge that leads on, by the numeral and title of the folio beyond; a way to a folio no longer in the book is passed over.
+  const ways = Object.fromEntries(Object.entries(waysOf(page)).flatMap(([edge, id]) => {
+    const at = pages.findIndex(p => p.id === id);
+    return at < 0 ? [] : [[edge, { numeral: toRoman(at + 1), title: pages[at].title }]];
+  })) as Partial<Record<Edge, { numeral: string; title: string }>>;
   return <FolioStage key={`${screens.wide}x${screens.tall}`}
     free stageKey={id} width={page.width} height={page.height} screens={screens}
     rubric={chain ? `Folio ${toRoman(index + 1)} · walking the whole book` : `Folio ${toRoman(index + 1)} · of your making`}
@@ -256,6 +305,9 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, onUpdate, picture
       open={settings.open} refocus={settings.refocus} onOpen={open => setSettings({ open, refocus: false })}
       onScreens={(wide, tall) => { setSettings({ open: true, refocus: true }); onUpdate(id, p => resizeFolio(p, wide, tall) ?? p); }} />}
     hints={firstTime && screens.wide * screens.tall === 1 ? FIRST_HINTS : undefined}
+    ways={ways} arrival={arrival} onTravel={onTravel}
+    wayCard={(edge, close) => <WayCard edge={edge} page={page} pages={pages} stream={waterY !== undefined} onClose={close}
+      onChoose={to => { close(); onLink(edge, to); }} onBeyond={() => { close(); onBeyond(edge); }} onTurn={to => { close(); onTurn(to); }} />}
     onPlay={() => storage.set(HINTS_KEY, '1')}
     onWin={() => onWalked(id)}
     card={(result, controls) => <SandboxExplicit title={page.title} result={result} onNext={onNext} nextLabel={nextLabel} onAgain={controls.again} onBuild={controls.build} />}
