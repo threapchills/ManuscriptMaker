@@ -709,11 +709,12 @@ const folio12: LevelDef = {
 // the field is the margin's crate. Set down, it is a step too low to matter.
 // Hung high against the keep, its face takes an arrow low enough to leap to
 // from the road, while its top is high enough to leap from to the
-// battlements. The crate comes from the margin large, and the keep is low
-// enough, that this holds over a broad band of heights (its top anywhere
-// from about 290 to 385), not only at one exact place.
+// battlements. The keep is as tall as it must be for the crate alone to
+// fall short (a running leap rises about 170); the crate comes from the
+// margin at nearly its largest, so its face is tall and the climb holds
+// over a broad band of heights, not only at one exact place.
 const f13Keep = (() => {
-  const course = (base: number) => standing('wall-stone-straight', 980, base, 226, { role: 'solid', layer: 'ground' });
+  const course = (base: number) => standing('wall-stone-straight', 980, base, 250, { role: 'solid', layer: 'ground' });
   const a = course(562), b = course(topOf(a)), c = course(topOf(b));
   return [a, b, c];
 })();
@@ -738,8 +739,8 @@ const folio13: LevelDef = {
     ground('meadow-wide', 410, 562, 500),
     ground('meadow-wide', 860, 562, 500),
     ...f13Keep,
-    standing('window-arrow-slit', 980, 506, 40, { layer: 'ground' }),
-    standing('window-arrow-slit', 980, 398, 40, { layer: 'ground' }),
+    standing('window-arrow-slit', 980, 480, 40, { layer: 'ground' }),
+    standing('window-arrow-slit', 980, 360, 40, { layer: 'ground' }),
     standing('wildflowers', 200, 572, 96, { layer: 'front', anim: 'sway' }),
     standing('grass-tuft', 640, 570, 72, { layer: 'front', anim: 'sway' }),
   ],
@@ -748,7 +749,7 @@ const folio13: LevelDef = {
   reached: 'You came to the door on the battlements.',
   // H by a leap from the road; O only from the crate hung against the keep; C on the battlements.
   letters: [{ x: 440, y: 440, glyph: 'H' }, { x: 790, y: 268, glyph: 'O' }, { x: 900, y: f13Top - 60, glyph: 'C' }],
-  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate', width: 140 }],
+  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate', width: 150 }],
   quiver: 1,
   par: 2,
   hints: [

@@ -450,7 +450,7 @@ try {
   // The crate as the margin gives it, dropped roughly against the keep, about two-thirds of the way up: no stretching, no fine adjustment.
   await dropPiece(page, onKeep, 0, 785, 405);
   const crate13 = (await saved(page)).folios['folio-13'].pieces[0];
-  assert.ok(Math.abs(crate13.width - 140) < 1, `the crate lands from the margin large (${crate13.width})`);
+  assert.ok(Math.abs(crate13.width - 150) < 1, `the crate lands from the margin large (${crate13.width})`);
   // From the road, the one arrow into the lower part of its face; then arrow, crate and battlements, by steered leaps.
   await page.keyboard.press('Enter');
   await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);

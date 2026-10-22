@@ -37,7 +37,7 @@ Last updated: 2026-10-22. This file records the user's requested direction, incl
 - [x] The scriptorium's "Drops" lets a piece fall until it meets the ground beneath it (or the stream, or off the page), and its ghost at rest shows where; the fall takes as long as a stone's would (2026-10-22). It had moved a piece down by its own height.
 - [x] A coherent traveller (user priority, 2026-10-22): the character art re-cut (arm pairs, hare paws, the dragon tail without its stray wing, a pair of wings, a hood that is worn over the face) and every part drawn at its painted scale, pinned at joints measured from the art; a marching walk. See `docs/ART_PIPELINE.md`.
 - [x] No castles in the sky (2026-10-22): the distant castles stand behind the hills.
-- [ ] Book III for younger players (user, 2026-10-22: "a step up from Book II, not a cliff"): XIII and XIV eased in the working tree (checks rewritten, not yet run); XV to XVII to review; XVIII shelved until then.
+- [ ] Book III for younger players (user, 2026-10-22: "a step up from Book II, not a cliff"): XIII and XIV eased (XIII: the crate lands large, a band of about 80 instead of 26; XIV: one crate and a parapet); XV to XVII to review; XVIII shelved until then.
 - [x] Crates collide as the boxes they are (2026-10-22): their painted sides stepped out a pixel, a toehold two-thirds of the way down every crate.
 - [x] A bow is drawn with the feet planted (2026-10-22): no arrow is loosed in mid-leap (a shot asked for then waits a moment for the landing), so a vantage a folio asks for must really be built. Jump-shooting can be restored by making `canDraw` always true.
 - [x] The Belfry's parapet now meets the tower's painted face, and its louvre's column fits the louvre; its proofs ran again and hold.
