@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import type { Field } from '../src/engine/field';
-import { addFoothold, aim, ARROW, footholdShape, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
+import { addFoothold, aim, ARROW, canDraw, footholdShape, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
 import { localPoint, posed, swungAbout, workedPose } from '../src/tale/stage/types';
 import type { Arrow } from '../src/engine/archery';
 import { createWorld, stepWorld } from '../src/engine/world';
@@ -64,6 +64,26 @@ describe('archery', () => {
     for (let i = 0; i < 240; i++) stepWorld(w, NO_INPUT);
     expect(w.body.grounded).toBe(true);
     expect(Math.abs(w.body.y + w.body.h - top)).toBeLessThan(3);
+  });
+
+  it('draws a bow only with the feet planted: on the ground or a ladder, never in mid-leap', () => {
+    const f = field(g => fillRect(g, 'ladder', 900, 300, 50, GROUND - 300, 'wood'));
+    const w = createWorld({ field: f, pageWidth: W, pageHeight: H, unit: 1, spawn: { x: 400, y: GROUND }, hitbox: { width: 40, height: 101 }, goals: [] });
+    for (let i = 0; i < 30; i++) stepWorld(w, NO_INPUT);
+    expect(canDraw(w.body)).toBe(true);
+    stepWorld(w, { ...NO_INPUT, jump: true, jumpPressed: true });
+    for (let i = 0; i < 20; i++) stepWorld(w, { ...NO_INPUT, jump: true });
+    expect(w.body.grounded).toBe(false);
+    expect(canDraw(w.body)).toBe(false);
+    for (let i = 0; i < 240; i++) stepWorld(w, NO_INPUT);
+    expect(canDraw(w.body)).toBe(true);
+    // Halfway up a ladder, off the ground, the rungs are footing enough.
+    const climber = createWorld({ field: f, pageWidth: W, pageHeight: H, unit: 1, spawn: { x: 925, y: GROUND }, hitbox: { width: 40, height: 101 }, goals: [] });
+    for (let i = 0; i < 24; i++) stepWorld(climber, NO_INPUT);
+    for (let i = 0; i < 90; i++) stepWorld(climber, { ...NO_INPUT, up: true });
+    expect(climber.body.climbing).toBe(true);
+    expect(climber.body.grounded).toBe(false);
+    expect(canDraw(climber.body)).toBe(true);
   });
 
   it('glances off stone, sinks in water, and makes no ledge of a steep shot', () => {

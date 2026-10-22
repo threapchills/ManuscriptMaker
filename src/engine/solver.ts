@@ -157,6 +157,11 @@ export function solve(spec: SolveSpec, options: { maxNodes?: number; grid?: numb
         const hit = consider(index, play(body, segs), `${run ? `run ${d} ${run}, ` : ''}leap ${d} hold ${hold}${release ? ` steer ${release}` : ''}`);
         if (hit) return hit;
       }
+      for (const rise of [12, 24]) for (const hold of [46, 62]) {
+        // Leap straight up, then steer: clears the edge overhead before drifting onto the step above.
+        const hit = consider(index, play(body, [{ steps: rise, x: 0, jump: true, press: true }, { steps: hold - rise, x: dir, jump: true }, { steps: 200, x: dir, untilGround: true }]), `leap up, then ${d} after ${rise} hold ${hold}`);
+        if (hit) return hit;
+      }
       if (hasLadders) for (const n of CLIMBS) {
         // Climb, then step off to the side, or hop off.
         let hit = consider(index, play(body, [{ steps: n, x: 0, up: true }, { steps: 40, x: dir }]), `climb ${n} then step ${d}`);

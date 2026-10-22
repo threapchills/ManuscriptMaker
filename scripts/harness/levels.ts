@@ -56,7 +56,7 @@ export async function tryLevel(index: number, pieces: PlacedPiece[] = [], second
 export function levelGeometry(index: number) {
   const level: LevelDef = LEVELS[index];
   const box = (p: { asset: string; x: number; y: number; width: number; height: number }) => ({ asset: p.asset, x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height), right: Math.round(p.x + p.width), top: Math.round(topOf(p as never) * 10) / 10 });
-  return { id: level.id, solids: level.scene.filter(p => p.role !== 'scenery').map(box), goal: box(level.goal), letters: level.letters, spawn: level.spawn, quiver: level.quiver, tray: level.tray };
+  return { id: level.id, solids: level.scene.filter(p => p.role !== 'scenery').map(box), goal: box(level.goal), letters: level.letters, targets: level.targets ?? [], spawn: level.spawn, quiver: level.quiver, tray: level.tray };
 }
 (window as unknown as Record<string, unknown>).levelGeometry = levelGeometry;
 (window as unknown as Record<string, unknown>).harnessReady = true;
@@ -293,13 +293,15 @@ export async function oneArrowOpens(index: number, specs: Spec[] = [], opts: { r
 
 /**
  * Whether any one arrow a traveller could really loose would open the folio:
- * from every resting place, and from the top of a full straight leap from
- * each, at every sampled point of every face in `region`, each shot flown by
- * the real rules; every distinct foothold found is then searched. Faithful
- * where `oneArrowOpens` is generous (it lays footholds at tilts no shot can
- * make), so it answers "can one arrow do it?" as a player would.
+ * from every resting place (a bow is drawn with the feet planted), at every
+ * sampled point of every face in `region`, each shot flown by the real
+ * rules; every distinct foothold found is then searched. Faithful where
+ * `oneArrowOpens` is generous (it lays footholds at tilts no shot can make),
+ * so it answers "can one arrow do it?" as a player would. With `leaps`, it
+ * also looses from the top of a full straight leap from each resting place,
+ * which play does not allow: a stricter test, kept for the older proofs.
  */
-export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { region?: { x0: number; x1: number; y0: number; y1: number }; step?: number; above?: number; targets?: boolean } = {}) {
+export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { region?: { x0: number; x1: number; y0: number; y1: number }; step?: number; above?: number; targets?: boolean; leaps?: boolean } = {}) {
   const level: LevelDef = LEVELS[index];
   const images = await loadLevelImages(level, traveller);
   const field = buildLevelField(level, buildPieces(specs), images);
@@ -311,7 +313,7 @@ export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { re
   for (let y = Math.max(1, region.y0); y < Math.min(field.height, region.y1); y += step)
     for (let x = Math.max(1, region.x0); x < Math.min(field.width, region.x1); x++)
       if (wall(x, y) !== wall(x - 1, y)) targets.push({ x: wall(x, y) ? x + .5 : x - .5, y: y + .5 });
-  // Where an archer can loose from: every resting place, and the top of a full leap from it.
+  // Where an archer can loose from: every resting place, and (with `leaps`) the top of a full leap from it.
   const tuning = scaleTuning(1, field.cell, TUNING);
   const vantage: Array<{ x: number; y: number }> = [];
   const places = placesOn(level, field);
@@ -320,6 +322,7 @@ export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { re
   const reach = Math.min(...places.map(p => p.y)) - 175;
   for (const place of places) {
     vantage.push(place);
+    if (!opts.leaps) continue;
     const b = makeBody(field, place.x, place.y, 40, 101);
     let top = { x: place.x, y: place.y };
     for (let i = 0; i < 120; i++) {
@@ -366,3 +369,86 @@ export async function oneShotOpens(index: number, specs: Spec[] = [], opts: { re
   return { id: level.id, opens: false, tried, unreachable, strikes: [...strikes], vantage: vantage.length, targets: targets.length, ms: Math.round(performance.now() - began) };
 }
 (window as unknown as Record<string, unknown>).oneShotOpens = oneShotOpens;
+
+/**
+ * Every place an archer could loose from: each resting place, and (with
+ * `air`) every `every` steps along leaps from it, straight up and running
+ * either way, held long or short. Play draws a bow only with the feet
+ * planted, so `air` asks what a folio would allow if it did not: a measure
+ * of how much the rule matters there. Feet, in page units; deduplicated to
+ * within two units.
+ */
+function vantagesOf(level: LevelDef, field: Field, air: boolean, every = 2) {
+  const tuning = scaleTuning(1, field.cell, TUNING), c = field.cell;
+  const seen = new Set<string>(), out: Array<{ x: number; y: number; air: boolean }> = [];
+  const add = (x: number, y: number, inAir: boolean) => {
+    const key = `${Math.round(x / 2)}:${Math.round(y / 2)}`;
+    if (!seen.has(key)) { seen.add(key); out.push({ x, y, air: inAir }); }
+  };
+  for (const place of placesOn(level, field)) {
+    add(place.x, place.y, false);
+    if (!air) continue;
+    for (const x of [-1, 0, 1]) for (const hold of [62, 30, 14]) {
+      const b = makeBody(field, place.x, place.y, 40, 101);
+      for (let i = 0; i < 150; i++) {
+        stepBody(b, field, { x, up: false, down: false, jump: i < hold, jumpPressed: i === 0 }, STEP, tuning);
+        if (i > 1 && b.grounded) break;
+        if (i % every === 0) add((b.x + b.w / 2) * c, (b.y + b.h) * c, true);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Which targets a shot could strike, and from where: from every vantage
+ * (with `air`, anywhere along a leap too), at every launch angle a bow can
+ * give, sampled every `da` degrees. A bow looses the flatter of the two arcs
+ * through the spot aimed at, so no shot rises steeper than 45°. Only shots
+ * toward a target are tried. `near` keeps vantages within a span of x.
+ */
+export async function targetStrikes(index: number, specs: Spec[] = [], opts: { air?: boolean; da?: number; every?: number; near?: [number, number]; struck?: string[] } = {}) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const struckBefore = new Set(opts.struck ?? []);
+  const field = buildLevelField(level, buildPieces(specs), images, struckBefore, undefined, true);
+  const targets = openTargets(level.targets, struckBefore);
+  const began = performance.now();
+  const vantages = vantagesOf(level, field, !!opts.air, opts.every ?? 2)
+    .filter(v => !opts.near || (v.x >= opts.near[0] && v.x <= opts.near[1]));
+  const da = opts.da ?? .5;
+  const hits: Array<{ id: string; from: { x: number; y: number }; air: boolean; angle: number }> = [];
+  let flights = 0;
+  for (const v of vantages) for (const facing of [-1, 1]) {
+    if (!targets.some(t => Math.sign(t.x - v.x) === facing)) continue;
+    const bow = bowPoint(v, AVATAR_HEIGHT, facing);
+    for (let a = -60; a <= 45; a += da) {
+      const r = a * Math.PI / 180;
+      const arrow: Arrow = { x: bow.x, y: bow.y, vx: facing * ARROW.speed * Math.cos(r), vy: -ARROW.speed * Math.sin(r), state: 'flying', age: 0 };
+      let event: ArrowEvent | null = null;
+      for (let t = 0; t < 3 && !event; t += STEP) event = stepArrow(arrow, field, STEP, { ...PAGE(level.waterY), targets });
+      flights++;
+      if (event?.type === 'target') hits.push({ id: event.id, from: { x: Math.round(v.x), y: Math.round(v.y) }, air: v.air, angle: Math.round(a * 100) / 100 });
+    }
+  }
+  return { id: level.id, vantages: vantages.length, flights, hits, ms: Math.round(performance.now() - began) };
+}
+(window as unknown as Record<string, unknown>).targetStrikes = targetStrikes;
+
+/** For designing: every resting place the search finds on a folio with these pieces. */
+export async function restingPlaces(index: number, specs: Spec[] = []) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  return placesOn(level, buildLevelField(level, buildPieces(specs), images, undefined, undefined, true)).map(p => [p.x, p.y]);
+}
+(window as unknown as Record<string, unknown>).restingPlaces = restingPlaces;
+
+/** What a shot from these feet at that spot strikes, targets included: for mapping where a vantage works. */
+export async function shotFrom(index: number, specs: Spec[], feet: [number, number], at: [number, number]) {
+  const level: LevelDef = LEVELS[index];
+  const images = await loadLevelImages(level, traveller);
+  const field = buildLevelField(level, buildPieces(specs), images, undefined, undefined, true);
+  const { event } = shootFrom(field, { x: feet[0], y: feet[1] }, { x: at[0], y: at[1] }, level.waterY, openTargets(level.targets, new Set()));
+  return event ? `${event.type}${'id' in event ? ` ${event.id}` : ''}${'x' in event ? ` at ${Math.round(event.x)},${Math.round(event.y)}` : ''}` : 'nothing';
+}
+(window as unknown as Record<string, unknown>).shotFrom = shotFrom;

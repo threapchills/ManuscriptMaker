@@ -2,7 +2,60 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (evening) Claude session: the third book begun (read first)
+## 2026-10-22 (night) Claude session: a bow drawn standing, and the Belfry (read first)
+
+The user asked for pushes after each major chunk ("err on the side of pushing more often"), and was told that jump-shooting has been given up and can be restored.
+
+- **A bow is drawn with the feet planted** (`canDraw` and `SHOT_WAIT` in `src/engine/archery.ts`; `PlaySession.loose`).
+  - **The rule.** An arrow is loosed only while the traveller is grounded (on the ground, a ledge or an arrow's shaft) or climbing a ladder.
+  - **In mid-leap.** A click or a lifted finger is held for a quarter of a second and flies as the feet land; otherwise it is let go. While airborne, the aim line is drawn faint.
+  - **Why.** Proving Folio XIV, the harness found that shots loosed mid-leap from the far left of the bare road crested inside the louvre and rang the bell with no crates at all. Any leap is a vantage, so a folio built on "make the place to shoot from" could always be skipped by a lucky jump-shot.
+  - **To undo,** make `canDraw` return true. The proofs that predate the rule still pass with leap vantages included (below).
+  - **Tested.** A unit test checks planted feet on the ground and halfway up a ladder, but not in mid-leap. A scratch browser check found the three cases right: standing looses at once; a click early in a leap is let go; a click just before landing flies on landing.
+- **The level harness** (`scripts/harness/levels.ts`):
+  - `oneShotOpens` looses from resting places only. `leaps: true` adds the top of a full straight leap from each, which is now stricter than play; the five older searches pass it and keep it.
+  - `targetStrikes(index, specs, { air, da, near })` sweeps every launch angle a bow can give (the flatter arc, so never steeper than 45°) from every resting place. With `air`, it also sweeps every few steps along leaps, to measure what a folio would allow without the rule.
+  - New helpers: `restingPlaces`, which lists where the search stands; `shotFrom`, which reports what one shot strikes, targets included; and `levelGeometry`, which now also returns the targets.
+- **The solver** (`src/engine/solver.ts`) gains a move people use: leap straight up, then steer after 12 or 24 steps. Without it, a stair whose upper step must be reached by rising past its edge first was invisible to the search. Every earlier proof still passes with the move added (a full `test:levels` run).
+- **Folio XIV, *The Belfry*** (`folio14` in `src/tale/levels.ts`; tray: two crates; quiver: one arrow; par 3).
+  - **The scene.**
+    - A stone tower at x 274–586: an arch 312 wide with the porter's portcullis, and two courses above that run up off the page.
+    - The louvre is a slot 56 tall (211.4–267.4) between the arch and the courses. The bell hangs deep inside it at (520, 239.4).
+    - A low stone parapet stands before the louvre: `stone-walkway` at x 160–280, its top at 251.4, tinted to the tower's stone.
+    - Striking the bell raises the portcullis 150.
+  - **How it was shaped, in order:**
+    1. As first drawn (a tower 260 wide), mid-leap shots rang the bell bare. This produced the rule above.
+    2. Then a single crate, hung at the far left as high as a leap reaches, gave a standing shot whose rising arc crests just inside the louvre. The window was broad: crate middles from 30 to 170, tops from 395 to 445.
+    3. Raising the louvre (the tower at 1.2×) did not close it, because such arcs may crest beyond the bell.
+    4. A ledge at the sill's own level did close it: an arc cresting in the louvre must clear the ledge, and only one loosed from beyond the page's edge could. But one crate then reached the ledge's outer corner, where the stone dips a little, and a slightly falling shot slipped under the lintel onto the bell's lower edge.
+    5. The ledge was raised 16, into the parapet. A traveller standing on it is too high to shoot under the lintel.
+  - **Proved closed** (`test:levels`):
+    - bare;
+    - to every shot from anywhere a traveller stands on the bare page (0 of 240 angles from each of 60 places);
+    - to one crate wherever it stands: 345 placements at three sizes, hung at six heights from 390 to 460 at 17 places, or set on the road at 13. (A design-time scan of 498 placements found none either.)
+    - to both crates without the bell.
+  - **Proved open three ways:**
+    - two crates as the margin gives them: a step with its middle at 175 and its top at 430, and a vantage with its middle at 30 and its top at 310, which overhangs the page's edge;
+    - a step by the tower, with a small crate hung high at the page's edge;
+    - a small step, with a broad vantage.
+  - **The vantage has its height.** From x 55, a shot aimed at the bell rings it with the feet anywhere from 290 to 335. Lower, it glances off the parapet; higher, off the stone above the louvre.
+  - **What a builder learns** (each found by the solver):
+    - The step must leave the road to the gate open. Set against the tower, or too long to drop past, it walls the traveller off from the raised portcullis.
+    - The vantage crate must not overhang the strip of road where the traveller leaps onto the step, or the head meets crate.
+    - The leap from step to vantage must be taken short of the parapet overhead.
+  - **The letters.** U is in reach from the road. O needs one crate. P lies beyond the gate.
+  - **The hint.** A play-mode marginal hint, "a bow wants firm footing", teaches the new rule. It hangs in the sky above where the vantage is built, at (150, 150).
+  - **Played** (`test:chapter`):
+    - after the Stone Keep, the end card turns the page to the Belfry;
+    - two crates of the margin's size are dragged in and set exactly;
+    - the traveller leaps onto the step, walks to its near end, and leaps up and left onto the vantage;
+    - one click at the bell rings it;
+    - the walk on through the gate wins: "2 pieces and 1 arrow used · par 3", "More folios are being written".
+  - **Known, cosmetic.** The parapet's painted end stops about 13 short of the tower's painted face, leaving a sliver of sky. Closing it moves the parapet, so the proofs must run again. That is next.
+- **Checks run before pushing**: `npm test` (226), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass, each on its first run. The Belfry's hint was then moved into open sky (a crate covered it in the default stair); no check reads a hint's place.
+- **Next**: close the parapet's sliver; then Folio XV, *The Wolf's Ledge*.
+
+## 2026-10-22 (evening) Claude session: the third book begun
 
 The user (2026-10-04): "The third book should be more difficult levels where a precise configuration of placements, as well as shooting is required".
 

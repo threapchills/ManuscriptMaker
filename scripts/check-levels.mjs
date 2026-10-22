@@ -18,11 +18,28 @@ async function searchPage() {
   await searches.waitForFunction(() => window.harnessReady === true, null, { timeout: 20000 });
   return searches;
 }
-const oneArrow8 = (await searchPage()).evaluate(() => window.oneShotOpens(7, [], { region: { x0: 800, x1: 900, y0: 240, y1: 606 }, step: 6 })).catch(e => ({ error: e.message }));
+const oneArrow8 = (await searchPage()).evaluate(() => window.oneShotOpens(7, [], { region: { x0: 800, x1: 900, y0: 240, y1: 606 }, step: 6, leaps: true })).catch(e => ({ error: e.message }));
 // Folio XI's raised drawbridge is timber: does any one foothold anywhere open the way?
-const oneArrow11 = (await searchPage()).evaluate(() => window.oneShotOpens(10, [], { targets: false, region: { x0: 520, x1: 1280, y0: 120, y1: 606 }, step: 6 })).catch(e => ({ error: e.message }));
+const oneArrow11 = (await searchPage()).evaluate(() => window.oneShotOpens(10, [], { targets: false, region: { x0: 520, x1: 1280, y0: 120, y1: 606 }, step: 6, leaps: true })).catch(e => ({ error: e.message }));
 // Folio XIII has no timber but the crate: does any one arrow, with no crate, open the keep?
-const oneArrow13 = (await searchPage()).evaluate(() => window.oneShotOpens(12, [], { region: { x0: 300, x1: 1280, y0: 150, y1: 606 }, step: 8 })).catch(e => ({ error: e.message }));
+const oneArrow13 = (await searchPage()).evaluate(() => window.oneShotOpens(12, [], { region: { x0: 300, x1: 1280, y0: 150, y1: 606 }, step: 8, leaps: true })).catch(e => ({ error: e.message }));
+// Folio XIV: could one crate, wherever a traveller could climb onto it, lend a vantage that rings the bell?
+// Every placement at three sizes, hung at every height a leap reaches or set down on the road, every
+// shot from every place it lets a traveller stand, at every launch angle a bow can give.
+const oneCrate14 = (await searchPage()).evaluate(async () => {
+  const specs = [];
+  for (const w of [57.6, 96, 153.6]) {
+    for (let cx = 20; cx <= 340; cx += 20) for (const y of [390, 400, 410, 420, 440, 460]) specs.push({ top: 'crate-wood', cx, y, w });
+    for (let cx = 20; cx <= 260; cx += 20) specs.push({ stand: 'crate-wood', cx, base: 562, w });
+  }
+  const found = []; let flights = 0;
+  for (const spec of specs) {
+    const r = await window.targetStrikes(13, [spec], { da: .25 });
+    flights += r.flights;
+    if (r.hits.length) found.push({ spec, hit: r.hits[0] });
+  }
+  return { configs: specs.length, flights, found };
+}).catch(e => ({ error: e.message }));
 const run = (i, pieces = []) => page.evaluate(([i, p]) => window.tryLevel(i, p), [i, pieces]);
 const P = (asset, x, y, width, ratio) => ({ id: asset + x, asset, x, y, width, height: width * ratio, rotation: 0, flipX: false, flipY: false });
 const plank = 75 / 197, bridge = 115 / 263;
@@ -186,7 +203,7 @@ try {
   // Arrows alone: stone turns them, and the timber begins past any leap, so no
   // arrow anywhere lifts the traveller off the road; and as no step can be stood
   // on, no number of arrows can either.
-  const lift9 = await page.evaluate(() => window.oneShotOpens(8, [], { region: { x0: 760, x1: 1060, y0: 140, y1: 562 }, step: 6, above: 345 }));
+  const lift9 = await page.evaluate(() => window.oneShotOpens(8, [], { region: { x0: 760, x1: 1060, y0: 140, y1: 562 }, step: 6, above: 345, leaps: true }));
   assert.ok(!lift9.opens, `no arrow lifts the traveller up Folio IX's tower (${JSON.stringify(lift9.at ?? {})})`);
   const glance = await page.evaluate(() => window.previewShot(8, [], [300, 556], [799, 450]));
   assert.equal(glance.event?.type, 'glance', 'an arrow loosed at the tower’s stone glances off');
@@ -212,7 +229,7 @@ try {
   // Folio X, the first target: a gatehouse shut by a portcullis, opened by the bell in the oak.
   const bare10 = await solved(9);
   assert.ok(!bare10.solved, `Folio X cannot be passed with the gate down (${note(bare10)}; furthest ${bare10.furthest})`);
-  const feet10 = await page.evaluate(() => window.oneShotOpens(9, [], { targets: false, region: { x0: 0, x1: 1280, y0: 150, y1: 600 }, step: 8 }));
+  const feet10 = await page.evaluate(() => window.oneShotOpens(9, [], { targets: false, region: { x0: 0, x1: 1280, y0: 150, y1: 600 }, step: 8, leaps: true }));
   assert.ok(!feet10.opens, `no foothold opens Folio X: only the bell does (${JSON.stringify(feet10.at ?? {})})`);
   const iron = await page.evaluate(() => window.previewShot(9, [], [300, 556], [860, 480]));
   assert.equal(iron.event?.type, 'glance', 'an arrow loosed at the portcullis rings off the iron');
@@ -322,6 +339,44 @@ try {
     assert.equal(crateReach.solved, crateToo, `Folio XIII's letter ${i + 1} ${crateToo ? 'is' : 'is not'} within reach of the crate hung without the arrow`);
   }
 
+  // Folio XIV: the porter's bell hangs deep in the belfry's louvre, behind a low parapet. A bow is
+  // drawn with the feet planted, and only a level shot from the louvre's own height rings it: a
+  // vantage built of both crates, short of the parapet, with the road to the gate left open.
+  const bare14 = await solved(13);
+  assert.ok(!bare14.solved, `Folio XIV cannot be passed bare (${note(bare14)})`);
+  const road14 = await page.evaluate(() => window.targetStrikes(13, [], { da: .25 }));
+  assert.equal(road14.hits.length, 0, `no shot from anywhere a traveller stands on the bare page rings Folio XIV's bell (${JSON.stringify(road14.hits[0] ?? {})})`);
+  const bell14 = (await page.evaluate(() => window.levelGeometry(13))).targets.find(t => t.id === 'bell');
+  const at14 = [bell14.x, bell14.y];
+  const plan14 = [{ top: 'crate-wood', cx: 175, y: 430, w: 96 }, { top: 'crate-wood', cx: 30, y: 310, w: 96 }];
+  const shot14 = { from: [55, 310], at: at14 };
+  for (const [label, specs, shot] of [
+    ['two crates as the margin gives them: a step by the tower, a vantage at the page’s edge', plan14, shot14],
+    ['a step by the tower and a small crate hung high at the page’s edge', [{ top: 'crate-wood', cx: 173, y: 430, w: 96 }, { top: 'crate-wood', cx: 29, y: 305, w: 57.6 }], { from: [29, 305], at: at14 }],
+    ['a small step and a broad vantage', [{ top: 'crate-wood', cx: 160, y: 425, w: 57.6 }, { top: 'crate-wood', cx: 40, y: 300, w: 120 }], { from: [74, 300], at: at14 }],
+  ]) {
+    const r = await shots(13, specs, [shot]);
+    assert.ok(r.solved, `Folio XIV opened with ${label} (${r.failed ?? note(r)})`);
+    assert.equal(r.loosed[0].event?.id, 'bell', `${label}: the arrow rings the bell`);
+    console.log(`  folio XIV · ${label}: ${note(r)}`);
+  }
+  const noBell14 = await solved(13, plan14);
+  assert.ok(!noBell14.solved, `Folio XIV's crates without the bell do not pass the gate (${note(noBell14)})`);
+  // The vantage has its height: from the same place a little lower or higher, the aimed shot meets stone.
+  for (const [feet, rings] of [[310, true], [350, false], [280, false]]) {
+    const struck = await page.evaluate(([f, at]) => window.shotFrom(13, [], [55, f], at), [feet, at14]);
+    assert.equal(struck.startsWith('target bell'), rings, `a shot aimed at the bell from feet at ${feet} ${rings ? 'rings it' : 'does not'} (${struck})`);
+  }
+  for (const [i, bareToo, crateToo] of [[0, false, true], [1, false, false], [2, true, true]]) {
+    const oneCrate = [{ top: 'crate-wood', cx: 200, y: 420, w: 96 }];
+    const bareReach = await page.evaluate(i => window.solveShots(13, [], [], { letter: i }), i);
+    const crateReach = await page.evaluate(([s, i]) => window.solveShots(13, s, [], { letter: i }), [oneCrate, i]);
+    const full = await page.evaluate(([s, l, i]) => window.solveShots(13, s, l, { letter: i }), [plan14, [shot14], i]);
+    assert.ok(full.solved, `Folio XIV's letter ${i + 1} can be gathered on the way`);
+    assert.equal(bareReach.solved, bareToo, `Folio XIV's letter ${i + 1} ${bareToo ? 'is' : 'is not'} within reach bare`);
+    assert.equal(crateReach.solved, crateToo, `Folio XIV's letter ${i + 1} ${crateToo ? 'is' : 'is not'} within reach of one crate`);
+  }
+
   // For the record, not a rule: can one crate hung at the very edge of a leap do it?
   for (const top of [412, 404]) {
     const r = await solved(2, [{ top: 'crate-wood', cx: 700, y: top, ...crate }]);
@@ -336,6 +391,9 @@ try {
   const one13 = await oneArrow13;
   assert.ok(!one13.error && !one13.opens, `no arrow alone opens Folio XIII (${one13.error ?? JSON.stringify(one13.at ?? {})})`);
   console.log(`  folio XIII · no arrow alone opens it: ${one13.tried} distinct footholds from ${one13.vantage} vantage points`);
+  const one14 = await oneCrate14;
+  assert.ok(!one14.error && one14.found.length === 0, `no single crate lends a vantage on Folio XIV's bell (${one14.error ?? JSON.stringify(one14.found[0] ?? {})})`);
+  console.log(`  folio XIV · no single crate rings the bell: ${one14.configs} placements, ${one14.flights} shots`);
   assert.deepEqual(errors, []);
-  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold; folio VIII closed bare and to every single arrow, climbed three ways with two and as a stair of three, no foothold loosed upward from a step at the bank’s foot, and its letters placed as meant; folio IX closed bare, to the crate alone and to arrows alone, stone glancing, climbed three ways with crate and arrows, letters as meant; folio X shut to every foothold, the portcullis turning arrows, opened by the bell from two places, letters as meant; folio XI shut with the bridge up and to every single foothold, the bell hidden until the bridge falls, crossed two ways by the butt and the bell, letters as meant; folio XII shut bare and while the wolf keeps the road, the wolf hidden from the road by the palisade and shot dead from its top two ways, letters as meant; folio XIII closed bare, to the crate alone wherever it hangs, to the arrow alone, to the crate set down as a step and to the crate hung beyond the arrow, climbed three ways with the crate hung against the keep and an arrow in its face, letters as meant');
+  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold; folio VIII closed bare and to every single arrow, climbed three ways with two and as a stair of three, no foothold loosed upward from a step at the bank’s foot, and its letters placed as meant; folio IX closed bare, to the crate alone and to arrows alone, stone glancing, climbed three ways with crate and arrows, letters as meant; folio X shut to every foothold, the portcullis turning arrows, opened by the bell from two places, letters as meant; folio XI shut with the bridge up and to every single foothold, the bell hidden until the bridge falls, crossed two ways by the butt and the bell, letters as meant; folio XII shut bare and while the wolf keeps the road, the wolf hidden from the road by the palisade and shot dead from its top two ways, letters as meant; folio XIII closed bare, to the crate alone wherever it hangs, to the arrow alone, to the crate set down as a step and to the crate hung beyond the arrow, climbed three ways with the crate hung against the keep and an arrow in its face, letters as meant; folio XIV closed bare, to every shot from the road and to one crate wherever it stands, its bell rung from a vantage of two crates three ways, the vantage’s height mattering, letters as meant');
 } finally { await browser.close(); }

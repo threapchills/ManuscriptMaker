@@ -755,6 +755,75 @@ const folio13: LevelDef = {
   ],
 };
 
+// ——— Folio XIV: the belfry ———
+// The porter's gate is shut by a portcullis, and the bell that wakes him
+// hangs deep within the belfry's louvre: an opening through the stone no
+// taller than an arrow's flight can wander, which only a shot flying level
+// will thread. A bow is drawn with the feet planted, so the vantage must be
+// built from the margin's two crates, at the louvre's own height. The louvre
+// stands so high that an arc from the road, or from one crate hung as high
+// as a leap will carry, could thread it only if loosed from beyond the
+// page's edge; and the tower runs up out of the page, so the crates cannot
+// carry anyone over it instead.
+const F14_W = 312;
+const f14Gate = standing('wall-arch-opening', 430, 562, F14_W, { role: 'solid', layer: 'ground', block: true });
+const f14Sill = topOf(f14Gate);
+const f14Lintel = f14Sill - 56;
+const f14Portcullis = (() => {
+  const p = piece('door-portcullis', 312, 299, 236, { role: 'solid', layer: 'mid', block: true, clip: 'inset(20% 17% 3% 17%)' });
+  return { ...p, works: { by: 'bell', x: p.x, y: p.y - 150, rotation: 0 } };
+})();
+const f14Upper = (() => {
+  const a = standing('wall-stone-straight', 430, f14Lintel, F14_W, { role: 'solid', layer: 'ground' });
+  return [a, standing('wall-stone-straight', 430, topOf(a), F14_W, { role: 'solid', layer: 'ground' })];
+})();
+const folio14: LevelDef = {
+  id: 'folio-14', numeral: 14, title: 'The Belfry',
+  brief: 'The porter sleeps until his bell is rung, and his bell hangs deep within the louvre, where only an arrow flying level will find it. Wake him, and pass his gate.',
+  sky: 'day',
+  scene: [
+    piece('sun-gold', 980, 60, 100, { layer: 'far', anim: 'turn' }),
+    piece('cloud-bank', 640, 80, 300, { layer: 'far', anim: 'drift', opacity: .9 }),
+    piece('cloud-curl', 1080, 170, 150, { layer: 'far', anim: 'drift', opacity: .85 }),
+    piece('hills-blue', -60, 330, 780, { layer: 'far', opacity: .9 }),
+    piece('hills-blue', 600, 340, 760, { layer: 'far', opacity: .85, flipX: true }),
+    piece('forest-line', -20, 404, 660, { layer: 'far' }),
+    piece('forest-line', 640, 408, 680, { layer: 'far', flipX: true }),
+    standing('leafy-grove', 860, 568, 300, { layer: 'mid' }),
+    standing('pine-single', 1230, 566, 96, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    // The shadowed belfry within, seen through the louvre.
+    piece('wall-stone-straight', 430 - F14_W / 2, f14Lintel - 24, F14_W, { layer: 'mid', filter: 'brightness(.28) saturate(.6)' }),
+    f14Portcullis,
+    // Before the louvre runs a low stone parapet. An arc that crests within the louvre must
+    // clear it, and only one loosed from beyond the page's edge could; one who stands on it is
+    // too high to shoot under the lintel. So the bell is rung by a level shot from the louvre's
+    // own height, loosed from beyond the parapet.
+    ground('stone-walkway', 160, f14Sill - 16, 120, { role: 'solid', layer: 'ground', filter: 'saturate(.3) sepia(.25) brightness(1.22)' }),
+    f14Gate,
+    ...f14Upper,
+    standing('column-stone', 430 + F14_W / 2 - 15, f14Sill, 30, { role: 'solid', layer: 'ground' }),
+    standing('wildflowers', 680, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 1020, 570, 72, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('signpost-blank', 1196, 566, 92, { role: 'goal', layer: 'ground' }),
+  reached: 'You passed the porter’s gate.',
+  // U by a leap from the road; O only from a crate; P only beyond the gate.
+  letters: [{ x: 120, y: 250, glyph: 'O' }, { x: 760, y: 440, glyph: 'P' }, { x: 230, y: 452, glyph: 'U' }],
+  targets: [{ id: 'bell', x: 520, y: f14Sill - 28, kind: 'bell' }],
+  tray: [{ asset: 'crate-wood', count: 2, role: 'solid', name: 'Crate' }],
+  quiver: 1,
+  par: 3,
+  hints: [
+    { x: 150, y: 150, text: 'a bow wants firm footing', mode: 'play', point: 'down' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -794,8 +863,8 @@ export const BOOKS: BookDef[] = [
     intro: 'Beyond the greenwood the road narrows between walls of stone. Here nothing is given twice: each piece must stand exactly where it is wanted, and each arrow fly true.',
     motto: 'HOC OPUS HIC LABOR EST',
     explicit: { rubric: 'Explicit liber tertius', line: 'The third book is ended. Hoc opus, hic labor est.' },
-    levels: [folio13],
-    coming: [{ numeral: 14, title: 'The Belfry' }, { numeral: 15, title: 'The Wolf’s Ledge' }, { numeral: 16, title: 'The Gorge' }, { numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
+    levels: [folio13, folio14],
+    coming: [{ numeral: 15, title: 'The Wolf’s Ledge' }, { numeral: 16, title: 'The Gorge' }, { numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
   },
 ];
 

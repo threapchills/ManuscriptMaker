@@ -55,6 +55,15 @@ export const openTargets = (targets: Target[] | undefined, struck: { has: (id: s
 /** How near the centre an arrow must pass to strike a target (page units at a 720 page). */
 export const TARGET_RADIUS = 24;
 
+/**
+ * A bow is drawn with the feet planted: on the ground, a ledge or an arrow's
+ * shaft, or on a ladder's rungs; never in mid-leap. So a vantage is a place
+ * to stand, and a folio that asks for one cannot be skipped with a leap.
+ */
+export const canDraw = (body: { grounded: boolean; climbing: boolean }): boolean => body.grounded || body.climbing;
+/** How long a shot asked for in mid-leap waits for the feet to land before it is let go (seconds). */
+export const SHOT_WAIT = .25;
+
 /** Soft things take an arrow; stone and water do not. */
 export const STICKS: Partial<Record<Material, boolean>> = { wood: true, earth: true, grass: true, hay: true, leaves: true, cloth: true };
 export const takesArrow = (material: Material | undefined) => material === undefined || !!STICKS[material];

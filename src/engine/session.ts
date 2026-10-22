@@ -12,7 +12,7 @@ import { alive, beastRect, drawBeast, makeBeast, slay, stepBeast } from './beast
 import { audio } from './audio';
 import type { Arrow, Target } from './archery';
 import type { Edge } from './ways';
-import { addFoothold, bowPoint, drawAim, drawArrow, drawTarget, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, trajectory } from './archery';
+import { addFoothold, bowPoint, canDraw, drawAim, drawArrow, drawTarget, loose, openTargets, restorePlatforms, snapshotPlatforms, SHOT_WAIT, stepArrow, trajectory } from './archery';
 
 export interface SessionSpec {
   field: Field;
@@ -80,6 +80,8 @@ export class PlaySession {
   /** The stretch of the page in view, for setting sounds left and right: the whole page, unless a camera moves over a big folio. */
   view: { x: number; width: number } | null = null;
   private bowAt = -10;
+  /** A shot asked for in mid-leap: loosed if the feet land within a moment, else let go. */
+  private waiting: { x: number; y: number; at: number } | null = null;
   /** The walkable masks before any arrow, to wipe footholds away when a run begins again. */
   private platforms: ReturnType<typeof snapshotPlatforms>;
   /** The collision a run begins with, before anything a target works has moved. */
@@ -142,7 +144,7 @@ export class PlaySession {
   }
 
   private refillQuiver(): void {
-    this.arrows = []; this.quiver = this.spec.quiver ?? 0; this.loosed = 0;
+    this.arrows = []; this.quiver = this.spec.quiver ?? 0; this.loosed = 0; this.waiting = null;
     this.callbacks.onArrows?.(this.quiver, 0);
   }
 
@@ -152,9 +154,14 @@ export class PlaySession {
     return bowPoint({ x: (b.x + b.w / 2) * c, y: (b.y + b.h) * c }, this.spec.avatarHeight, facing, this.spec.unit);
   }
 
-  /** Loose an arrow at a spot in the picture, if there is one to loose. */
+  /**
+   * Loose an arrow at a spot in the picture, if there is one to loose. Asked
+   * for in mid-leap, the shot waits a moment for the feet to land.
+   */
   loose(x: number, y: number): boolean {
     if (this.frozen || this.world.phase !== 'playing' || this.quiver <= 0) return false;
+    if (!canDraw(this.world.body)) { this.waiting = { x, y, at: this.time }; return true; }
+    this.waiting = null;
     const b = this.world.body, c = this.spec.field.cell;
     const facing = x < (b.x + b.w / 2) * c ? -1 : 1;
     b.facing = facing;
@@ -214,6 +221,11 @@ export class PlaySession {
     } else this.alpha = 1;
     const dt = Math.min(.05, seconds);
     this.time += dt;
+    if (this.waiting) {
+      const w = this.waiting;
+      if (this.frozen || this.world.phase !== 'playing' || this.time - w.at > SHOT_WAIT) this.waiting = null;
+      else if (canDraw(this.world.body)) this.loose(w.x, w.y);
+    }
     const b = this.world.body;
     const speed = Math.min(1, Math.abs(b.vx) / Math.max(1, this.world.tuning.runSpeed));
     // The walk cycle is driven by distance so feet never skate.
@@ -466,7 +478,11 @@ export class PlaySession {
     // The dotted line of the next shot, and the bow as it is drawn and loosed.
     if (this.aimAt && !this.frozen && this.quiver > 0 && world.phase === 'playing') {
       const facing = this.aimAt.x < feet.x ? -1 : 1;
+      // In mid-leap the bow cannot be drawn: the line of the shot waits, faint, for the feet to land.
+      context.save();
+      if (!canDraw(b)) context.globalAlpha = .28;
       drawAim(context, trajectory(this.bowPoint(facing), this.aimAt, spec.field, this.arrowPage()), unit, this.time, unit * this.markScale);
+      context.restore();
     }
     const sinceBow = this.time - this.bowAt;
     if (sinceBow < .45 && alpha > 0) drawBow(context, this.bowPoint(b.facing), b.facing, unit, Math.max(0, 1 - sinceBow / .45));
