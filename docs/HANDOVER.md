@@ -21,7 +21,7 @@ The user asked for pushes after each major chunk ("err on the side of pushing mo
   - **The scene.**
     - A stone tower at x 274–586: an arch 312 wide with the porter's portcullis, and two courses above that run up off the page.
     - The louvre is a slot 56 tall (211.4–267.4) between the arch and the courses. The bell hangs deep inside it at (520, 239.4).
-    - A low stone parapet stands before the louvre: `stone-walkway` at x 160–280, its top at 251.4, tinted to the tower's stone.
+    - A low stone parapet stands before the louvre: `stone-walkway` at x 160–292, its top at 251.4, tinted to the tower's stone. Its paint ends about 12 short of its box, so at 132 wide it meets the tower's painted face (about 288); at first it was 120 wide and left a sliver of sky.
     - Striking the bell raises the portcullis 150.
   - **How it was shaped, in order:**
     1. As first drawn (a tower 260 wide), mid-leap shots rang the bell bare. This produced the rule above.
@@ -51,9 +51,13 @@ The user asked for pushes after each major chunk ("err on the side of pushing mo
     - the traveller leaps onto the step, walks to its near end, and leaps up and left onto the vantage;
     - one click at the bell rings it;
     - the walk on through the gate wins: "2 pieces and 1 arrow used · par 3", "More folios are being written".
-  - **Known, cosmetic.** The parapet's painted end stops about 13 short of the tower's painted face, leaving a sliver of sky. Closing it moves the parapet, so the proofs must run again. That is next.
+  - **Polished after the first push** (second push of the session):
+    - The parapet was widened to 132, as above.
+    - The louvre's jamb column (`column-stone`, 22.4 wide, middle at 560) is now exactly as tall as the louvre and stands inside the tower's painted face. It had stood 75 tall, its capital lapping onto the course above, and jutted 12 past the tower.
+    - `test:levels`, `test:solidity`, `npm test` and the build passed again with both changes. The vantage map is unchanged.
+    - `test:chapter` failed once on its own playthrough: the first leap held "right" until landing, so it sometimes sailed over the step. The check now lets go of the steering as the feet rise past the step's top. A scratch copy of the Belfry's steps won 4 of 4, and the full check passed after it.
 - **Checks run before pushing**: `npm test` (226), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass, each on its first run. The Belfry's hint was then moved into open sky (a crate covered it in the default stair); no check reads a hint's place.
-- **Next**: close the parapet's sliver; then Folio XV, *The Wolf's Ledge*.
+- **Next**: Folio XV, *The Wolf's Ledge*. The plan: a wolf's den on a ledge under a stone overhang, across a gorge. A plank and a crate make a vantage at the ledge's height, standing far enough from the den's mouth that the charging wolf cannot reach it, yet near enough to leap across once it is dead. The precision is a window of distance as well as of height.
 
 ## 2026-10-22 (evening) Claude session: the third book begun
 

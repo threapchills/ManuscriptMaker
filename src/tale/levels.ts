@@ -803,10 +803,10 @@ const folio14: LevelDef = {
     // clear it, and only one loosed from beyond the page's edge could; one who stands on it is
     // too high to shoot under the lintel. So the bell is rung by a level shot from the louvre's
     // own height, loosed from beyond the parapet.
-    ground('stone-walkway', 160, f14Sill - 16, 120, { role: 'solid', layer: 'ground', filter: 'saturate(.3) sepia(.25) brightness(1.22)' }),
+    ground('stone-walkway', 160, f14Sill - 16, 132, { role: 'solid', layer: 'ground', filter: 'saturate(.3) sepia(.25) brightness(1.22)' }),
     f14Gate,
     ...f14Upper,
-    standing('column-stone', 430 + F14_W / 2 - 15, f14Sill, 30, { role: 'solid', layer: 'ground' }),
+    standing('column-stone', 560, f14Sill, 22.4, { role: 'solid', layer: 'ground' }),
     standing('wildflowers', 680, 572, 96, { layer: 'front', anim: 'sway' }),
     standing('grass-tuft', 1020, 570, 72, { layer: 'front', anim: 'sway' }),
   ],

@@ -506,19 +506,20 @@ try {
   await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
   const feet14 = () => page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { x: (b.x + b.w / 2) * s.spec.field.cell, y: (b.y + b.h) * s.spec.field.cell, grounded: b.grounded }; });
   const landed14 = () => page.waitForFunction(() => window.__playSession.world.body.grounded, null, { timeout: 4000 });
-  // Up onto the step from the road, steering right against its face until it lands on top.
+  // Up onto the step from the road: a full leap steering right against its face, and the steering let
+  // go as the feet rise past its top, so the traveller comes down on it rather than sailing over.
   await page.keyboard.down('ArrowRight');
   await page.keyboard.down('Space');
-  await page.waitForFunction(() => !window.__playSession.world.body.grounded, null, { timeout: 2000 });
-  await page.waitForTimeout(420);
+  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return (b.y + b.h) * s.spec.field.cell < 424; }, null, { timeout: 3000, polling: 'raf' });
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(250);
   await page.keyboard.up('Space');
   await landed14();
-  await page.keyboard.up('ArrowRight');
   await page.waitForTimeout(300);
   assert.ok(Math.abs((await feet14()).y - 430) < 8, `a leap from the road stands the traveller on the step (${JSON.stringify(await feet14())})`);
   // Along it to its near end, clear of the parapet overhead.
   await page.keyboard.down('ArrowLeft');
-  await page.waitForFunction(() => window.__playSession.probe(0).x < 140, null, { timeout: 4000 });
+  await page.waitForFunction(() => window.__playSession.probe(0).x < 148, null, { timeout: 4000, polling: 'raf' });
   await page.keyboard.up('ArrowLeft');
   await page.waitForTimeout(300);
   // Up and over onto the vantage: a leap straight up, steering left once clear of its edge.
