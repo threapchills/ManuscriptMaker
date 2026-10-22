@@ -44,16 +44,24 @@ export type ArrowEvent =
   | { type: 'gone' };
 
 /**
- * A painted butt (or a bell): struck by an arrow, it sets something on the
- * page working. With `after`, it is hidden until that target has been struck
- * (a bell the raised drawbridge stood in front of).
+ * A painted butt, a bell, or a rope to cut: struck by an arrow, it sets
+ * something on the page working. With `after`, it is hidden until that
+ * target has been struck (a bell the raised drawbridge stood in front of).
+ * A rope runs along `rope`, from where it is made fast, through any
+ * pulleys, to what it holds; its knot, the place to cut it, is at (x, y).
  */
-export interface Target { id: string; x: number; y: number; kind?: 'butt' | 'bell'; after?: string }
+export type TargetKind = 'butt' | 'bell' | 'rope';
+export interface Target { id: string; x: number; y: number; kind?: TargetKind; after?: string; rope?: Array<[number, number]> }
 /** The targets an arrow can strike now: not yet struck, and not still hidden. */
 export const openTargets = (targets: Target[] | undefined, struck: { has: (id: string) => boolean }): Target[] =>
   (targets ?? []).filter(t => !struck.has(t.id) && (!t.after || struck.has(t.after)));
 /** How near the centre an arrow must pass to strike a target (page units at a 720 page). */
 export const TARGET_RADIUS = 24;
+/** A rope is thin: an arrow must pass this near its knot to cut it. */
+export const ROPE_RADIUS = 13;
+export const reachOf = (t: Target): number => t.kind === 'rope' ? ROPE_RADIUS : TARGET_RADIUS;
+/** The way a rope runs, from where it is made fast to what it holds: when its folio does not say, straight down through its knot. */
+export const ropePath = (t: Target, unit = 1): Array<[number, number]> => t.rope && t.rope.length >= 2 ? t.rope : [[t.x, t.y - 64 * unit], [t.x, t.y + 44 * unit]];
 
 /**
  * A bow is drawn with the feet planted: on the ground, a ledge or an arrow's
@@ -122,8 +130,12 @@ export function stepArrow(a: Arrow, f: Field, dt: number, page: { width: number;
     if (a.x < -60 || a.x > page.width + 60 || a.y > page.height + 60 || a.y < -page.height) { a.state = 'gone'; return { type: 'gone' }; }
     if (page.waterY !== undefined && a.y >= page.waterY + 4) { a.state = 'sunk'; a.age = 0; return { type: 'sink', x: a.x, y: page.waterY }; }
     if (page.targets?.length) {
-      const reach = TARGET_RADIUS * page.unit;
-      const target = page.targets.find(t => (a.x - t.x) ** 2 + (a.y - t.y) ** 2 <= reach * reach);
+      const target = page.targets.find(t => (a.x - t.x) ** 2 + (a.y - t.y) ** 2 <= (reachOf(t) * page.unit) ** 2);
+      if (target?.kind === 'rope') {
+        // A rope parts and the arrow tumbles on, spent.
+        a.state = 'glancing'; a.age = 0; a.vx *= .35; a.vy = Math.min(a.vy * .3, -120 * page.unit);
+        return { type: 'target', id: target.id, x: a.x, y: a.y };
+      }
       if (target) {
         const len = Math.hypot(a.vx, a.vy) || 1;
         a.state = 'stuck'; a.age = 0;
@@ -310,6 +322,7 @@ export function drawAim(c: CanvasRenderingContext2D, path: ReturnType<typeof tra
  */
 export function drawTarget(c: CanvasRenderingContext2D, t: Target, unit: number, time: number, struckFor: number): void {
   if (t.kind === 'bell') { drawBell(c, t, unit, time, struckFor); return; }
+  if (t.kind === 'rope') { drawRope(c, t, unit, time, struckFor); return; }
   const r = TARGET_RADIUS * unit;
   const swing = struckFor >= 0 ? Math.sin(struckFor * 14) * Math.exp(-struckFor * 3) * .35 : Math.sin(time * 1.3 + t.x) * .03;
   c.save();
@@ -338,6 +351,128 @@ export function drawTarget(c: CanvasRenderingContext2D, t: Target, unit: number,
   c.strokeStyle = 'rgba(150, 110, 40, .55)'; c.lineWidth = .8 * unit;
   for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(a) * r * .8, Math.sin(a) * r * .8); c.lineTo(Math.cos(a) * r * .88, Math.sin(a) * r * .88); c.stroke(); }
   c.restore();
+}
+
+/** A twisted length of hemp from `from` to `to`, its lay drawn as slanting strands. */
+function hemp(c: CanvasRenderingContext2D, from: [number, number], to: [number, number], unit: number, alpha = 1): void {
+  const [x0, y0] = from, [x1, y1] = to, len = Math.hypot(x1 - x0, y1 - y0);
+  if (len < 1) return;
+  const ux = (x1 - x0) / len, uy = (y1 - y0) / len, w = 2.4 * unit;
+  c.save();
+  c.globalAlpha *= alpha;
+  c.lineCap = 'round';
+  c.strokeStyle = '#5a3d1c'; c.lineWidth = 4.4 * unit;
+  c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+  c.strokeStyle = '#b48a4e'; c.lineWidth = 2.6 * unit;
+  c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+  // The lay of the strands: short slanting strokes all along it.
+  c.strokeStyle = 'rgba(70, 45, 18, .7)'; c.lineWidth = 1 * unit;
+  for (let d = 3 * unit; d < len - 2 * unit; d += 4.5 * unit) {
+    const cx = x0 + ux * d, cy = y0 + uy * d;
+    c.beginPath(); c.moveTo(cx - uy * w - ux * 1.6 * unit, cy + ux * w - uy * 1.6 * unit); c.lineTo(cx + uy * w + ux * 1.6 * unit, cy - ux * w + uy * 1.6 * unit); c.stroke();
+  }
+  c.restore();
+}
+
+/** Loose fibres at a cut end, splaying the way the rope was pulled. */
+function frayed(c: CanvasRenderingContext2D, x: number, y: number, dir: number, unit: number, alpha = 1): void {
+  c.save();
+  c.globalAlpha *= alpha;
+  c.strokeStyle = '#c9a466'; c.lineWidth = .9 * unit; c.lineCap = 'round';
+  for (let i = -3; i <= 3; i++) { c.beginPath(); c.moveTo(x, y); c.lineTo(x + i * 1.5 * unit, y + dir * (5 + Math.abs(i % 2) * 2.5) * unit); c.stroke(); }
+  c.restore();
+}
+
+/** An iron-bound pulley block, its sheave turning as the rope runs. */
+function pulley(c: CanvasRenderingContext2D, x: number, y: number, unit: number, turn: number): void {
+  const r = 8 * unit;
+  c.save();
+  c.translate(x, y);
+  c.fillStyle = '#5b3b1c'; c.strokeStyle = '#2b1a0c'; c.lineWidth = 1.2 * unit;
+  c.beginPath(); c.roundRect(-r * 1.15, -r * 1.6, r * 2.3, r * 2.7, r * .5); c.fill(); c.stroke();
+  c.fillStyle = '#9a9187'; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.rotate(turn);
+  c.strokeStyle = '#4a443d'; c.lineWidth = 1.4 * unit;
+  for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; c.beginPath(); c.moveTo(Math.cos(a) * r * .85, Math.sin(a) * r * .85); c.lineTo(-Math.cos(a) * r * .85, -Math.sin(a) * r * .85); c.stroke(); }
+  c.fillStyle = '#2b1a0c'; c.beginPath(); c.arc(0, 0, r * .22, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+
+/** Where a path of points is, `d` along it from its start. */
+function along(path: Array<[number, number]>, d: number): { point: [number, number]; index: number } {
+  for (let i = 0; i < path.length - 1; i++) {
+    const [x0, y0] = path[i], [x1, y1] = path[i + 1], len = Math.hypot(x1 - x0, y1 - y0);
+    if (d <= len || i === path.length - 2) { const k = len ? Math.min(1, Math.max(0, d / len)) : 0; return { point: [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k], index: i }; }
+    d -= len;
+  }
+  return { point: path[path.length - 1], index: path.length - 2 };
+}
+
+/**
+ * A rope run from where it is made fast, through any pulleys, to what it
+ * holds, its knot at (x, y) the place to cut it. Cut, it parts at the knot:
+ * the made-fast end springs back, fraying, and the rest runs out through the
+ * pulleys and falls away with whatever it held.
+ */
+function drawRope(c: CanvasRenderingContext2D, t: Target, unit: number, time: number, struckFor: number): void {
+  const path = ropePath(t, unit);
+  // Which length of the rope the knot is on, and how far along the rope it lies.
+  let k = 0, best = Infinity, before = 0, knotAt = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    const [x0, y0] = path[i], [x1, y1] = path[i + 1], len = Math.hypot(x1 - x0, y1 - y0) || 1;
+    const s = Math.max(0, Math.min(1, ((t.x - x0) * (x1 - x0) + (t.y - y0) * (y1 - y0)) / (len * len)));
+    const dist = Math.hypot(x0 + (x1 - x0) * s - t.x, y0 + (y1 - y0) * s - t.y);
+    if (dist < best) { best = dist; k = i; knotAt = before + s * len; }
+    before += len;
+  }
+  const total = before;
+  const wheels = path.slice(1, -1);
+  if (struckFor < 0) {
+    // A slow sway in the last length, with the weight it bears.
+    const sway = Math.sin(time * 1.1 + t.x * .01) * 1.4 * unit;
+    for (let i = 0; i < path.length - 1; i++) hemp(c, path[i], i === path.length - 2 ? [path[i + 1][0] + sway, path[i + 1][1]] : path[i + 1], unit);
+    for (const [x, y] of wheels) pulley(c, x, y, unit, 0);
+    // The knot: a fat turn of rope, with a gilded hint so it reads as the mark to shoot at.
+    c.save();
+    const pulse = .5 + .5 * Math.sin(time * 2.4);
+    const glow = c.createRadialGradient(t.x, t.y, 0, t.x, t.y, 22 * unit);
+    glow.addColorStop(0, `rgba(255, 226, 140, ${.4 + .15 * pulse})`); glow.addColorStop(1, 'rgba(255, 226, 140, 0)');
+    c.fillStyle = glow; c.beginPath(); c.arc(t.x, t.y, 22 * unit, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = `rgba(196, 140, 30, ${.55 + .3 * pulse})`; c.lineWidth = 1.6 * unit; c.setLineDash([3 * unit, 3 * unit]);
+    c.beginPath(); c.arc(t.x, t.y, (ROPE_RADIUS + 1 + pulse) * unit, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([]);
+    c.fillStyle = '#8a6532'; c.strokeStyle = '#3e2a12'; c.lineWidth = 1.3 * unit;
+    c.beginPath(); c.ellipse(t.x, t.y, 6.4 * unit, 8.2 * unit, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.strokeStyle = 'rgba(232, 200, 140, .85)'; c.lineWidth = 1.1 * unit;
+    c.beginPath(); c.ellipse(t.x, t.y, 3.8 * unit, 5.8 * unit, .5, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+    c.restore();
+    return;
+  }
+  // The made-fast end springs back a little along its length and settles, frayed.
+  const spring = 1 - (1 - Math.min(1, struckFor / .3)) ** 3;
+  const back = along(path, knotAt * (1 - .28 * spring));
+  const whip = Math.sin(struckFor * 38) * Math.exp(-struckFor * 6) * 5 * unit;
+  for (let i = 0; i < back.index; i++) hemp(c, path[i], path[i + 1], unit);
+  const end: [number, number] = [back.point[0] + whip, back.point[1]];
+  hemp(c, path[back.index], end, unit);
+  frayed(c, end[0], end[1], 1, unit);
+  // The rest runs out through the pulleys as the load falls, and is gone with it.
+  const fall = 900 * unit * struckFor * struckFor, fade = Math.max(0, 1 - struckFor / .6);
+  if (fade > 0) {
+    const from = along(path, Math.min(total, knotAt + fall));
+    const run: Array<[number, number]> = [from.point, ...path.slice(from.index + 1)];
+    run[run.length - 1] = [run[run.length - 1][0], run[run.length - 1][1] + fall];
+    for (let i = 0; i < run.length - 1; i++) hemp(c, run[i], run[i + 1], unit, fade);
+    frayed(c, from.point[0], from.point[1], -1, unit, fade);
+  }
+  for (const [x, y] of wheels) pulley(c, x, y, unit, fall / (8 * unit));
+  // A puff of chaff where it parted.
+  if (struckFor < .5) {
+    c.save();
+    c.fillStyle = `rgba(214, 186, 128, ${.5 * (1 - struckFor / .5)})`;
+    for (let i = 0; i < 6; i++) { const a = i * 1.05 + .4, r = (6 + struckFor * 40) * unit; c.beginPath(); c.arc(t.x + Math.cos(a) * r, t.y + Math.sin(a) * r * .7, 1.6 * unit, 0, Math.PI * 2); c.fill(); }
+    c.restore();
+  }
 }
 
 /** A bronze bell hung from a branch by its rope; struck, it swings and rings. */

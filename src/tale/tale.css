@@ -195,7 +195,9 @@
 /* A piece a target works glides to rest (FolioStage WORKS_MS). */
 .scene-layer.has-works { transition: left .9s cubic-bezier(.45, 0, .3, 1), top .9s cubic-bezier(.45, 0, .3, 1), transform .9s cubic-bezier(.45, 0, .3, 1); }
 .scene-swing { position: absolute; inset: 0; transition: transform .9s cubic-bezier(.5, 0, .75, 1); }
-@media (prefers-reduced-motion: reduce) { .scene-layer.has-works, .scene-swing { transition-duration: .2s; } }
+/* A piece that drops falls, quickening, and strikes (FolioStage DROP_MS). */
+.scene-layer.has-works.is-drop { transition: left .55s cubic-bezier(.55, 0, 1, .45), top .55s cubic-bezier(.55, 0, 1, .45), transform .55s cubic-bezier(.55, 0, 1, .45); }
+@media (prefers-reduced-motion: reduce) { .scene-layer.has-works, .scene-layer.has-works.is-drop, .scene-swing { transition-duration: .2s; } }
 .ink-tools { display: flex; gap: 2px; margin-left: auto; }
 .ink-tool { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #3b2a1d; transition: background .15s, transform .15s, color .15s; }
 .ink-tool .ink-icon { stroke-width: 2.1; }
@@ -629,7 +631,7 @@
 .library-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .library-scroll { width: 30px; height: 60px; flex-shrink: 0; border-radius: 10px; display: grid; place-items: center; color: var(--ink-soft); }
 .library-scroll:hover { background: rgba(120, 80, 30, .12); color: var(--ink); }
-.library-shelf { flex: 1; min-width: 0; display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 4px 4px 6px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+.library-shelf { overflow-anchor: none; flex: 1; min-width: 0; display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 4px 4px 6px; scrollbar-width: thin; scroll-snap-type: x proximity; }
 .library-shelf::-webkit-scrollbar { height: 5px; }
 .library-shelf::-webkit-scrollbar-thumb { background: rgba(90, 60, 30, .35); border-radius: 4px; }
 .library-piece { width: 86px; height: 64px; flex-shrink: 0; scroll-snap-align: start; }
@@ -640,7 +642,7 @@
 .library-piece.is-kept img { opacity: .82; }
 .put-away { position: absolute; right: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fbe9d0; background: rgba(125, 24, 18, .78); box-shadow: 0 1px 3px rgba(60, 10, 5, .4); }
 .put-away:hover, .put-away.is-sure { background: var(--vermilion); }
-.mark-piece { width: 86px; height: 64px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0; }
+.mark-piece { width: 86px; height: 64px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0; scroll-snap-align: start; }
 .mark-letter { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font: 26px/1 var(--fraktur); color: #fff1c4; background: radial-gradient(circle at 34% 28%, #fff4c8, #e5b451 42%, #9a6b1c 82%); box-shadow: inset 0 0 0 3px #b3261e, inset 0 0 0 4px #f1d27f; }
 .mark-passage { font: 34px/1 var(--fraktur); color: var(--vermilion); }
 .mark-upload { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--lapis); border: 1.5px dashed rgba(31, 58, 138, .5); }
@@ -649,6 +651,8 @@
 .mark-butt { width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle, #e9bf57 0 18%, #b3261e 19% 38%, #f4ecd8 39% 58%, #2c4f9e 59% 78%, #d9c27a 79% 86%, #c9a13b 87%); box-shadow: 0 1px 3px rgba(40, 24, 10, .35); }
 .mark-bell { width: 30px; height: 36px; background: linear-gradient(90deg, #8a5a1c, #f2cf73 40%, #d39b35 60%, #6e4514); clip-path: polygon(38% 0, 62% 0, 70% 12%, 72% 52%, 100% 86%, 100% 100%, 0 100%, 0 86%, 28% 52%, 30% 12%); }
 .mark-wolf { width: 44px; height: 44px; object-fit: contain; }
+.mark-rope { position: relative; width: 8px; height: 40px; border-radius: 3px; background: repeating-linear-gradient(-55deg, #b48a4e 0 3px, #7a5428 3px 5px); box-shadow: 0 0 0 1px #5a3d1c; }
+.mark-rope::after { content: ''; position: absolute; left: -3px; top: 15px; width: 14px; height: 11px; border-radius: 50%; background: #8a6532; box-shadow: 0 0 0 1px #3e2a12, 0 0 8px rgba(255, 226, 140, .7); }
 /* Building: a wolf's round along the ground, a chosen target, and where a worked piece will rest. */
 .beast-round { position: absolute; height: 6px; border-bottom: 2px dashed rgba(122, 74, 20, .55); pointer-events: none; }
 .beast-round.is-selected { border-bottom-color: rgba(179, 38, 30, .85); }

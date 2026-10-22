@@ -32,7 +32,10 @@ export const ASSET_PHYSICS: Record<string, AssetPhysics> = {
   'plank-walkway': { material: 'wood' },
   'bridge-wooden': { material: 'wood', polygon: bridgeDeck },
   'bridge-arch': { material: 'stone' },
-  'crate-wood': { material: 'wood' },
+  // A crate is walked as the box it is: its painted sides step out a pixel here and
+  // there, which left a toehold two-thirds of the way down every crate. The sides are
+  // traced to their inner edge; the top follows the painted rounding of its corners.
+  'crate-wood': { material: 'wood', polygon: [[.057, .17], [.081, .13], [.187, .1], [.293, .07], [.65, .07], [.935, .1], [.935, .94], [.057, .94]] },
   'hay-bale': { material: 'hay' },
   'boulder': { material: 'stone' },
   'stump-old': { material: 'wood' },
@@ -101,6 +104,9 @@ const BLOCKS: Record<string, Array<[number, number]>> = {
   // The deck alone, as an even slab: raised on its hinge as a drawbridge, the
   // arch beneath would otherwise face the road in steps a traveller could perch on.
   'bridge-wooden': deckSlab,
+  // The stone without the grass about its foot, which made a footing on a stone
+  // hung in the air; square, with sheer sides and a flat crown to stand on once it has fallen.
+  'boulder': [[.14, .1], [.86, .1], [.86, .92], [.14, .92]],
 };
 /** The physics of a piece, as a plain block when its level asks for one. */
 export const piecePhysics = (assetId: string | undefined, block?: boolean): AssetPhysics => {

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { GameRole } from '../../types';
 import { ASSETS } from '../../assets';
@@ -12,7 +12,7 @@ export type LibraryPick =
   | { kind: 'letter' }
   | { kind: 'passage' }
   /** A butt or a bell to shoot at, which can set pieces moving. */
-  | { kind: 'target'; target: 'butt' | 'bell' }
+  | { kind: 'target'; target: 'butt' | 'bell' | 'rope' }
   /** A grey wolf keeping a stretch of ground. */
   | { kind: 'beast' };
 
@@ -70,10 +70,20 @@ export default function Library({ onPick, onUpload, uploads = [], onPutAway }: {
     return (SHELVES.find(s => s.id === shelf)?.ids ?? []).filter(id => ALL_IDS.has(id));
   }, [shelf, query]);
   const scroll = (d: number) => strip.current?.scrollBy({ left: d * 420, behavior: 'smooth' });
+  const open = (id: string) => { setShelf(id); setQuery(''); audio.play('tick'); };
+  // A shelf opens at its beginning, not wherever the last one was scrolled to. Its snapping is
+  // lifted for a frame, or the browser snaps it back to the piece it was last snapped to.
+  useLayoutEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    el.style.scrollSnapType = 'none'; el.scrollLeft = 0;
+    const frame = requestAnimationFrame(() => { el.scrollLeft = 0; el.style.scrollSnapType = ''; });
+    return () => cancelAnimationFrame(frame);
+  }, [shelf, query]);
   return <div className="library" aria-label="The cabinet of pieces">
     <div className="library-tabs">
-      {SHELVES.map(s => <button type="button" key={s.id} className={shelf === s.id && !query ? 'is-active' : ''} onClick={() => { setShelf(s.id); setQuery(''); audio.play('tick'); }}>{s.label}</button>)}
-      <button type="button" className={shelf === 'marks' && !query ? 'is-active' : ''} onClick={() => { setShelf('marks'); setQuery(''); audio.play('tick'); }}>Marks</button>
+      {SHELVES.map(s => <button type="button" key={s.id} className={shelf === s.id && !query ? 'is-active' : ''} onClick={() => open(s.id)}>{s.label}</button>)}
+      <button type="button" className={shelf === 'marks' && !query ? 'is-active' : ''} onClick={() => open('marks')}>Marks</button>
       <label className="library-search"><InkIcon name="lens" size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Find…" aria-label="Find a piece" /></label>
     </div>
     <div className="library-row">
@@ -84,6 +94,7 @@ export default function Library({ onPick, onUpload, uploads = [], onPutAway }: {
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'passage' })} title="A passage of writing"><span className="mark-passage">¶</span><span className="mark-label">Words</span></button>
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'target', target: 'butt' })} title="A butt to shoot at: struck, it can set pieces moving"><span className="mark-butt" aria-hidden="true" /><span className="mark-label">Butt</span></button>
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'target', target: 'bell' })} title="A bell to ring with an arrow: struck, it can set pieces moving"><span className="mark-bell" aria-hidden="true" /><span className="mark-label">Bell</span></button>
+          <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'target', target: 'rope' })} title="A rope to cut with an arrow: hang a piece from it and let it drop, perhaps on a wolf"><span className="mark-rope" aria-hidden="true" /><span className="mark-label">Rope</span></button>
           <button type="button" className="tray-piece mark-piece" onPointerDown={onPick({ kind: 'beast' })} title="A grey wolf keeping a stretch of ground: an arrow kills him"><img className="mark-wolf" src={srcOf('beast-head-wolf')} alt="" draggable={false} /><span className="mark-label">Wolf</span></button>
           {onUpload && <button type="button" className="tray-piece mark-piece" onClick={() => fileRef.current?.click()} title="Bring a picture of your own"><span className="mark-upload"><InkIcon name="up" size={22} /></span><span className="mark-label">Your picture</span></button>}
           {uploads.map(({ src, kept }, i) => <span key={i} className="own-picture">

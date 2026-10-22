@@ -40,6 +40,19 @@ const oneCrate14 = (await searchPage()).evaluate(async () => {
   }
   return { configs: specs.length, flights, found };
 }).catch(e => ({ error: e.message }));
+// Folio XV: with the wolf shot dead instead of crushed, or with no arrow loosed at all, can the
+// margin's crate, hung or set down anywhere, open the tower? (The hanging stone must not be a step.)
+const oneCrate15 = (await searchPage()).evaluate(async () => {
+  const kill = { from: [104, 562], at: [560, 520] };
+  const found = []; let configs = 0;
+  for (const w of [57.6, 96, 153.6]) for (let cx = 560; cx <= 1060; cx += 50) for (const y of [260, 280, 300, 330, 360, 390, 400, 420, 450]) {
+    const spec = [{ top: 'crate-wood', cx, y, w }];
+    configs++;
+    if ((await window.solveShots(14, spec, [kill])).solved) found.push({ spec, with: 'the wolf shot dead' });
+    if ((await window.solveBuilt(14, spec)).solved) found.push({ spec, with: 'no arrow' });
+  }
+  return { configs, found };
+}).catch(e => ({ error: e.message }));
 const run = (i, pieces = []) => page.evaluate(([i, p]) => window.tryLevel(i, p), [i, pieces]);
 const P = (asset, x, y, width, ratio) => ({ id: asset + x, asset, x, y, width, height: width * ratio, rotation: 0, flipX: false, flipY: false });
 const plank = 75 / 197, bridge = 115 / 263;
@@ -377,6 +390,40 @@ try {
     assert.equal(crateReach.solved, crateToo, `Folio XIV's letter ${i + 1} ${crateToo ? 'is' : 'is not'} within reach of one crate`);
   }
 
+  // Folio XV: a grey wolf keeps the road beneath a hanging stone. There is one arrow. Spent on the
+  // wolf, it leaves the stone up and the tower out of reach; loosed at the rope's knot with the wolf
+  // beneath, it brings the stone down on him, and the stone is the first step up, the crate the second.
+  const bare15 = await solved(14);
+  assert.ok(!bare15.solved, `Folio XV cannot be climbed bare (${note(bare15)})`);
+  const knot15 = (await page.evaluate(() => window.levelGeometry(14))).targets.find(t => t.id === 'rope');
+  const cut15 = { from: [104, 562], at: [knot15.x, knot15.y] };
+  const stoneOnly15 = await shots(14, [], [cut15]);
+  assert.deepEqual(stoneOnly15.loosed[0].crushed, ['wolf'], 'the stone, cut down, crushes the wolf beneath it');
+  assert.ok(!stoneOnly15.solved, `the fallen stone alone is one step, not two (highest ${stoneOnly15.highest})`);
+  const plan15 = [{ top: 'crate-wood', cx: 1000, y: 355, w: 96 }];
+  for (const [label, specs] of [
+    ['the crate as the margin gives it, hung between the stone and the tower at 355', plan15],
+    ['the crate low, at 385', [{ top: 'crate-wood', cx: 970, y: 385, w: 96 }]],
+    ['the crate at its largest, high, at 345', [{ top: 'crate-wood', cx: 990, y: 345, w: 153.6 }]],
+  ]) {
+    const r = await shots(14, specs, [cut15]);
+    assert.ok(r.solved, `Folio XV climbed with ${label} (${r.failed ?? note(r)})`);
+    assert.equal(r.loosed[0].event?.id, 'rope', `${label}: the arrow cuts the rope`);
+    console.log(`  folio XV · ${label}: ${note(r)}`);
+  }
+  for (const y of [325, 390]) {
+    const r = await shots(14, [{ top: 'crate-wood', cx: 1000, y, w: 96 }], [cut15]);
+    assert.ok(!r.solved, `the crate hung at ${y} is ${y < 330 ? 'out of reach of the stone' : 'too low to reach the tower from'} (${note(r)})`);
+  }
+  for (const [i, bareToo, stoneToo] of [[0, true, true], [1, false, true], [2, false, false]]) {
+    const bareReach = await page.evaluate(i => window.solveShots(14, [], [], { letter: i }), i);
+    const stoneReach = await page.evaluate(([l, i]) => window.solveShots(14, [], l, { letter: i }), [[cut15], i]);
+    const full = await page.evaluate(([s, l, i]) => window.solveShots(14, s, l, { letter: i }), [plan15, [cut15], i]);
+    assert.ok(full.solved, `Folio XV's letter ${i + 1} can be gathered on the climb`);
+    assert.equal(bareReach.solved, bareToo, `Folio XV's letter ${i + 1} ${bareToo ? 'is' : 'is not'} within reach bare`);
+    assert.equal(stoneReach.solved, stoneToo, `Folio XV's letter ${i + 1} ${stoneToo ? 'is' : 'is not'} within reach of the fallen stone alone`);
+  }
+
   // For the record, not a rule: can one crate hung at the very edge of a leap do it?
   for (const top of [412, 404]) {
     const r = await solved(2, [{ top: 'crate-wood', cx: 700, y: top, ...crate }]);
@@ -394,6 +441,9 @@ try {
   const one14 = await oneCrate14;
   assert.ok(!one14.error && one14.found.length === 0, `no single crate lends a vantage on Folio XIV's bell (${one14.error ?? JSON.stringify(one14.found[0] ?? {})})`);
   console.log(`  folio XIV · no single crate rings the bell: ${one14.configs} placements, ${one14.flights} shots`);
+  const one15 = await oneCrate15;
+  assert.ok(!one15.error && one15.found.length === 0, `no crate opens Folio XV with the wolf shot dead or no arrow (${one15.error ?? JSON.stringify(one15.found[0] ?? {})})`);
+  console.log(`  folio XV · the crate opens nothing without the stone: ${one15.configs} placements, each with the wolf shot dead and with no arrow`);
   assert.deepEqual(errors, []);
-  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold; folio VIII closed bare and to every single arrow, climbed three ways with two and as a stair of three, no foothold loosed upward from a step at the bank’s foot, and its letters placed as meant; folio IX closed bare, to the crate alone and to arrows alone, stone glancing, climbed three ways with crate and arrows, letters as meant; folio X shut to every foothold, the portcullis turning arrows, opened by the bell from two places, letters as meant; folio XI shut with the bridge up and to every single foothold, the bell hidden until the bridge falls, crossed two ways by the butt and the bell, letters as meant; folio XII shut bare and while the wolf keeps the road, the wolf hidden from the road by the palisade and shot dead from its top two ways, letters as meant; folio XIII closed bare, to the crate alone wherever it hangs, to the arrow alone, to the crate set down as a step and to the crate hung beyond the arrow, climbed three ways with the crate hung against the keep and an arrow in its face, letters as meant; folio XIV closed bare, to every shot from the road and to one crate wherever it stands, its bell rung from a vantage of two crates three ways, the vantage’s height mattering, letters as meant');
+  console.log('PASS folio I walkable with every letter; folio II impassable bare and crossable three different ways; folio III impassable bare, closed to every single grounded piece, and climbable four ways; folio IV closed bare and to either piece alone, crossed three ways with ladder and plank; folio V closed bare and to any single piece, crossed three ways; folio VI closed bare and to a plank, two flat planks or the ladder, entered three ways; folio VII closed without an arrow, climbed with one arrow at three heights, and a steep arrow from the gate’s foot is no foothold; folio VIII closed bare and to every single arrow, climbed three ways with two and as a stair of three, no foothold loosed upward from a step at the bank’s foot, and its letters placed as meant; folio IX closed bare, to the crate alone and to arrows alone, stone glancing, climbed three ways with crate and arrows, letters as meant; folio X shut to every foothold, the portcullis turning arrows, opened by the bell from two places, letters as meant; folio XI shut with the bridge up and to every single foothold, the bell hidden until the bridge falls, crossed two ways by the butt and the bell, letters as meant; folio XII shut bare and while the wolf keeps the road, the wolf hidden from the road by the palisade and shot dead from its top two ways, letters as meant; folio XIII closed bare, to the crate alone wherever it hangs, to the arrow alone, to the crate set down as a step and to the crate hung beyond the arrow, climbed three ways with the crate hung against the keep and an arrow in its face, letters as meant; folio XIV closed bare, to every shot from the road and to one crate wherever it stands, its bell rung from a vantage of two crates three ways, the vantage’s height mattering, letters as meant; folio XV closed bare, to the fallen stone alone, and to the crate anywhere with the wolf shot dead or no arrow, climbed three ways on the stone that crushed the wolf and the crate hung between 330 and 385, letters as meant');
 } finally { await browser.close(); }

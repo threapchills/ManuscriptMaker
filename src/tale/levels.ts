@@ -48,7 +48,7 @@ export interface LevelDef {
   /** Arrows in the quiver, loosed in play; they count toward par like pieces. */
   quiver?: number;
   /** Butts to shoot at; a struck one sets the scene pieces it works moving. */
-  targets?: Array<{ id: string; x: number; y: number; kind?: 'butt' | 'bell'; /** Hidden until this target is struck. */ after?: string }>;
+  targets?: Array<{ id: string; x: number; y: number; kind?: 'butt' | 'bell' | 'rope'; /** Hidden until this target is struck. */ after?: string; /** The way a rope runs, from where it is made fast to what it holds. */ rope?: Array<[number, number]> }>;
   /** Beasts keeping ground: their touch sends the traveller back; an arrow drives them off. */
   beasts?: Array<{ id: string; kind: 'wolf'; x0: number; x1: number; y: number }>;
 }
@@ -824,6 +824,64 @@ const folio14: LevelDef = {
   ],
 };
 
+// ——— Folio XV: the hanging stone ———
+// A grey wolf keeps the road below the hermit's tower, and over his road a
+// stone hangs by a rope run up to a pulley hooked into the page's own border,
+// and down to a stake. There is one arrow. Spent on the wolf, it leaves the
+// stone hanging and the tower out of reach; loosed at the rope's knot while
+// the wolf is beneath, it drops the stone on him, and the stone is then the
+// first step up. The margin's crate is the second: hung where only the fallen
+// stone can reach it, and low enough to reach the tower from.
+const f15Courses = (() => {
+  const a = standing('wall-stone-straight', 1170, 562, 236, { role: 'solid', layer: 'ground' });
+  const b = standing('wall-stone-straight', 1170, topOf(a), 236, { role: 'solid', layer: 'ground' });
+  return [a, b, standing('wall-stone-straight', 1170, topOf(b), 236, { role: 'solid', layer: 'ground' })];
+})();
+const f15Top = topOf(f15Courses[2]);
+const f15Stone = (() => {
+  const rest = standing('boulder', 880, 562, 110, { role: 'solid', layer: 'ground', block: true });
+  return { ...rest, y: 100 - .06 * rest.height, works: { by: 'rope', x: rest.x, y: rest.y, rotation: 0 } };
+})();
+const f15Pulley: [number, number] = [880, 18];
+const f15Stake: [number, number] = [470, 556];
+const folio15: LevelDef = {
+  id: 'folio-15', numeral: 15, title: 'The Hanging Stone',
+  brief: 'A grey wolf keeps the road below the hermit’s tower, and over his road a stone hangs by a rope, run up through a pulley and down to a stake. You have one arrow, and the wolf is not the only thing it may bring down.',
+  sky: 'dawn',
+  scene: [
+    piece('cloud-bank', 120, 90, 300, { layer: 'far', anim: 'drift', opacity: .8 }),
+    piece('cloud-curl', 1000, 120, 150, { layer: 'far', anim: 'drift', opacity: .75 }),
+    piece('hills-blue', -60, 330, 800, { layer: 'far', opacity: .85, filter: 'saturate(.75) hue-rotate(-6deg)' }),
+    piece('hills-blue', 600, 344, 760, { layer: 'far', opacity: .8, flipX: true, filter: 'saturate(.75) hue-rotate(-6deg)' }),
+    piece('pine-grove', 160, 330, 300, { layer: 'far', filter: 'saturate(.8)' }),
+    piece('forest-line', -20, 404, 660, { layer: 'far' }),
+    piece('forest-line', 640, 408, 700, { layer: 'far', flipX: true }),
+    standing('pine-single', 60, 566, 96, { layer: 'mid' }),
+    piece('earth-ledge-long', -60, 540, 760, { layer: 'mid' }),
+    piece('earth-ledge-long', 560, 540, 760, { layer: 'mid' }),
+    ground('meadow-wide', -40, 562, 500),
+    ground('meadow-wide', 410, 562, 500),
+    ground('meadow-wide', 860, 562, 500),
+    ...f15Courses,
+    f15Stone,
+    standing('wildflowers', 300, 572, 96, { layer: 'front', anim: 'sway' }),
+    standing('grass-tuft', 760, 570, 70, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 104, y: 562 },
+  goal: standing('door-oak', 1170, f15Top, 80, { role: 'goal', layer: 'ground' }),
+  reached: 'You knocked at the hermit’s door.',
+  // S on the road; H only from the fallen stone; I on the climb from the crate.
+  letters: [{ x: 260, y: 470, glyph: 'S' }, { x: 880, y: 390, glyph: 'H' }, { x: 1000, y: 200, glyph: 'I' }],
+  targets: [{ id: 'rope', x: 552, y: 448, kind: 'rope', rope: [f15Stake, f15Pulley, [880, 100]] }],
+  beasts: [{ id: 'wolf', kind: 'wolf', x0: 600, x1: 900, y: 562 }],
+  tray: [{ asset: 'crate-wood', count: 1, role: 'solid', name: 'Crate' }],
+  quiver: 1,
+  par: 2,
+  hints: [
+    { x: 330, y: 330, text: 'mind where it falls', mode: 'play', point: 'down' },
+  ],
+};
+
 /** A book of the tale: its own contents, motto and folios. */
 export interface BookDef {
   id: string;
@@ -863,8 +921,8 @@ export const BOOKS: BookDef[] = [
     intro: 'Beyond the greenwood the road narrows between walls of stone. Here nothing is given twice: each piece must stand exactly where it is wanted, and each arrow fly true.',
     motto: 'HOC OPUS HIC LABOR EST',
     explicit: { rubric: 'Explicit liber tertius', line: 'The third book is ended. Hoc opus, hic labor est.' },
-    levels: [folio13, folio14],
-    coming: [{ numeral: 15, title: 'The Wolf’s Ledge' }, { numeral: 16, title: 'The Gorge' }, { numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
+    levels: [folio13, folio14, folio15],
+    coming: [{ numeral: 16, title: 'The Gorge' }, { numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
   },
 ];
 

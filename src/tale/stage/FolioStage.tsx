@@ -21,7 +21,7 @@ import { audio } from '../../engine/audio';
 import { music } from '../../engine/music';
 import { ASSETS } from '../../assets';
 import type { StageBeast, StageLetter, StagePiece, StageResult, StageState, StageTarget } from './types';
-import { MOTIONS as STRUCK_MOTIONS, ROLE_LABELS, localPoint, posed, workedPose } from './types';
+import { MOTIONS as STRUCK_MOTIONS, ROLE_LABELS, drops, localPoint, posed, workedPose } from './types';
 import { AVATAR_HEIGHT, WOLF_PARTS, boundsOf, buildStageField, doorRects, loadStageImages, srcOf, stageSpec } from './world';
 import Library from './Library';
 import type { LibraryPick } from './Library';
@@ -227,13 +227,15 @@ export default function FolioStage(props: FolioStageProps) {
     const moving = stateRef.current.pieces.filter(p => p.works?.by === id);
     setStruck(prev => new Set(prev).add(id));
     if (!moving.length) return;
-    audio.play('works');
+    // What drops falls, quicker than anything wound or swung, and strikes where it lands.
+    const falling = moving.filter(p => drops(p)), allFall = falling.length === moving.length;
+    if (!allFall) audio.play('works');
     working.current.push(window.setTimeout(() => {
       const session = sessionRef.current;
       if (!session || !images || !session.struck.has(id)) return;
-      session.swapField(buildStageField(stateRef.current.pieces, W, H, props.waterY, images, session.struck));
-      audio.play('settle');
-    }, WORKS_MS));
+      session.swapField(buildStageField(stateRef.current.pieces, W, H, props.waterY, images, session.struck), falling.map(p => boundsOf(posed(p, session.struck), images)));
+      if (!allFall) audio.play('settle');
+    }, allFall ? DROP_MS : WORKS_MS));
   };
   /** Put back everything targets moved, at once: a run is beginning again. */
   const unwork = useCallback(() => {
@@ -409,7 +411,7 @@ export default function FolioStage(props: FolioStageProps) {
     if (pick.kind === 'target') {
       const target: StageTarget = { id: newPieceId(), x: clamp(cx, 30, W - 30), y: clamp(cy, 40, H - 30), kind: pick.target };
       commit({ ...stateRef.current, targets: [...(stateRef.current.targets ?? []), target] });
-      setSelection({ kind: 'target', id: target.id }); audio.play(pick.target === 'bell' ? 'toll' : 'strike');
+      setSelection({ kind: 'target', id: target.id }); audio.play(pick.target === 'bell' ? 'toll' : pick.target === 'rope' ? 'snap' : 'strike');
       return;
     }
     if (pick.kind === 'beast') {
@@ -821,7 +823,7 @@ export default function FolioStage(props: FolioStageProps) {
       const rest = workedPose(p)!;
       if (rest.pivot) return <SceneLayer key={`${p.id}:${run}`} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-swing`} srcOverride={p.src}
         swing={{ degrees: moved ? rest.rotation - p.rotation : 0, origin: localPoint(p, rest.pivot) }} />;
-      return <SceneLayer key={`${p.id}:${run}`} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works`} srcOverride={p.src} />;
+      return <SceneLayer key={`${p.id}:${run}`} piece={{ ...(moved ? posed(p, struck) : p), anim, asset: p.asset ?? '', src: p.src } as never} className={`${classes} has-works${drops(p) ? ' is-drop' : ''}`} srcOverride={p.src} />;
     }
     return <SceneLayer key={p.id} piece={{ ...p, anim, asset: p.asset ?? '', src: p.src } as never} className={classes} srcOverride={p.src} />;
   };
@@ -1163,6 +1165,8 @@ export default function FolioStage(props: FolioStageProps) {
   </div>;
 }
 
+/** How long a piece that drops takes to fall (tale.css .has-works.is-drop matches it). */
+const DROP_MS = 550;
 /** How long a piece a target works takes to come to rest (tale.css .has-works matches it). */
 const WORKS_MS = 900;
 

@@ -2,7 +2,68 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (night) Claude session: a bow drawn standing, and the Belfry (read first)
+## 2026-10-22 (late) Claude session: ropes, falling stones, and the Hanging Stone (read first)
+
+The user's north star (2026-10-22): "make it fun and amazing and charming and whimsical, with a unique AAA feel, think pentiment and scriptorium meets super mario bros with the attention to detail of elden ring". They asked for more levels, quality-of-life and sandbox upgrades after the current to-dos, and for a push after each major chunk.
+
+- **Rope targets** (`src/engine/archery.ts`).
+  - A target of `kind: 'rope'`. Its `rope` runs from where it is made fast, through any pulleys, to what it holds; its knot at (x, y) is the place to cut it. With no `rope`, it hangs straight, 108 long.
+  - **Cutting.** It is cut only within `ROPE_RADIUS` (13) of the knot; a butt's or bell's radius is 24. A cut arrow tumbles on, spent, without sticking.
+  - **Drawn** (`drawRope`): twisted hemp with its lay, iron-bound pulley blocks whose sheaves turn as the rope runs, and the knot in a pulsing gilt ring.
+  - **Cut,** the made-fast end springs back frayed, and the rest runs out through the pulleys and falls away with its load, with a puff of chaff. Sound: `snap`.
+- **What drops falls.** The stage's `drops(p)` finds a piece worked straight down. It falls on an accelerating ease (`.has-works.is-drop`, 0.55 s; `DROP_MS`), where everything else glides for 0.9 s. On landing it raises dust along its foot, sounds `crush`, and shakes the page by its size.
+- **Crushing** (`PlaySession.swapField(field, landed)`).
+  - **The test.** When worked pieces come to rest, any living beast whose hide is now filled with at least `CRUSH_AREA` (900 page units²) more solid than before is crushed: `crush(beast, under)`, in `beasts.ts`.
+  - **Drawn** (`drawCrushed`): only what shows beside what fell. The tail sticks out from under it, on the side the wolf trailed, and a little blood seeps out on either side.
+  - **In the harness**, `solveShots` treats a beast whose ground a struck target's pieces came down on as crushed (`crushedOn`): it assumes a player who looses when the beast is beneath.
+  - The rule is general, so a scriptorium drawbridge or a dropped crate crushes a wolf too.
+- **Collision changes.**
+  - **Crates are boxes** (`ASSET_PHYSICS['crate-wood'].polygon`). Their painted sides stepped out a pixel two-thirds of the way down, and the solver used it as a toehold: a crate hung in mid-air could be climbed by its side. The sides are traced to their inner edge. The top follows the painted rounding of the corners: a flat-topped box first left `test:solidity` finding probes floating 3–7 above the corners, and with the rounding it finds none (779 columns on 76 variants).
+  - **The boulder** gains a traced block (`BLOCKS.boulder`): square, without the grass about its foot. The grass, and then a flared foot, had been footings on a stone hung in the air.
+  - The full `test:levels` run passed again after both changes.
+- **The cabinet's Marks shelf** no longer jumps to its far end.
+  - **The cause.** Every library piece is a scroll-snap point, but the Marks items were not. Once the Rope made the Marks shelf overflow (with the maker's picture kept on it), proximity snapping pulled it to the only snap points, at the far end, and the Butt sat clipped behind the scroll arrow. `test:scriptorium` failed there twice.
+  - **The mend.** Marks items now snap too. Every shelf also opens at its beginning when its tab is chosen or the search changes: the snapping is lifted for a frame while the scroll is reset, or the browser snaps back to the piece it was last snapped to.
+  - The check's drag helper now scrolls a piece into view before taking it up, as a hand would.
+- **The scriptorium** has a Rope on the Marks shelf. Saved targets accept `kind: 'rope'`, and older books load as before. A maker hangs a rope above a piece and sets that piece to "Drops" when the rope is struck. "Drops" still moves a piece down by its own height, not to the ground (TODO).
+- **Folio XV, *The Hanging Stone*** (`folio15`; tray: one crate; quiver: one arrow; par 2; sky dawn). It replaces the provisional *The Wolf's Ledge*, whose plan failed on paper:
+  - A wolf's den cannot be hidden from fast, flat arrows; any den visible from the road can be shot into from somewhere on it.
+  - A wolf lured by a traveller stops at the near end of its round, which is never where a step is needed.
+  - **The scene.**
+    - The hermit's tower: three courses at x 1052–1288, its top at 222.8, with an oak door on top as the goal.
+    - The wolf's round: from 600 to 900 on the road.
+    - The stone: hung above x 880, its top at 100, from a pulley hooked into the page's own top border at (880, 18). Its rope runs down from the pulley to a stake on the road at (470, 556), with the knot at (552, 448).
+  - **The play.**
+    - Kill the wolf with the arrow, and the stone stays up and the tower is out of reach.
+    - Cut the rope while the wolf walks beneath, and the stone crushes him and lies on the road as the first step. The crate, hung between the stone and the tower with its top between 330 and 385, is the second. (With flat-topped crates the window was 345–385; with their painted corners rounded, a corner is caught from a little lower.)
+    - A traveller who comes within 300 of the wolf at road level draws him to the near end of his round, away from the stone, and holds him there. One must stand back and wait for his round.
+  - **How it was shaped:**
+    - The stone first hung at 200. A crate near 395 reached it by a running leap: the solver found 170 of rise, more than the 163 assumed earlier. It was raised to 130, then 100.
+    - Then came the grass footing and the flared foot (above).
+    - Then the crate's side toehold let the largest crate, hung at 300, be climbed from the road: by its side ledge, then to the tower. Crates became boxes, and no placement opens the folio now.
+  - **Proved** (`test:levels`):
+    - closed bare, and to the fallen stone alone (the wolf crushed);
+    - closed to the crate anywhere, with the wolf shot dead or with no arrow (a parallel search of 297 placements: three sizes, 11 places, nine heights);
+    - open three ways: the crate as the margin gives it at 355, low at 385, and at its largest at 345;
+    - closed with the crate at 325 (out of the stone's reach) and at 390 (too low to reach the tower from);
+    - the letters: S in reach bare; H only from the fallen stone; I only with the crate (raised to (1000, 200) once the stone alone reached it).
+  - **Played** (`test:chapter`):
+    - the Belfry's end card now turns the page to it;
+    - the crate is dragged in and set at (1000, 355);
+    - the traveller waits at the start until the wolf's round brings him beneath the stone, and cuts the rope at its knot;
+    - three leaps (stone, crate, tower) and the door win it.
+  - **The hint.** "mind where it falls" (play) hangs in the sky at (330, 330).
+- **Checks run before pushing** (all on the code as committed):
+  - `npm test` (229) and `npm run build` pass.
+  - `test:levels`, `test:scriptorium`, `test:chapter`, `test:solidity`, `test:tale`, `test:play` and `test:browser` pass.
+  - On the way there, `test:solidity` failed on the flat-topped crate (fixed by the rounding), `test:scriptorium` twice on the Marks shelf (fixed as above), and `test:levels` once on XV's window edges, re-measured for the rounded crates.
+- **Known**: a rope selected in the scriptorium is still named "Butt" and offered only Butt and Bell; mended in the next batch.
+- **Next**:
+  - Folio XVI, *The Gorge*.
+  - In the scriptorium, "Drops" should fall to the ground.
+  - The charm pass the user asked for: inked briefs that write themselves, letters that fly to their slots, drolleries in the margins, and alignment guides and a reach overlay for building.
+
+## 2026-10-22 (night) Claude session: a bow drawn standing, and the Belfry
 
 The user asked for pushes after each major chunk ("err on the side of pushing more often"), and was told that jump-shooting has been given up and can be restored.
 

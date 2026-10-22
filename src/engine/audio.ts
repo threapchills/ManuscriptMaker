@@ -8,7 +8,7 @@ import type { Material } from './field';
 export type Sfx =
   | 'jump' | 'land' | 'step' | 'bonk' | 'fall' | 'splash' | 'respawn' | 'win' | 'collect'
   | 'tick' | 'press' | 'page' | 'place' | 'lift' | 'drop' | 'rotate' | 'deny' | 'seal' | 'open'
-  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite';
+  | 'loose' | 'thunk' | 'clink' | 'plop' | 'strike' | 'toll' | 'works' | 'settle' | 'growl' | 'slain' | 'bite' | 'snap' | 'crush';
 
 export interface AudioSettings { sfx: number; music: number; muted: boolean }
 const SETTINGS_KEY = 'manuscript-maker:audio-v1';
@@ -331,6 +331,19 @@ class AudioEngine {
         // A heavy piece coming to rest.
         this.tone({ freq: vary(90), to: 45, type: 'sine', gain: .24, decay: .22, pan, wet: .2 });
         this.noiseBurst({ gain: .1, decay: .12, type: 'lowpass', freq: 700, pan, wet: .2 });
+        break;
+      case 'snap':
+        // A rope parting: a dry crack, a twang of the freed strands, and the whisper of it whipping away.
+        this.noiseBurst({ gain: .14, decay: .03, type: 'highpass', freq: 3200, pan, wet: .1 });
+        this.pluck(vary(330, .04), .12, now + .005, { bright: .8, pan, rate: 1.4 });
+        this.noiseBurst({ at: now + .03, gain: .05, attack: .02, decay: .22, type: 'bandpass', freq: 1800, q: 1.4, sweepTo: 600, pan, wet: .2 });
+        break;
+      case 'crush':
+        // Stone slamming down on earth: a deep blow, gravel and grit, and a long settling rumble.
+        this.tone({ freq: vary(70), to: 34, type: 'sine', gain: .32, decay: .34, pan, wet: .25 });
+        this.noiseBurst({ gain: .16, decay: .16, type: 'lowpass', freq: 900, pan, wet: .2 });
+        for (let i = 0; i < 6; i++) this.noiseBurst({ at: now + .03 + i * .045 + Math.random() * .02, gain: .05, decay: .04, type: 'bandpass', freq: vary(1300, .3), q: 2, pan, wet: .15 });
+        this.noiseBurst({ at: now + .08, gain: .05, attack: .05, decay: .6, type: 'lowpass', freq: 260, pan, wet: .3 });
         break;
       case 'clink':
         this.bell(vary(1900, .05), .05, now, .35, .25);

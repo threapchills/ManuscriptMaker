@@ -396,7 +396,7 @@ try {
   // ——— The third book: the stone keep, one crate stretched and hung, one arrow in its face ———
   await page.getByRole('button', { name: /Turn to Liber tertius: The Narrow Way/ }).click();
   await expect(page.getByRole('heading', { name: 'The Narrow Way' })).toBeVisible({ timeout: 5000 });
-  await expect(page.locator('.folio-row.is-coming')).toHaveCount(4);
+  await expect(page.locator('.folio-row.is-coming')).toHaveCount(3);
   await page.getByRole('button', { name: /The Stone Keep/ }).click();
   await expect(page.getByRole('heading', { name: 'The Stone Keep' })).toBeVisible({ timeout: 8000 });
   await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length === 2, null, { timeout: 10000 });
@@ -549,9 +549,78 @@ try {
   await page.keyboard.up('ArrowRight');
   await expect(page.getByRole('dialog')).toContainText('You passed the porter’s gate.');
   await expect(page.getByRole('dialog')).toContainText('2 pieces and 1 arrow used · par 3');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-belfry.png' });
 
+  // ——— Folio XV: the rope cut while the wolf is beneath, the stone the first step, the crate the second ———
+  await expect(page.getByRole('dialog')).toContainText('The Hanging Stone');
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Hanging Stone' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length >= 2, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  const stoneScene = await page.locator('.scene').boundingBox();
+  const onStone = (x, y) => ({ x: stoneScene.x + x * stoneScene.width / 1280, y: stoneScene.y + y * stoneScene.height / 720 });
+  // The crate, as the margin gives it, hung between where the stone will lie and the tower.
+  const crateToken = await page.locator('.tray-piece').first().boundingBox();
+  await page.mouse.move(crateToken.x + crateToken.width / 2, crateToken.y + crateToken.height / 2);
+  await page.mouse.down();
+  const nearCrate = onStone(1000, 400);
+  await page.mouse.move(nearCrate.x - 30, nearCrate.y + 20, { steps: 5 });
+  await page.mouse.move(nearCrate.x, nearCrate.y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  let crate15 = (await saved(page)).folios['folio-15'].pieces[0];
+  const mid15 = { x: crate15.x + crate15.width / 2, y: crate15.y + crate15.height / 2 };
+  const from15 = onStone(mid15.x, mid15.y), to15 = onStone(1000, mid15.y + 355 - (crate15.y + .07 * crate15.height));
+  await page.mouse.move(from15.x, from15.y);
+  await page.mouse.down();
+  await page.mouse.move(to15.x, to15.y, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  crate15 = (await saved(page)).folios['folio-15'].pieces[0];
+  assert.ok(Math.abs(crate15.x + crate15.width / 2 - 1000) < 4 && Math.abs(crate15.y + .07 * crate15.height - 355) < 4, `the crate hangs with its middle at 1000 and its top at 355 (${Math.round(crate15.x + crate15.width / 2)}, ${Math.round(crate15.y + .07 * crate15.height)})`);
+  await page.mouse.click(onStone(300, 200).x, onStone(300, 200).y);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  // Out of the wolf's notice, wait for his round to bring him beneath the stone, and cut the rope at its knot.
+  await page.waitForFunction(() => { const w = window.__playSession.beasts[0]; return w && w.x > 790 && w.facing > 0; }, null, { timeout: 30000, polling: 'raf' });
+  const knot15 = onStone(552, 448);
+  await page.mouse.move(knot15.x, knot15.y);
+  await page.waitForTimeout(80);
+  await page.mouse.click(knot15.x, knot15.y);
+  await page.waitForFunction(() => window.__playSession.beasts[0].crushed, null, { timeout: 4000 });
+  await page.mouse.move(stoneScene.x + 20, stoneScene.y + 20);
+  await page.screenshot({ path: '.local/chapter-stone-fallen.png' });
+  // The stone, the crate, the tower: each leap steered until the feet rise past the next top.
+  const feet15 = () => page.evaluate(() => { const s = window.__playSession, b = s.world.body; return { x: (b.x + b.w / 2) * s.spec.field.cell, y: (b.y + b.h) * s.spec.field.cell }; });
+  const climb15 = async (above, label) => {
+    await page.keyboard.down('ArrowRight');
+    await page.keyboard.down('Space');
+    await page.waitForFunction(y => { const s = window.__playSession, b = s.world.body; return (b.y + b.h) * s.spec.field.cell < y; }, above, { timeout: 3000, polling: 'raf' });
+    await page.waitForTimeout(90);
+    await page.keyboard.up('ArrowRight');
+    await page.waitForTimeout(200);
+    await page.keyboard.up('Space');
+    await page.waitForFunction(() => window.__playSession.world.body.grounded, null, { timeout: 4000 });
+    await page.waitForTimeout(250);
+    const at = await feet15();
+    assert.ok(at.y < above + 12, `${label} (${JSON.stringify(at)})`);
+  };
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__playSession.probe(0).x > 780, null, { timeout: 8000 });
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(200);
+  await climb15(500, 'a leap stands the traveller on the fallen stone');
+  await climb15(355, 'a leap from the stone stands them on the crate');
+  await climb15(223, 'a leap from the crate stands them on the tower');
+  await page.keyboard.down('ArrowRight');
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the fifteenth folio', { timeout: 8000 });
+  await page.keyboard.up('ArrowRight');
+  await expect(page.getByRole('dialog')).toContainText('You knocked at the hermit’s door.');
+  await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-stone.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, no runtime errors');
 } finally { await browser.close(); }

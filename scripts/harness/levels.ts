@@ -8,7 +8,8 @@ import { createWorld, stepWorld, STEP } from '../../src/engine/world';
 import { makeBody, scaleTuning, stepBody, TUNING } from '../../src/engine/controller';
 import { solve } from '../../src/engine/solver';
 import type { World } from '../../src/engine/world';
-import { solidIn, platformRow, solidRow } from '../../src/engine/field';
+import { countIn, solidIn, platformRow, solidRow } from '../../src/engine/field';
+import { CRUSH_AREA } from '../../src/engine/beasts';
 import { ASSETS } from '../../src/assets';
 import { physicsFor } from '../../src/engine/assetPhysics';
 import { rasterizeField } from '../../src/engine/rasterize';
@@ -190,6 +191,22 @@ function shootFrom(field: Field, feet: { x: number; y: number }, at: { x: number
   return { event: null, arrow };
 }
 
+/**
+ * The beasts a struck target's pieces came down on: wherever on its ground a
+ * piece now lies, a player who looses when the beast is beneath it (or who
+ * draws it there) crushes it.
+ */
+function crushedOn(level: LevelDef, before: Field, after: Field, gone: Set<string>): string[] {
+  const out: string[] = [];
+  for (const b of level.beasts ?? []) {
+    if (gone.has(b.id)) continue;
+    const g = beastGround(b), c = after.cell;
+    const filled = (f: Field) => countIn(f, f.sums.solid, Math.floor(g.x / c), Math.floor(g.y / c), Math.ceil((g.x + g.width) / c), Math.floor((g.y + g.height - 4) / c)) * c * c;
+    if (filled(after) - filled(before) >= CRUSH_AREA) out.push(b.id);
+  }
+  return out;
+}
+
 /** Every place the traveller can come to rest on the field as it now stands. */
 function placesOn(level: LevelDef, field: Field) {
   return solve({ field, pageHeight: 720, spawn: level.spawn, hitbox: { width: 40, height: 101 }, goals: [] }, { places: true, maxNodes: 8000 }).places ?? [];
@@ -212,7 +229,7 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
   // Targets struck so far, and the footholds made, to lay again when a struck target moves something.
   const struck = new Set<string>();
   const steps: Arrow[] = [];
-  const loosed: Array<{ from: { x: number; y: number }; event: ArrowEvent | null }> = [];
+  const loosed: Array<{ from: { x: number; y: number }; event: ArrowEvent | null; crushed?: string[] }> = [];
   for (const shot of shots) {
     const [fx, fy] = shot.from;
     const spot = placesOn(level, field).filter(p => Math.abs(p.y - fy) <= 10).sort((a, b) => Math.hypot(a.x - fx, a.y - fy) - Math.hypot(b.x - fx, b.y - fy))[0];
@@ -224,8 +241,13 @@ export async function solveShots(index: number, specs: Spec[], shots: Shot[], op
     if (event?.type === 'target' || event?.type === 'beast') {
       // Whatever it works comes to rest, or the beast is killed; the page is walked as it then stands.
       (event.type === 'target' ? struck : gone).add(event.id);
+      const before = field;
       field = buildLevelField(level, pieces, images, struck, gone, true);
+      // A beast what fell has come down on is crushed beneath it.
+      const crushed = event.type === 'target' ? crushedOn(level, before, field, gone) : [];
+      if (crushed.length) { crushed.forEach(id => gone.add(id)); field = buildLevelField(level, pieces, images, struck, gone, true); }
       for (const a of steps) addFoothold(field, a);
+      loosed[loosed.length - 1].crushed = crushed;
       continue;
     }
     if (!(event?.type === 'stick' && event.foothold)) return { id: level.id, solved: false, failed: `the arrow from ${spot.x},${spot.y} made no foothold (${event ? `${event.type}${'x' in event ? ` at ${Math.round(event.x)},${Math.round(event.y)}` : ''}` : 'nothing'})`, loosed };

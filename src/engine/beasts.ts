@@ -32,6 +32,8 @@ export interface Beast {
    * frame (painted facing left, from its feet), so the arrow falls with it.
    */
   wound?: { x: number; y: number; dx: number; dy: number };
+  /** Crushed by a piece that came down on it: dead, beneath what fell, whose bounds these are. */
+  crushed?: { x: number; y: number; width: number; height: number };
 }
 
 export const WOLF = {
@@ -81,6 +83,40 @@ export function stepBeast(b: Beast, dt: number, traveller: { x: number; y: numbe
   if (b.x <= x0 || b.x >= x1) { b.x = Math.max(x0, Math.min(x1, b.x)); b.facing = (b.x <= x0 ? 1 : -1); b.pause = 1.1; }
 }
 
+/** How much of a beast's hide a fallen piece must fill to crush it (page units², at a 720 page). */
+export const CRUSH_AREA = 900;
+
+/** Crushed by something that came down on it (`under`, its bounds): dead at once, beneath it. */
+export function crush(b: Beast, under: { x: number; y: number; width: number; height: number }): void {
+  if (!alive(b)) return;
+  b.state = 'dead'; b.time = 0; b.pause = 0; b.crushed = under;
+}
+
+/**
+ * A wolf something came down on: only what shows beside it is drawn, its
+ * tail flat on the ground on the side it trailed, and its blood seeping out
+ * from beneath on either side.
+ */
+function drawCrushed(c: CanvasRenderingContext2D, b: Beast, rig: BeastRig, unit: number): void {
+  const r = b.crushed!, groundY = b.spec.y, tail = 70 * unit;
+  const pool = Math.min(1, b.time / 2.4);
+  c.save();
+  c.beginPath(); c.rect(r.x - 4000, r.y - 4000, r.width + 8000, r.height + 8000); c.rect(r.x, r.y, r.width, r.height); c.clip('evenodd');
+  c.fillStyle = 'rgba(78, 6, 5, .88)';
+  for (const side of [-1, 1]) {
+    c.beginPath(); c.ellipse(r.x + r.width / 2 + side * r.width * .44, groundY + 5 * unit, r.width * (.12 + .2 * pool), (3 + 4 * pool) * unit, 0, 0, Math.PI * 2); c.fill();
+  }
+  // Painted facing left, its tail trails to the right; mirrored when it faced right. The tail is
+  // painted rising from its root at the lower left: turned an eighth, it lies along the ground.
+  const side = -b.facing;
+  c.translate(b.x + side * 40 * unit, groundY - 9 * unit);
+  c.scale(side, 1);
+  c.rotate(Math.PI / 4 + .1);
+  c.filter = 'grayscale(1) brightness(.92) contrast(1.05)';
+  c.drawImage(rig.tail, -tail * .05, -tail * .75, tail, tail);
+  c.restore();
+}
+
 /** Struck by an arrow at `hit`, flying along (dx, dy): the beast is killed, and falls. */
 export function slay(b: Beast, hit: { x: number; y: number; dx: number; dy: number }): void {
   if (!alive(b)) return;
@@ -102,6 +138,7 @@ const ease = (t: number) => 1 - (1 - t) ** 3;
  * washed grey; its eyes burn red, brighter as it runs at you.
  */
 export function drawBeast(c: CanvasRenderingContext2D, b: Beast, rig: BeastRig, unit = 1, time = 0): void {
+  if (b.crushed) { drawCrushed(c, b, rig, unit); return; }
   const living = alive(b);
   // How far through its fall: 0 on its feet, 1 lying still.
   const down = living ? 0 : b.state === 'dead' ? 1 : ease(Math.min(1, b.time / WOLF.falling));

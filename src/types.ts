@@ -15,7 +15,7 @@ export type SkySetting = 'day' | 'dawn' | 'dusk' | 'night' | 'none';
 export interface SceneSettings {
   sky?: SkySetting; waterY?: number | null; brief?: string; spawn?: { x: number; y: number }; letters?: Array<{ id: string; x: number; y: number; glyph: string }>;
   /** Arrows in the quiver for each run of the folio. */ arrows?: number;
-  /** Butts and bells to shoot at; a struck one sets moving the pieces it works. */ targets?: Array<{ id: string; x: number; y: number; kind: 'butt' | 'bell' }>;
+  /** Butts, bells and ropes to shoot at; a struck one sets moving the pieces it works. */ targets?: Array<{ id: string; x: number; y: number; kind: 'butt' | 'bell' | 'rope' }>;
   /** Beasts keeping ground; an arrow kills them. */ beasts?: Array<{ id: string; kind: 'wolf'; x0: number; x1: number; y: number }>;
   /** A big folio: so many screens wide and tall, one shown at a time as the camera follows. Absent for one screen. */ screens?: { wide: number; tall: number };
   /** Ways on: the folio each edge leads to, by id. Absent when every edge holds. */ ways?: Partial<Record<'left' | 'right' | 'top' | 'bottom', string>>;

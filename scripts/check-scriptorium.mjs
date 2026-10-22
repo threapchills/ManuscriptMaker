@@ -59,6 +59,8 @@ const cameraAt = () => page.evaluate(() => {
   return m ? { x: Math.round(-Number(m[1]) / k) || 0, y: Math.round(-Number(m[2]) / k) || 0 } : { x: 0, y: 0 };
 });
 const drag = async (locator, to) => {
+  // As a hand would: the shelf is scrolled to the piece before it is taken up.
+  await locator.scrollIntoViewIfNeeded();
   const from = await locator.boundingBox();
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();

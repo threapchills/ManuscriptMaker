@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alive, beastRect, makeBeast, slay, stepBeast, WOLF } from '../src/engine/beasts';
+import { alive, beastRect, crush, makeBeast, slay, stepBeast, WOLF } from '../src/engine/beasts';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import { loose, stepArrow } from '../src/engine/archery';
 
@@ -9,6 +9,21 @@ const run = (b: ReturnType<typeof makeBeast>, seconds: number, traveller: { x: n
 };
 
 describe('the grey wolf', () => {
+  it('is crushed by what comes down on it: dead at once, keeping what fell on it, and still after', () => {
+    const wolf = makeBeast(spec);
+    const stone = { x: 700, y: 480, width: 110, height: 80 };
+    crush(wolf, stone);
+    expect(alive(wolf)).toBe(false);
+    expect(beastRect(wolf)).toBeNull();
+    expect(wolf.crushed).toEqual(stone);
+    const x = wolf.x;
+    run(wolf, 3, { x: wolf.x, y: 560 });
+    expect(wolf.x).toBe(x);
+    // Crushed once, it is not crushed again, nor slain after.
+    crush(wolf, { x: 0, y: 0, width: 1, height: 1 });
+    expect(wolf.crushed).toEqual(stone);
+  });
+
   it('walks its round and never leaves it while it keeps watch', () => {
     const wolf = makeBeast(spec);
     let lo = Infinity, hi = -Infinity;

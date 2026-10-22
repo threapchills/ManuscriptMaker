@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createField, fillRect, finalizeField } from '../src/engine/field';
 import type { Field } from '../src/engine/field';
-import { addFoothold, aim, ARROW, canDraw, footholdShape, loose, openTargets, restorePlatforms, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
+import { addFoothold, aim, ARROW, canDraw, footholdShape, loose, openTargets, restorePlatforms, ROPE_RADIUS, snapshotPlatforms, stepArrow, TARGET_RADIUS, trajectory } from '../src/engine/archery';
+import { drops } from '../src/tale/stage/types';
 import { localPoint, posed, swungAbout, workedPose } from '../src/tale/stage/types';
 import type { Arrow } from '../src/engine/archery';
 import { createWorld, stepWorld } from '../src/engine/world';
@@ -64,6 +65,29 @@ describe('archery', () => {
     for (let i = 0; i < 240; i++) stepWorld(w, NO_INPUT);
     expect(w.body.grounded).toBe(true);
     expect(Math.abs(w.body.y + w.body.h - top)).toBeLessThan(3);
+  });
+
+  it('cuts a rope only at its knot, and the arrow tumbles on, spent', () => {
+    const rope = { id: 'rope', x: 700, y: 300, kind: 'rope' as const };
+    expect(ROPE_RADIUS).toBeLessThan(TARGET_RADIUS);
+    // Shots passing 8 and 20 above the knot: the near one cuts it; the far one misses the rope, though it would strike a butt.
+    for (const [above, cuts] of [[8, true], [20, false]] as const) {
+      const a = loose({ x: 400, y: 300 - above }, { x: 700, y: 300 - above });
+      const e = fly(a, field(), { targets: [rope] } as never);
+      expect(e?.type === 'target', `a shot ${above} above the knot`).toBe(cuts);
+      if (cuts) expect(a.state).toBe('glancing');
+      const butt = loose({ x: 400, y: 300 - above }, { x: 700, y: 300 - above });
+      expect(fly(butt, field(), { targets: [{ ...rope, kind: 'butt' as const }] } as never)?.type).toBe('target');
+    }
+  });
+
+  it('knows a piece that drops from one that is wound up or swung', () => {
+    const p = { x: 100, y: 100, width: 80, height: 60, rotation: 0 };
+    expect(drops({ ...p, works: { by: 'rope', x: 100, y: 400, rotation: 0 } })).toBe(true);
+    expect(drops({ ...p, works: { by: 'rope', x: 0, y: 0, rotation: 0, motion: 'drop' } })).toBe(true);
+    expect(drops({ ...p, works: { by: 'bell', x: 100, y: -20, rotation: 0 } })).toBe(false);
+    expect(drops({ ...p, works: { by: 'butt', x: 100, y: 100, rotation: 90, pivot: [100, 160] } })).toBe(false);
+    expect(drops(p)).toBe(false);
   });
 
   it('draws a bow only with the feet planted: on the ground or a ladder, never in mid-leap', () => {

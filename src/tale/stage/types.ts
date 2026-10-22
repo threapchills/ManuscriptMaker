@@ -81,8 +81,14 @@ export function localPoint(p: { x: number; y: number; width: number; height: num
   const dx = point[0] - (p.x + p.width / 2), dy = point[1] - (p.y + p.height / 2);
   return [p.width / 2 + dx * cos - dy * sin, p.height / 2 + dx * sin + dy * cos];
 }
-/** A butt (or a bell) to shoot at. */
-export interface StageTarget { id: string; x: number; y: number; kind?: 'butt' | 'bell'; /** Hidden until this target is struck. */ after?: string }
+/** A butt, a bell or a rope to shoot at. */
+export interface StageTarget { id: string; x: number; y: number; kind?: 'butt' | 'bell' | 'rope'; /** Hidden until this target is struck. */ after?: string; /** The way a rope runs, from where it is made fast to what it holds; its knot is at (x, y). */ rope?: Array<[number, number]> }
+
+/** A piece that drops straight down when its target is struck: it falls, rather than gliding. */
+export function drops(p: { x: number; y: number; width: number; height: number; rotation?: number; works?: Works }): boolean {
+  const rest = workedPose(p);
+  return !!rest && !rest.pivot && rest.y > p.y + 1 && Math.abs(rest.x - p.x) < 1 && Math.abs(rest.rotation - (p.rotation ?? 0)) < .5;
+}
 
 /** A piece as it stands once the struck targets have moved it. */
 export const posed = <P extends { x: number; y: number; width: number; height: number; rotation?: number; works?: Works }>(p: P, struck?: { has: (id: string) => boolean }): P => {

@@ -100,7 +100,7 @@ function validateScene(scene: unknown, page: Manuscript) {
   }
   if(s.targets !== undefined) {
     if(!Array.isArray(s.targets) || s.targets.length > MAX_TARGETS) bad();
-    for(const t of s.targets as Array<Record<string, unknown>>) if(!t || typeof t.id !== 'string' || t.id.length > 64 || !numeric(t.x, -MAX_REACH, MAX_REACH) || !numeric(t.y, -MAX_REACH, MAX_REACH) || !['butt','bell'].includes(t.kind as string)) bad();
+    for(const t of s.targets as Array<Record<string, unknown>>) if(!t || typeof t.id !== 'string' || t.id.length > 64 || !numeric(t.x, -MAX_REACH, MAX_REACH) || !numeric(t.y, -MAX_REACH, MAX_REACH) || !['butt','bell','rope'].includes(t.kind as string)) bad();
   }
   if(s.beasts !== undefined) {
     if(!Array.isArray(s.beasts) || s.beasts.length > MAX_BEASTS) bad();

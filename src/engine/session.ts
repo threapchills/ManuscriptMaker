@@ -1,5 +1,5 @@
 import type { Field } from './field';
-import { groundBelow, platformRow, solidIn, solidRow } from './field';
+import { countIn, groundBelow, platformRow, solidIn, solidRow } from './field';
 import type { LoadedImage } from './images';
 import type { Avatar } from './puppet';
 import { drawAvatar } from './puppet';
@@ -8,7 +8,7 @@ import type { InputController } from './input';
 import type { Collectible, Rect, World, WorldEvent } from './world';
 import { advanceWorld, bodyRect, createWorld, doorBefore, drawnFeet, perish } from './world';
 import type { Beast, BeastRig, BeastSpec } from './beasts';
-import { alive, beastRect, drawBeast, makeBeast, slay, stepBeast } from './beasts';
+import { alive, beastRect, crush, CRUSH_AREA, drawBeast, makeBeast, slay, stepBeast } from './beasts';
 import { audio } from './audio';
 import type { Arrow, Target } from './archery';
 import type { Edge } from './ways';
@@ -130,10 +130,30 @@ export class PlaySession {
   /**
    * Something a target worked has come to rest: walk on the page as it now
    * stands, keeping the traveller where they are and every foothold already
-   * made. A traveller the moved piece came down on is lifted clear.
+   * made. A traveller the moved piece came down on is lifted clear; a beast
+   * it came down on is crushed. `landed` are the bounds of pieces that fell,
+   * which raise dust where they strike.
    */
-  swapField(field: Field): void {
+  swapField(field: Field, landed: Array<{ x: number; y: number; width: number; height: number }> = []): void {
+    const before = this.spec.field, unit = this.spec.unit;
     for (const a of this.arrows) if (a.hit?.foothold) addFoothold(field, a, this.spec.unit);
+    for (const beast of this.beasts) {
+      const hide = beastRect(beast, unit);
+      if (!hide) continue;
+      // Stone now where its hide was: what fell is lying on it.
+      const filled = (f: Field) => countIn(f, f.sums.solid, Math.floor(hide.x / f.cell), Math.floor(hide.y / f.cell), Math.ceil((hide.x + hide.width) / f.cell), Math.floor((hide.y + hide.height - 4 * unit) / f.cell)) * f.cell * f.cell;
+      if (filled(field) - filled(before) < CRUSH_AREA * unit * unit) continue;
+      const over = (r: { x: number; y: number; width: number; height: number }) => r.x < hide.x + hide.width && r.x + r.width > hide.x && r.y < hide.y + hide.height && r.y + r.height > hide.y;
+      crush(beast, landed.find(over) ?? hide);
+      this.particles.emit('blood', beast.x, beast.spec.y - 6 * unit, 14, 1.1, unit);
+      this.particles.emit('dust', beast.x, beast.spec.y - 4 * unit, 16, 1.3, unit);
+      audio.play('slain', { pan: this.pan(beast.x) });
+    }
+    for (const r of landed) {
+      for (let i = 0; i <= 4; i++) this.particles.emit('dust', r.x + r.width * i / 4, r.y + r.height - 4 * unit, 4, 1.1, unit);
+      audio.play('crush', { pan: this.pan(r.x + r.width / 2) });
+      this.callbacks.onShake?.(Math.min(9, 2 + r.width * r.height / 2600));
+    }
     this.spec = { ...this.spec, field };
     this.world.spec.field = field;
     this.lensImage = null;
@@ -284,7 +304,8 @@ export class PlaySession {
         this.struck.set(e.id, this.time);
         page.targets = page.targets.filter(t => t.id !== e.id);
         this.particles.emit('spark', e.x, e.y, 16, .9, unit);
-        audio.play((this.spec.targets ?? []).find(t => t.id === e.id)?.kind === 'bell' ? 'toll' : 'strike', { pan: pan(e.x) });
+        const kind = (this.spec.targets ?? []).find(t => t.id === e.id)?.kind;
+        audio.play(kind === 'bell' ? 'toll' : kind === 'rope' ? 'snap' : 'strike', { pan: pan(e.x) });
         this.callbacks.onStrike?.(e.id);
       } else if (e.type === 'stick') {
         if (e.foothold && addFoothold(this.spec.field, a, unit)) this.lensImage = null;

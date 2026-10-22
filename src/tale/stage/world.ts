@@ -119,7 +119,7 @@ export function stageSpec(o: {
     collectibles: o.letters.map(l => ({ x: l.x, y: l.y, radius: 26 * unit, glyph: l.glyph })),
     water: o.waterY !== undefined ? { y: o.waterY } : undefined,
     sink: 4 * unit,
-    targets: o.targets?.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind, after: t.after })),
+    targets: o.targets?.map(t => ({ id: t.id, x: t.x, y: t.y, kind: t.kind, after: t.after, rope: t.rope })),
     beasts: o.beasts?.flatMap(b => { const rig = wolfRig(o.images); return rig ? [{ id: b.id, kind: b.kind, x0: b.x0, x1: b.x1, y: b.y, rig }] : []; }),
     playerId: who.playerId,
   };
