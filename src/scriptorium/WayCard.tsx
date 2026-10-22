@@ -15,23 +15,28 @@ export const EDGE_WORDS: Record<Edge, { name: string; going: string }> = {
 };
 
 /**
- * Where an edge of the folio leads, chosen where it is made: the book's other
- * folios in miniature, a new folio beyond, or no way at all.
+ * Where an edge of the folio, or a picture made a doorway, leads, chosen
+ * where it is made: the book's other folios in miniature, a new folio
+ * beyond, or no way at all.
  */
-export default function WayCard({ edge, page, pages, stream, onChoose, onBeyond, onTurn, onClose }: {
-  edge: Edge; page: Manuscript; pages: Manuscript[];
+export default function WayCard({ edge, door, page, pages, stream, onChoose, onBeyond, onTurn, onClose }: {
+  /** An edge of the folio; or else a doorway, leading to the folio `door.to`. */
+  edge?: Edge; door?: { to?: string };
+  page: Manuscript; pages: Manuscript[];
   /** The folio's stream flows along its foot, and catches anyone who falls before they reach it. */
   stream?: boolean;
   onChoose: (to: string | null) => void; onBeyond: () => void; onTurn: (to: string) => void; onClose: () => void;
 }) {
-  const to = waysOf(page)[edge];
+  const to = edge ? waysOf(page)[edge] : door?.to;
   const at = to ? pages.findIndex(p => p.id === to) : -1;
-  return <div className="way-card" role="dialog" aria-label={`Where ${EDGE_WORDS[edge].name} leads`} onPointerDown={e => e.stopPropagation()}>
+  const name = edge ? EDGE_WORDS[edge].name : 'this doorway', going = edge ? EDGE_WORDS[edge].going : 'Going in here';
+  return <div className="way-card" role="dialog" aria-label={`Where ${name} leads`} onPointerDown={e => e.stopPropagation()}>
     <div className="way-card-head">
-      <span className="rubric small">Beyond {EDGE_WORDS[edge].name}</span>
+      <span className="rubric small">Beyond {name}</span>
       <button type="button" className="way-close" onClick={() => { audio.play('tick'); onClose(); }} aria-label="Close"><InkIcon name="close" size={18} /></button>
     </div>
-    <p className="way-lead">{EDGE_WORDS[edge].going} leads to…</p>
+    <p className="way-lead">{going} leads to…</p>
+    {door && <p className="way-note is-quiet">Up, pressed before the picture, goes in. Coming back, the traveller stands before the doorway there that leads here, if it has one.</p>}
     {edge === 'bottom' && stream && <p className="way-note">While the stream flows, a fall ends in its water: stop the stream in the folio’s settings for the foot to lead on.</p>}
     <div className="way-folios">
       {pages.map((p, i) => p.id === page.id ? null : <button type="button" key={p.id} className={`way-folio${p.id === to ? ' is-on' : ''}`} aria-pressed={p.id === to}
@@ -45,7 +50,7 @@ export default function WayCard({ edge, page, pages, stream, onChoose, onBeyond,
       </button>
     </div>
     {to && at >= 0 && <div className="way-card-foot">
-      <button type="button" className="text-link" onClick={() => { audio.play('drop'); onChoose(null); }}><InkIcon name="close" size={16} /> No way on: the edge holds</button>
+      <button type="button" className="text-link" onClick={() => { audio.play('drop'); onChoose(null); }}><InkIcon name="close" size={16} /> {edge ? 'No way on: the edge holds' : 'No way on: a picture only'}</button>
       <button type="button" className="text-link" onClick={() => onTurn(to)}><InkIcon name="book" size={16} /> Turn to folio {toRoman(at + 1)}</button>
     </div>}
   </div>;

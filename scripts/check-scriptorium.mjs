@@ -422,8 +422,56 @@ try {
   assert.equal(saved.pages.length, 2);
   assert.equal(saved.pages[1].scene.ways, undefined, 'no way leads to a folio torn out');
 
+  // Doorways: a cottage on the plain folio made a doorway to a new folio beyond, gone in at and come back out of.
+  await page.locator('.maker-open').first().click();
+  await expect(page.getByRole('heading', { name: 'The second folio' })).toBeVisible({ timeout: 5000 });
+  at = await stage();
+  await page.getByLabel('Find a piece').fill('cottage');
+  await drag(page.getByRole('button', { name: /Timber cottage\. Drag/ }), { x: at.x(560), y: at.y(470) });
+  await page.getByLabel('Find a piece').fill('');
+  saved = await book();
+  const cottage = saved.pages[0].layers.at(-1);
+  assert.equal(cottage.assetId, 'cottage-timber');
+  await page.getByRole('radio', { name: 'Scenery' }).click();
+  await page.getByRole('button', { name: 'Nowhere: make it a doorway' }).click();
+  await expect(page.getByRole('dialog', { name: 'Where this doorway leads' })).toBeVisible();
+  await page.screenshot({ path: '.local/scriptorium-door-card.png' });
+  await page.getByRole('button', { name: 'A new folio beyond' }).click();
+  await expect(page.locator('.tale-toast')).toContainText('Going in at the doorway now leads to a new folio, II');
+  saved = await book();
+  assert.equal(saved.pages.length, 3);
+  assert.equal(saved.pages[1].title, 'The third folio');
+  assert.equal(saved.pages[0].layers.find(l => l.id === cottage.id).way, saved.pages[1].id, 'the cottage leads to the new folio');
+  const backDoor = saved.pages[1].layers.find(l => l.way === saved.pages[0].id);
+  assert.equal(backDoor?.assetId, 'cottage-timber', 'the same cottage stands there, leading back');
+  await expect(page.locator('.door-badge')).toHaveCount(1);
+  await page.screenshot({ path: '.local/scriptorium-door-made.png' });
+  // Walked to it, up goes in; there, the traveller stands before the cottage that leads back, and up brings them home.
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('.level-screen')?.classList.contains('mode-play'), null, { timeout: 5000 });
+  const middle = cottage.x + cottage.width / 2;
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(m => window.__playSession.probe(0).x > m - 20, middle, { timeout: 8000 });
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('heading', { name: 'The third folio' })).toBeVisible({ timeout: 6000 });
+  await page.waitForFunction(() => window.__playSession?.world.phase === 'playing' && document.querySelector('.level-screen')?.classList.contains('mode-play'), null, { timeout: 6000 });
+  const inside = await page.evaluate(() => window.__playSession.probe(0));
+  assert.ok(Math.abs(inside.x - (backDoor.x + backDoor.width / 2)) < 12, `stands before the cottage that leads back (at ${Math.round(inside.x)})`);
+  await page.screenshot({ path: '.local/scriptorium-door-beyond.png' });
+  await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('heading', { name: 'The second folio' })).toBeVisible({ timeout: 6000 });
+  await page.waitForFunction(() => window.__playSession?.world.phase === 'playing' && document.querySelector('.level-screen')?.classList.contains('mode-play'), null, { timeout: 6000 });
+  const outside = await page.evaluate(() => window.__playSession.probe(0));
+  assert.ok(Math.abs(outside.x - middle) < 12, `and back before the first cottage (at ${Math.round(outside.x)})`);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'The book', exact: true }).click();
+  await expect(page.locator('.maker-row').nth(0)).toContainText('a way on to II');
+
   await page.getByRole('button', { name: /old illuminator/ }).click();
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeVisible({ timeout: 5000 });
   assert.deepEqual(errors, []);
-  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), a way from the big folio’s left edge to a new folio beyond (chosen on the edge, the way back made), walked there and back, and shut when that folio was torn out, old desk reachable, no runtime errors');
+  console.log('PASS scriptorium: fresh folio walked, cabinet drag, roles with undo, motion, letters, words, own picture (kept in the cabinet when taken off the folio, offered on the next, put away), a quiver and an arrow foothold, a butt that raises a crate and a wolf shot dead, sky and stream, rename, templates, whole book played in order, book reshaped, reload, file save, a folio made four screens wide (the view moved by its map and by dragging open sky), a long road opened from a file and walked end to end with the view following, the earlier book restored, phone fit held sideways and upright (the contents a leaf, a folio a column with its cabinet and settings on the screen, a big folio with its map docked), a way from the big folio’s left edge to a new folio beyond (chosen on the edge, the way back made), walked there and back, and shut when that folio was torn out, a cottage made a doorway to a new folio beyond (the same cottage there leading back), gone in at and come out of again, old desk reachable, no runtime errors');
 } finally { await browser.close(); }

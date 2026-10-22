@@ -18,11 +18,12 @@ import BookContents from './BookContents';
 import FolioSettings from './FolioSettings';
 import SandboxExplicit from './SandboxExplicit';
 import WayCard, { EDGE_WORDS } from './WayCard';
-import { folioBeyond, linkWay, shutWaysTo, waysOf } from './ways';
+import { folioBeyond, folioBeyondDoor, linkWay, shutWaysTo, waysOf } from './ways';
 import type { Arrival, Edge } from '../engine/ways';
 import { OPPOSITE, arrivalFrom } from '../engine/ways';
 import type { FolioTemplate } from './convert';
-import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, pageToStage, putPictureAway, readScriptorium, reidentify, resizeFolio, screensOf, skySeedOf, stageToPage, writeScriptorium } from './convert';
+import { DEFAULT_BRIEF, SCRIPTORIUM_KEY, bookPictures, keepPictures, newFolio, pageToStage, pieceToLayer, putPictureAway, readScriptorium, reidentify, resizeFolio, screensOf, skySeedOf, stageToPage, writeScriptorium } from './convert';
+import type { StagePiece } from '../tale/stage/types';
 import '../tale/tale.css';
 import './scriptorium.css';
 
@@ -137,12 +138,25 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
   };
   // ——— ways between folios ———
   /** Off an edge that leads on: the book turns to the folio beyond, and the traveller comes in by its opposite edge. */
-  const travel = (from: string, edge: Edge, at: { x: number; y: number }, facing: 1 | -1) => {
-    const b = bookRef.current, page = b.pages.find(p => p.id === from), to = page && waysOf(page)[edge];
+  const travel = (from: string, way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1) => {
+    const b = bookRef.current, page = b.pages.find(p => p.id === from), to = 'edge' in way ? page && waysOf(page)[way.edge] : way.to;
     const beyond = to ? b.pages.find(p => p.id === to) : undefined;
     if (!page || !beyond) return;
     setBook(x => ({ ...x, activePageId: beyond.id }));
-    go({ kind: 'folio', id: beyond.id, chain: screen.kind === 'folio' && screen.chain, autoPlay: true, arrive: arrivalFrom(edge, at, page, facing) }, edge === 'left' || edge === 'top');
+    const arrive: Arrival = 'edge' in way ? arrivalFrom(way.edge, at, page, facing) : { from: page.id, facing };
+    go({ kind: 'folio', id: beyond.id, chain: screen.kind === 'folio' && screen.chain, autoPlay: true, arrive }, 'edge' in way && (way.edge === 'left' || way.edge === 'top'));
+  };
+  /** A new folio beyond a doorway, with the same picture standing in it as the doorway back; its id, to lead the doorway there. */
+  const folioThroughDoor = (from: string, door: StagePiece): string | null => {
+    const b = bookRef.current;
+    if (b.pages.length >= MAX_PAGES) { setToast(`A book holds at most ${MAX_PAGES} folios.`); return null; }
+    const layer = pieceToLayer(door);
+    if (layer.type !== 'image') return null;
+    const made = folioBeyondDoor(b.pages, from, layer);
+    if (!made) return null;
+    setBook(withPages(b, made.pages));
+    setToast(`Going in at the doorway now leads to a new folio, ${toRoman(made.pages.findIndex(p => p.id === made.id) + 1)}, bound in after this one, with a doorway there leading back.`);
+    return made.id;
   };
   /** Lead an edge on to another folio, or shut it; the way back follows, and the maker is told what became of it. */
   const linkEdge = (from: string, edge: Edge, to: string | null) => {
@@ -230,8 +244,9 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
       ? () => go({ kind: 'folio', id: next.id, chain, autoPlay: chain })
       : chain ? () => { go({ kind: 'contents' }, true); setToast('Every folio walked, from the first to the last.'); } : undefined;
     body = <MakerFolio key={page.id} page={page} index={folioIndex} traveller={traveller} autoPlay={screen.autoPlay} chain={chain}
-      pages={book.pages} arrival={screen.arrive} onTravel={(edge, at, facing) => travel(page.id, edge, at, facing)}
+      pages={book.pages} arrival={screen.arrive} onTravel={(way, at, facing) => travel(page.id, way, at, facing)}
       onLink={(edge, to) => linkEdge(page.id, edge, to)} onBeyond={edge => folioOnward(page.id, edge)} onTurn={turnTo}
+      onThroughDoor={door => folioThroughDoor(page.id, door)}
       onUpdate={updatePage} pictures={pictures} onPutAway={src => { setBook(b => putPictureAway(b, src)); audio.play('drop'); }}
       onWalked={id => setWalked(w => w.has(id) ? w : new Set([...w, id]))}
       onNext={onNext}
@@ -257,12 +272,13 @@ export default function ScriptoriumApp({ onClose, onClassic }: { onClose: () => 
 }
 
 /** One of the maker's folios on the shared stage. */
-function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, onTravel, onLink, onBeyond, onTurn, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
+function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, onTravel, onLink, onBeyond, onTurn, onThroughDoor, onUpdate, pictures, onPutAway, onWalked, onNext, nextLabel, onContents }: {
   page: Manuscript; index: number; traveller: Traveller; autoPlay: boolean; chain: boolean;
   /** The whole book, for choosing where an edge leads; and how the traveller came in, if by a way. */
   pages: Manuscript[]; arrival?: Arrival;
-  onTravel: (edge: Edge, at: { x: number; y: number }, facing: 1 | -1) => void;
+  onTravel: (way: { edge: Edge } | { door: string; to: string }, at: { x: number; y: number }, facing: 1 | -1) => void;
   onLink: (edge: Edge, to: string | null) => void; onBeyond: (edge: Edge) => void; onTurn: (id: string) => void;
+  onThroughDoor: (door: StagePiece) => string | null;
   onUpdate: (id: string, change: (page: Manuscript) => Manuscript) => void;
   /** Every picture of the maker's own in the book, offered in this folio's cabinet. */
   pictures: Array<{ src: string; kept: boolean }>;
@@ -306,8 +322,12 @@ function MakerFolio({ page, index, traveller, autoPlay, chain, pages, arrival, o
       onScreens={(wide, tall) => { setSettings({ open: true, refocus: true }); onUpdate(id, p => resizeFolio(p, wide, tall) ?? p); }} />}
     hints={firstTime && screens.wide * screens.tall === 1 ? FIRST_HINTS : undefined}
     ways={ways} arrival={arrival} onTravel={onTravel}
-    wayCard={(edge, close) => <WayCard edge={edge} page={page} pages={pages} stream={waterY !== undefined} onClose={close}
-      onChoose={to => { close(); onLink(edge, to); }} onBeyond={() => { close(); onBeyond(edge); }} onTurn={to => { close(); onTurn(to); }} />}
+    folios={pages.flatMap((p, i) => p.id === id ? [] : [{ id: p.id, numeral: toRoman(i + 1), title: p.title }])}
+    wayCard={(place, close) => 'edge' in place
+      ? <WayCard edge={place.edge} page={page} pages={pages} stream={waterY !== undefined} onClose={close}
+        onChoose={to => { close(); onLink(place.edge, to); }} onBeyond={() => { close(); onBeyond(place.edge); }} onTurn={to => { close(); onTurn(to); }} />
+      : <WayCard door={{ to: place.door.way }} page={page} pages={pages} onClose={close}
+        onChoose={to => { close(); place.set(to); }} onBeyond={() => { close(); const made = onThroughDoor(place.door); if (made) place.set(made); }} onTurn={to => { close(); onTurn(to); }} />}
     onPlay={() => storage.set(HINTS_KEY, '1')}
     onWin={() => onWalked(id)}
     card={(result, controls) => <SandboxExplicit title={page.title} result={result} onNext={onNext} nextLabel={nextLabel} onAgain={controls.again} onBuild={controls.build} />}

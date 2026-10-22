@@ -24,7 +24,7 @@ export const skySeedOf = (page: Manuscript) => [...page.id].reduce((h, c) => (h 
 
 export function layerToPiece(l: Layer): StagePiece {
   const common = { id: l.id, name: l.name, x: l.x, y: l.y, width: l.width, height: l.height, rotation: l.rotation, flipX: l.flipX, flipY: l.flipY, opacity: l.opacity, front: l.front };
-  if (l.type === 'image') return { ...common, kind: 'image', src: l.src, asset: l.assetId, role: l.gameRole ?? 'scenery', fit: l.imageFit, ...(l.motion ? { anim: l.motion } : {}), ...(l.works ? { works: { by: l.works.by, motion: l.works.motion, x: 0, y: 0, rotation: 0 } } : {}) };
+  if (l.type === 'image') return { ...common, kind: 'image', src: l.src, asset: l.assetId, role: l.gameRole ?? 'scenery', fit: l.imageFit, ...(l.motion ? { anim: l.motion } : {}), ...(l.works ? { works: { by: l.works.by, motion: l.works.motion, x: 0, y: 0, rotation: 0 } } : {}), ...(l.way ? { way: l.way } : {}) };
   return { ...common, kind: 'text', src: '', role: 'scenery', front: l.front ?? true, text: { text: l.text, fontFamily: l.fontFamily, fontSize: l.fontSize, color: l.color, bold: l.bold, italic: l.italic, align: l.align, lineHeight: l.lineHeight, letterSpacing: l.letterSpacing, glyphs: { ...l.glyphs } } };
 }
 
@@ -39,6 +39,7 @@ export function pieceToLayer(p: StagePiece, previous?: Layer): Layer {
   const image: ImageLayer = { ...(common as ImageLayer), type: 'image', src: p.src, gameRole: p.role, ...(p.asset ? { assetId: p.asset } : {}), ...(p.fit ? { imageFit: p.fit } : {}) };
   if (p.anim) image.motion = p.anim; else delete image.motion;
   if (p.works?.motion) image.works = { by: p.works.by, motion: p.works.motion }; else delete image.works;
+  if (p.way) image.way = p.way; else delete image.way;
   delete (image as unknown as Record<string, unknown>).text;
   return image;
 }

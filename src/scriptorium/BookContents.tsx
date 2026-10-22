@@ -3,6 +3,7 @@ import type { Project } from '../project';
 import { MAX_PAGES } from '../project';
 import type { FolioTemplate } from './convert';
 import { FOLIO_TEMPLATES, newFolio, screensOf, sizeWords } from './convert';
+import { onwardOf } from './ways';
 import type { Traveller } from '../tale/save';
 import { useSpread } from '../tale/scene';
 import { DropCap, Flourish, InkIcon, WaxSeal, toRoman } from '../tale/ornaments';
@@ -17,7 +18,7 @@ const W = 1500, H = 960;
 /** What a folio holds, in a few words, and where it leads: and a gentle warning when it cannot be finished or left. */
 function summaryOf(page: Manuscript, pages: Manuscript[]) {
   const shown = page.layers.filter(l => !l.hidden);
-  const onward = [...new Set(Object.values(page.scene?.ways ?? {}))].map(id => pages.findIndex(p => p.id === id)).filter(i => i >= 0).sort((a, b) => a - b).map(i => toRoman(i + 1));
+  const onward = onwardOf(page).map(id => pages.findIndex(p => p.id === id)).filter(i => i >= 0).sort((a, b) => a - b).map(i => toRoman(i + 1));
   const goal = onward.length > 0 || shown.some(l => l.type === 'image' && l.gameRole === 'goal');
   const letters = page.scene?.letters?.length ?? 0;
   const parts = [shown.length === 1 ? 'one piece' : `${shown.length} pieces`];

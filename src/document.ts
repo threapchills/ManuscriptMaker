@@ -68,6 +68,7 @@ export function validateManuscript(value: unknown): Manuscript {
     ids.add(l.id);
     if(l.type==='image' && !(typeof l.src==='string' && (/^\/ManuscriptMaker\/assets\/[a-z0-9-]+\.png$/.test(l.src) || DATA_PICTURE.test(l.src)))) throw new Error('This file contains an unsupported image source.');
     if(l.type==='image' && l.gameRole !== undefined && !['scenery','player','solid','platform','goal','hazard','ladder'].includes(l.gameRole)) throw new Error('This file contains an unsupported play role.');
+    if(l.type==='image' && l.way !== undefined && (typeof l.way !== 'string' || l.way.length < 1 || l.way.length > 64)) throw new Error('This file contains an unsupported doorway.');
     if(l.type==='image' && l.imageFit !== undefined && !['contain','fill'].includes(l.imageFit)) throw new Error('This file contains an unsupported image fit.');
     if(l.type==='image' && l.motion !== undefined && !['drift','sway','bob','turn'].includes(l.motion)) throw new Error('This file contains an unsupported motion.');
     if(l.type==='image' && l.works !== undefined && (!l.works || typeof l.works.by !== 'string' || l.works.by.length > 64 || !['rise','drop','fall-left','fall-right'].includes(l.works.motion))) throw new Error('This file contains an unsupported motion.');

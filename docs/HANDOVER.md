@@ -57,8 +57,36 @@ The second half of the user's sandbox request: "when exiting the play area to th
 - **Checks run before pushing**: `npm test` (217), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:play` and `test:browser` all pass.
   - `test:scriptorium` first failed to start: its closing message had a straight apostrophe inside a single-quoted string.
   - Mended, it passed.
+- **Doorways** (pushed after the edges). Any picture of the Scenery role may be made a doorway to another folio.
+  - Saved as the optional `way` on its image layer (a folio id), and validated. The stage carries it as `StagePiece.way`.
+  - **Making one.** Its tools gain a **Leads to** row ("Nowhere: make it a doorway", or "Folio II, The second folio"). The row opens the same card, which offers:
+    - the book's other folios;
+    - **A new folio beyond**: plain ground with the same picture standing on its meadow, as a doorway leading back (`folioBeyondDoor`);
+    - "No way on: a picture only".
+  - The link is committed through the stage's own state, so it has undo and is never overwritten by the stage's next edit.
+  - While building, a doorway that leads on wears a small vermilion badge with the folio's numeral.
+  - **Going through.** In play, up pressed while standing before a doorway goes in, rather than leaping (`doorBefore` in `src/engine/world.ts`). "Before" means the traveller's middle within its painted breadth, on the ground, not on a ladder.
+    - A gilt roundel with an arrow bobs above a doorway while the traveller stands before it.
+    - The play notes add "↑ go in at a doorway".
+    - On touch, the pad gains a **Go in** button (the climbing pad's up button, without its down).
+  - **Coming out.** The traveller stands before the doorway in the folio beyond that leads back here (`standingBefore` in `src/engine/ways.ts`), which serves as their place to return to. With no such doorway there, they begin at that folio's own start.
+  - A folio torn out leaves its doorways in the other folios as pictures only (`shutWaysTo`). The contents count doorways among the ways on (`onwardOf`).
+  - A folio with no goal but a way on now says "No Goal here: the road leads on" in play, not "so this road never ends".
+  - **Checked.**
+    - `npm test` (224), with `tests/doors.test.ts`:
+      - up before a doorway goes in, without a leap;
+      - away from one, up still leaps, and walking past is not going in;
+      - the traveller's middle and their footing are required;
+      - `standingBefore`, including a door set into a bank, no ground, and under the stream;
+      - the way kept through the stage and the saved page, and a bad one refused;
+      - a new folio beyond a doorway, with the same picture leading back;
+      - `onwardOf`, and doorways made pictures only when their folio is torn out.
+    - `test:scriptorium`, new steps: a timber cottage from the cabinet is made Scenery and then a doorway to a new folio beyond, which holds the same cottage leading back.
+      - Walked to and gone in at with up, the traveller stands before that cottage in the folio beyond, within 12 units of its middle; up again brings them back before the first.
+      - The contents read "a way on to II".
+    - A scratch run (not committed) checked the prompt above the door, a leap away from it, and the **Go in** button on an upright touch phone.
+  - **Checks run before pushing**: `npm test` (224), `npm run build`, `test:levels`, `test:chapter`, `test:tale`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser` all pass.
 - **Not done.**
-  - Doorways (a picture leading to another folio when the traveller presses up before it) were planned with the ways but are not built.
   - Gilded letters gathered in one folio are gathered again on coming back to it, since each arrival begins that folio's run afresh.
   - "Play the whole book" still turns the folios in order.
 

@@ -55,6 +55,17 @@ export function buildStageField(pieces: StagePiece[], width: number, height: num
   return field;
 }
 
+/** A picture's painted bounds on the page, or its frame while its image is not loaded. */
+export function boundsOf(p: StagePiece, images: Map<string, LoadedImage>) {
+  const image = images.get(p.src);
+  return image ? pageBounds(placementOf(p), image, image.bounds) : { x: p.x, y: p.y, width: p.width, height: p.height };
+}
+
+/** Doorways that lead on: scenery with a way to a folio that `leads` knows, by its painted bounds. */
+export function doorRects(pieces: StagePiece[], images: Map<string, LoadedImage>, leads: (id: string) => boolean) {
+  return pieces.filter(p => p.kind === 'image' && p.role === 'scenery' && p.way && leads(p.way)).map(p => ({ id: p.id, ...boundsOf(p, images) }));
+}
+
 export function goalRects(pieces: StagePiece[], images: Map<string, LoadedImage>, unit: number) {
   return pieces.filter(p => p.role === 'goal').map(p => {
     const image = images.get(p.src);

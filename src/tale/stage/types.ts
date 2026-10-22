@@ -30,6 +30,8 @@ export interface StagePiece {
   block?: boolean;
   /** Moves when a target is struck: the pose it comes to rest in. */
   works?: Works;
+  /** A doorway (the scriptorium): up, pressed before it, leads to the folio with this id. */
+  way?: string;
 }
 
 /**

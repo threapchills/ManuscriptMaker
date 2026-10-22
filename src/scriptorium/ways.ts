@@ -1,10 +1,13 @@
-import type { Manuscript } from '../types';
+import type { ImageLayer, Manuscript } from '../types';
 import type { Edge } from '../engine/ways';
 import { EDGES, OPPOSITE } from '../engine/ways';
 import { newFolio } from './convert';
+import { uid } from '../document';
 
 /** Where each edge of a folio leads: the ids of other folios in the book. */
 export const waysOf = (page: Manuscript): Partial<Record<Edge, string>> => page.scene?.ways ?? {};
+/** Every folio a folio leads on to, by its edges or its doorways. */
+export const onwardOf = (page: Manuscript): string[] => [...new Set([...Object.values(waysOf(page)), ...page.layers.flatMap(l => l.type === 'image' && l.way ? [l.way] : [])])] as string[];
 
 /** The page with one edge leading to `to`, or shut; a folio with no ways keeps no `ways` at all. */
 function withWay(page: Manuscript, edge: Edge, to: string | null): Manuscript {
@@ -41,9 +44,13 @@ export function linkWay(pages: Manuscript[], from: string, edge: Edge, to: strin
   return { pages: next.map(p => p.id === to && there !== from ? withWay(p, back, from) : p), back: 'made' };
 }
 
-/** A folio torn out of the book: every way that led to it is shut. */
+/** A folio torn out of the book: every way that led to it is shut, and every doorway is a picture only. */
 export function shutWaysTo(pages: Manuscript[], gone: string): Manuscript[] {
-  return pages.map(p => EDGES.reduce((q, edge) => waysOf(q)[edge] === gone ? withWay(q, edge, null) : q, p));
+  return pages.map(p => {
+    const shut = EDGES.reduce((q, edge) => waysOf(q)[edge] === gone ? withWay(q, edge, null) : q, p);
+    if (!shut.layers.some(l => l.type === 'image' && l.way === gone)) return shut;
+    return { ...shut, layers: shut.layers.map(l => { if (l.type !== 'image' || l.way !== gone) return l; const { way: _, ...rest } = l; return rest as ImageLayer; }) };
+  });
 }
 
 /**
@@ -58,4 +65,19 @@ export function folioBeyond(pages: Manuscript[], from: string, edge: Edge): { pa
   const beyond: Manuscript = { ...plain, layers: plain.layers.filter(l => !(l.type === 'image' && l.gameRole === 'goal')) };
   const bound = [...pages.slice(0, at + 1), beyond, ...pages.slice(at + 1)];
   return { pages: linkWay(bound, from, edge, beyond.id).pages, id: beyond.id };
+}
+
+/**
+ * A new folio beyond a doorway: plain ground with no signpost, bound in just
+ * after the folio the doorway stands in, with the same picture standing on
+ * its meadow as a doorway leading back. Coming in, the traveller stands before it.
+ */
+export function folioBeyondDoor(pages: Manuscript[], from: string, door: ImageLayer): { pages: Manuscript[]; id: string } | null {
+  const at = pages.findIndex(p => p.id === from);
+  if (at < 0) return null;
+  const plain = newFolio(pages.length + 1, 'ground');
+  const back: ImageLayer = { ...door, id: uid(), x: Math.round(320 - door.width / 2), y: Math.round(568 - door.height), rotation: 0, way: from, front: false };
+  delete back.works;
+  const beyond: Manuscript = { ...plain, layers: [...plain.layers.filter(l => !(l.type === 'image' && l.gameRole === 'goal')), back] };
+  return { pages: [...pages.slice(0, at + 1), beyond, ...pages.slice(at + 1)], id: beyond.id };
 }

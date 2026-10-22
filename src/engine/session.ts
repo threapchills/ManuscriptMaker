@@ -6,7 +6,7 @@ import { drawAvatar } from './puppet';
 import { Particles } from './particles';
 import type { InputController } from './input';
 import type { Collectible, Rect, World, WorldEvent } from './world';
-import { advanceWorld, bodyRect, createWorld, drawnFeet, perish } from './world';
+import { advanceWorld, bodyRect, createWorld, doorBefore, drawnFeet, perish } from './world';
 import type { Beast, BeastRig, BeastSpec } from './beasts';
 import { alive, beastRect, drawBeast, makeBeast, slay, stepBeast } from './beasts';
 import { audio } from './audio';
@@ -38,6 +38,8 @@ export interface SessionSpec {
   beasts?: Array<BeastSpec & { rig: BeastRig }>;
   /** Edges that lead on into other folios. */
   ways?: Partial<Record<Edge, boolean>>;
+  /** Doorways that lead on into other folios. */
+  doors?: Array<Rect & { id: string }>;
 }
 
 export interface SessionCallbacks {
@@ -89,7 +91,7 @@ export class PlaySession {
 
   constructor(spec: SessionSpec, private input: InputController, private callbacks: SessionCallbacks = {}) {
     this.spec = spec;
-    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles, ways: spec.ways });
+    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles, ways: spec.ways, doors: spec.doors });
     this.platforms = snapshotPlatforms(spec.field);
     this.baseField = spec.field;
     this.quiver = spec.quiver ?? 0;
@@ -113,7 +115,7 @@ export class PlaySession {
     const lettersChanged = JSON.stringify(spec.collectibles ?? []) !== JSON.stringify(this.spec.collectibles ?? []);
     this.spec = spec;
     this.lensImage = null;
-    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles, ways: spec.ways });
+    this.world = createWorld({ field: spec.field, pageWidth: spec.pageWidth, pageHeight: spec.pageHeight, unit: spec.unit, spawn: spec.spawn, hitbox: spec.hitbox, goals: spec.goals, collectibles: spec.collectibles, ways: spec.ways, doors: spec.doors });
     this.collectedAt = [];
     this.platforms = snapshotPlatforms(spec.field);
     this.baseField = spec.field;
@@ -404,6 +406,10 @@ export class PlaySession {
       context.restore();
     });
 
+    // Before a doorway that leads on, a gilt roundel above it says that up goes in.
+    const door = world.phase === 'playing' && !this.frozen ? doorBefore(world) : undefined;
+    if (door) drawDoorPrompt(context, door.x + door.width / 2, door.y - 24 * unit, unit, this.time);
+
     // A soft contact shadow tells you exactly where you'll land.
     const ground = groundBelow(spec.field, feet.x / spec.field.cell, Math.max(0, (feet.y - 2) / spec.field.cell));
     if (ground !== undefined && world.phase !== 'dying') {
@@ -546,3 +552,19 @@ export function letterMedallion(glyph: string, size: number): HTMLCanvasElement 
 }
 
 export type { LoadedImage };
+
+/** A gilt roundel with an arrow pointing up, bobbing gently over a doorway: up goes in. */
+function drawDoorPrompt(c: CanvasRenderingContext2D, x: number, y: number, unit: number, time: number): void {
+  const r = 16 * unit, bob = Math.sin(time * 3.2) * 3 * unit;
+  c.save();
+  c.translate(x, y + bob);
+  const gold = c.createRadialGradient(-r * .3, -r * .35, r * .1, 0, 0, r);
+  gold.addColorStop(0, '#fff4c8'); gold.addColorStop(.45, '#e5b451'); gold.addColorStop(1, '#9a6b1c');
+  c.shadowColor = 'rgba(40, 20, 5, .4)'; c.shadowBlur = 6 * unit; c.shadowOffsetY = 2 * unit;
+  c.fillStyle = gold; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
+  c.shadowColor = 'transparent';
+  c.lineWidth = 2.2 * unit; c.strokeStyle = '#7d1812'; c.stroke();
+  c.beginPath(); c.moveTo(0, r * .5); c.lineTo(0, -r * .45); c.moveTo(-r * .4, -r * .06); c.lineTo(0, -r * .5); c.lineTo(r * .4, -r * .06);
+  c.lineWidth = 3 * unit; c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#5a1410'; c.stroke();
+  c.restore();
+}

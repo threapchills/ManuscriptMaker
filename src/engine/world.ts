@@ -20,6 +20,8 @@ export interface WorldSpec {
   tuning?: Tuning;
   /** Edges that lead on into another folio: going off one ends the run there, and the book turns. */
   ways?: Partial<Record<Edge, boolean>>;
+  /** Doorways that lead on: up, pressed while standing before one, goes in at it. */
+  doors?: Array<Rect & { id: string }>;
 }
 
 /** `away`: gone off an edge that leads on, into the folio beyond. */
@@ -33,8 +35,9 @@ export interface WorldEvent {
   material?: Material;
   index?: number;
   cause?: 'fall' | 'hazard' | 'beast';
-  /** The edge gone off, for an exit. */
+  /** The edge gone off, or the doorway gone in at, for an exit. */
   edge?: Edge;
+  door?: string;
 }
 
 export interface World {
@@ -87,6 +90,14 @@ export function bodyRect(world: World): Rect {
 }
 
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+
+/** The doorway the traveller stands before, if any: their middle within its breadth, and some of them within its height. */
+export function doorBefore(world: World): (Rect & { id: string }) | undefined {
+  const doors = world.spec.doors;
+  if (!doors?.length) return undefined;
+  const r = bodyRect(world), mid = r.x + r.width / 2;
+  return doors.find(d => mid >= d.x && mid <= d.x + d.width && r.y < d.y + d.height && r.y + r.height > d.y);
+}
 const touchesCircle = (r: Rect, c: Collectible) => {
   const nx = Math.max(r.x, Math.min(c.x, r.x + r.width)), ny = Math.max(r.y, Math.min(c.y, r.y + r.height));
   return (nx - c.x) ** 2 + (ny - c.y) ** 2 <= c.radius ** 2;
@@ -113,6 +124,15 @@ export function stepWorld(world: World, input: ControlInput, dt = STEP): WorldEv
   }
   const controllable = world.phase === 'playing';
   if (world.phase === 'respawning' && world.phaseTime >= RESPAWNING) { world.phase = 'playing'; world.phaseTime = 0; }
+  // Up, pressed while standing before a doorway that leads on, goes in at it rather than leaping.
+  if (controllable && input.upPressed && world.body.grounded && !world.body.climbing) {
+    const door = doorBefore(world);
+    if (door) {
+      world.phase = 'away'; world.phaseTime = 0;
+      events.push({ type: 'exit', x: world.previous.x, y: world.previous.y, door: door.id });
+      return events;
+    }
+  }
 
   const result = stepBody(world.body, spec.field, controllable ? input : NO_INPUT, dt, world.tuning);
   const feet = feetOf(world.body, spec.field);
