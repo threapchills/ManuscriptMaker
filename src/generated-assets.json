@@ -1451,8 +1451,8 @@
       "arms",
       "blue"
     ],
-    "width": 183,
-    "height": 173
+    "width": 176,
+    "height": 175
   },
   {
     "id": "char-arms-red",
@@ -1463,8 +1463,8 @@
       "arms",
       "red"
     ],
-    "width": 178,
-    "height": 171
+    "width": 174,
+    "height": 173
   },
   {
     "id": "char-arms-green",
@@ -1475,8 +1475,8 @@
       "arms",
       "green"
     ],
-    "width": 262,
-    "height": 170
+    "width": 174,
+    "height": 172
   },
   {
     "id": "char-arms-brown",
@@ -1487,8 +1487,8 @@
       "arms",
       "brown"
     ],
-    "width": 171,
-    "height": 171
+    "width": 168,
+    "height": 170
   },
   {
     "id": "char-arms-cream",
@@ -1499,8 +1499,8 @@
       "arms",
       "cream"
     ],
-    "width": 179,
-    "height": 172
+    "width": 180,
+    "height": 174
   },
   {
     "id": "char-arms-fox",
@@ -1512,8 +1512,21 @@
       "fox",
       "animal"
     ],
-    "width": 232,
-    "height": 162
+    "width": 176,
+    "height": 164
+  },
+  {
+    "id": "char-arms-hare",
+    "name": "Hare paws",
+    "category": "Character parts",
+    "src": "/ManuscriptMaker/assets/char-arms-hare.png",
+    "tags": [
+      "arms",
+      "hare",
+      "animal"
+    ],
+    "width": 150,
+    "height": 151
   },
   {
     "id": "char-legs-boots",
@@ -1598,7 +1611,7 @@
       "tail",
       "dragon"
     ],
-    "width": 323,
+    "width": 180,
     "height": 229
   },
   {
@@ -1610,8 +1623,8 @@
       "accessory",
       "wings"
     ],
-    "width": 136,
-    "height": 229
+    "width": 282,
+    "height": 231
   },
   {
     "id": "char-hood",
@@ -1622,8 +1635,8 @@
       "accessory",
       "hood"
     ],
-    "width": 192,
-    "height": 220
+    "width": 194,
+    "height": 222
   },
   {
     "id": "char-crown",

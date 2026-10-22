@@ -2,7 +2,14 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (night, later) Claude session: the Postern (read first)
+## 2026-10-22 (night, last) Claude session: a coherent traveller, castles out of the sky, an easier third book (read first)
+
+- **User direction (2026-10-22):** the game is for younger players; Book III must be "a step up from Book II, not a cliff", never needing "immaculate precision". A coherent, loveable traveller is "prio number 1: all else sits downstream". No castles hanging in the sky.
+- **The traveller** (committed): the mis-cut arms, the dragon tail's stray wing and the single wing are re-cut by `scripts/repair_character_parts.py`; a hare's pair of paws is added to the tailor's sleeves; the hood's lining is cut away and the hood is worn over the face. The puppet draws every part at its painted scale and pins it at measured joints (see `docs/ART_PIPELINE.md`). Its walk is a march suited to parts painted facing out of the page (each foot lifts in turn, arms swing together); jumps and cheers keep their arms-up joy. Verified by eye in `scripts/harness/puppets.html` (every head on every tunic, every sleeve, leg and adornment), on the tailor's page with the ready-made travellers, and in Folio I; `npm test`, `npm run build` and `test:tale` pass.
+- **Castles in the sky** (committed, b727529): the distant castles of Folios I to VII stand behind the hills; Folio XI's is gone.
+- **Book III eased** (in the working tree, not yet committed or fully checked): Folio XIII's keep is lower and the margin's crate lands larger (`TrayItem.width`), so the climb works with the crate hung anywhere from about 290 to 380 (it was a band of about 26); Folio XIV needs one crate, not a two-crate stair: a parapet before a taller louvre, reached from one crate set down or hung anywhere before it, is the vantage for a level shot, and the tower moved right to leave room. Mapped with the solver and played in the browser with rough drops and steered leaps (all attempts won once the bot steered its leaps). `scripts/check-levels.mjs` and `scripts/check-chapter.mjs` are rewritten for both but have not yet been run; Folios XV to XVII are still to be reviewed for over-tight tolerance, and Folio XVIII is shelved until then.
+
+## 2026-10-22 (night, later) Claude session: the Postern
 
 - **Folio XVII, *The Postern*** (`folio17`; tray: two trusses of hay, springy; quiver: one arrow; par 3; sky dusk, moat at 640).
   - **The scene.** The traveller starts high on a bluff (top at 300, its edge at 270). Below, a moat runs to the curtain wall at 1100. The postern is an arch on the wall with its sill at 400 and an oak door within (the goal). Its little drawbridge (a plank 72 long, hinged at the sill) is drawn up on a rope that runs from a cleat inside the arch, over a pulley on its crown, and down to the bridge's top, with the knot over the bridge.

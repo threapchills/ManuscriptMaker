@@ -17,7 +17,7 @@ const TABS: Array<{ group: Group; label: string }> = [
 const OPTIONS: Record<Group, string[]> = {
   Head: ['char-head-hare', 'char-head-fox', 'char-head-cat', 'char-head-owl', 'char-head-dragon', 'char-head-human-brown', 'char-head-human-dark', 'char-head-blank'],
   Body: ['char-body-blue', 'char-body-red', 'char-body-green', 'char-body-brown', 'char-body-cream', 'char-body-cloak', 'char-body-fox', 'char-body-hare'],
-  Arms: ['char-arms-blue', 'char-arms-red', 'char-arms-green', 'char-arms-brown', 'char-arms-cream', 'char-arms-fox'],
+  Arms: ['char-arms-blue', 'char-arms-red', 'char-arms-green', 'char-arms-brown', 'char-arms-cream', 'char-arms-fox', 'char-arms-hare'],
   Legs: ['char-legs-boots', 'char-legs-blue', 'char-legs-red', 'char-legs-green', 'char-legs-animal'],
   Extra: ['', 'char-crown', 'char-hood', 'char-tail-fox', 'char-tail-dragon', 'char-wings'],
 };
