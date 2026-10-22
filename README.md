@@ -26,6 +26,7 @@ Choose **Begin the tale** on the cover. Dress a traveller at the tailor's (or ta
 | XIV · The Belfry | the porter's bell hangs deep in a louvre behind a stone parapet: build a stair of two crates to the louvre's own height, and ring it with one level shot |
 | XV · The Hanging Stone | one arrow and a wolf: cut the rope while he walks beneath the stone it holds, and the stone that crushes him is the first step up to the hermit's door |
 | XVI · The Gorge | a gorge past any leap, and a wolf on the crag beyond it: shoot him from the old watchtower, then leap from its top onto a truss of springy hay hung deep in the gorge, and be thrown up onto the crag |
+| XVII · The Postern | from a high bluff over a moat, cut down the postern's little drawbridge with one arrow, then leap and be thrown twice: two trusses of hay, the second where the first throws you |
 
 Each folio presses up to three seals: the road walked, every gilded letter gathered, and a frugal scribe (no more pieces and arrows than the folio's par). Across each book the letters spell its motto.
 

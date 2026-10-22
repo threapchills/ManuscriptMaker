@@ -951,6 +951,65 @@ const folio16: LevelDef = {
   ],
 };
 
+// ——— Folio XVII: the postern ———
+// The castle's back door: a postern low in the curtain wall across a moat
+// far too wide for any leap, its little drawbridge drawn up on a rope. The
+// traveller starts high on a bluff above the moat. One arrow cuts the rope;
+// the margin gives two trusses of hay. A leap from the bluff onto hay hung
+// low in the moat throws the traveller far, but not far enough: a second
+// truss, where the first bounce comes down, throws them on to the bridge.
+const f17Bluff = 300, f17Edge = 270, f17Face = 1100, f17Sill = 400;
+const f17Wall = (() => {
+  const w = 1400 - f17Face, h = w * 94 / 165;
+  // Courses of the curtain wall from the moat up past the postern's sill, each laid on the one below.
+  const top = piece('wall-stone-straight', f17Face, f17Sill - .074 * h, w, { role: 'solid', layer: 'ground', block: true });
+  const low = piece('wall-stone-straight', f17Face, top.y + .841 * h, w, { role: 'solid', layer: 'ground', block: true, filter: 'brightness(.88)' });
+  return [low, top];
+})();
+const f17Arch = standing('wall-arch-opening', f17Face + 74, f17Sill, 148, { role: 'scenery', layer: 'mid' });
+const f17Hinge: [number, number] = [f17Face, f17Sill];
+const f17Bridge = (() => {
+  const w = 72, h = w * 75 / 197;
+  const flat = piece('plank-walkway', f17Face - w, f17Sill - .107 * h, w, { role: 'solid', layer: 'ground', block: true });
+  return { ...flat, ...swungAbout(flat, f17Hinge, 90), works: { by: 'rope', x: flat.x, y: flat.y, rotation: 0, pivot: f17Hinge } };
+})();
+const folio17: LevelDef = {
+  id: 'folio-17', numeral: 17, title: 'The Postern',
+  brief: 'From a high bluff you look down on a moat too wide for any leap, and beyond it a postern, its little drawbridge drawn up on a rope. The margin gives two trusses of hay, for you must be thrown twice.',
+  sky: 'dusk', waterY: 640,
+  scene: [
+    piece('moon-silver', 560, 50, 64, { layer: 'far', anim: 'bob', opacity: .9 }),
+    piece('cloud-bank', 700, 90, 260, { layer: 'far', anim: 'drift', opacity: .7 }),
+    piece('hills-blue', -60, 360, 800, { layer: 'far', opacity: .8, filter: 'saturate(.7) brightness(.85)' }),
+    piece('hills-blue', 560, 374, 760, { layer: 'far', opacity: .75, flipX: true, filter: 'saturate(.7) brightness(.85)' }),
+    piece('forest-line', 300, 430, 700, { layer: 'far', opacity: .8, filter: 'brightness(.8)' }),
+    // The bluff: a deep bank of earth down to the moat.
+    // Turned over, deep enough to reach from the upper slab's foot to below the water, so none of its turf shows.
+    piece('earth-ledge-long', f17Edge - 700, f17Bluff + 163, 700, { role: 'solid', layer: 'ground', block: true, flipX: true, flipY: true, filter: 'brightness(.86)' }),
+    ground('earth-ledge-long', f17Edge - 560, f17Bluff, 560, { block: true }),
+    standing('pine-single', 60, f17Bluff + 3, 86, { layer: 'mid' }),
+    ...f17Wall,
+    f17Arch,
+    standing('wall-crenellation', f17Face + 150, topOf(f17Arch) + 64, 70, { layer: 'mid' }),
+    f17Bridge,
+    standing('pond-reeds', 420, 660, 100, { layer: 'front' }),
+    standing('pond-reeds', 1040, 660, 90, { layer: 'front', flipX: true }),
+    standing('wildflowers', 170, f17Bluff + 10, 80, { layer: 'front', anim: 'sway' }),
+  ],
+  spawn: { x: 70, y: f17Bluff },
+  goal: standing('door-oak', f17Face + 74, f17Sill + 2, 62, { role: 'goal', layer: 'ground' }),
+  reached: 'You slipped in at the postern.',
+  letters: [{ x: 200, y: 230, glyph: 'B' }, { x: 640, y: 300, glyph: 'O' }, { x: 960, y: 330, glyph: 'R' }],
+  // The rope runs from a cleat within the arch up over a pulley on its crown and down to the raised bridge's top; its knot hangs over the bridge.
+  targets: [{ id: 'rope', x: f17Face - 6, y: f17Sill - 120, kind: 'rope', rope: [[f17Face + 30, f17Sill - 4], [f17Face + 30, f17Sill - 146], [f17Face - 40, f17Sill - 104]] }],
+  tray: [{ asset: 'hay-bale', count: 2, role: 'spring', name: 'Truss of hay' }],
+  quiver: 1,
+  par: 3,
+  hints: [
+    { x: 700, y: 560, text: 'once is not enough', mode: 'build', point: 'down' },
+  ],
+};
+
 export const BOOKS: BookDef[] = [
   {
     id: 'liber-primus', rubric: 'Liber primus', title: 'The Hare’s Road',
@@ -973,8 +1032,8 @@ export const BOOKS: BookDef[] = [
     intro: 'Beyond the greenwood the road narrows between walls of stone. Here nothing is given twice: each piece must stand exactly where it is wanted, and each arrow fly true.',
     motto: 'HOC OPUS HIC LABOR EST',
     explicit: { rubric: 'Explicit liber tertius', line: 'The third book is ended. Hoc opus, hic labor est.' },
-    levels: [folio13, folio14, folio15, folio16],
-    coming: [{ numeral: 17, title: 'The Postern' }, { numeral: 18, title: 'The Crag' }],
+    levels: [folio13, folio14, folio15, folio16, folio17],
+    coming: [{ numeral: 18, title: 'The Crag' }],
   },
 ];
 

@@ -396,7 +396,7 @@ try {
   // ——— The third book: the stone keep, one crate stretched and hung, one arrow in its face ———
   await page.getByRole('button', { name: /Turn to Liber tertius: The Narrow Way/ }).click();
   await expect(page.getByRole('heading', { name: 'The Narrow Way' })).toBeVisible({ timeout: 5000 });
-  await expect(page.locator('.folio-row.is-coming')).toHaveCount(2);
+  await expect(page.locator('.folio-row.is-coming')).toHaveCount(1);
   await page.getByRole('button', { name: /The Stone Keep/ }).click();
   await expect(page.getByRole('heading', { name: 'The Stone Keep' })).toBeVisible({ timeout: 8000 });
   await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length === 2, null, { timeout: 10000 });
@@ -692,9 +692,82 @@ try {
   // C on the road, L over the tower, and A high over the gorge, caught in the bounce.
   await expect(page.getByRole('dialog')).toContainText('All three gathered');
   await expect(page.getByRole('dialog')).toContainText('1 piece and 1 arrow used · par 2');
-  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
   await page.screenshot({ path: '.local/chapter-gorge.png' });
 
+  // ——— Folio XVII: the postern's rope cut from the bluff, and a leap thrown on by two trusses of hay ———
+  await expect(page.getByRole('dialog')).toContainText('The Postern');
+  await page.getByRole('button', { name: /Turn the page/ }).click();
+  await expect(page.getByRole('heading', { name: 'The Postern' })).toBeVisible({ timeout: 8000 });
+  await page.waitForFunction(() => !!window.__playSession && document.querySelectorAll('.tray-piece').length >= 2, null, { timeout: 10000 });
+  await page.waitForTimeout(400);
+  // Every folio's brief, set in the foot of this page in its own hand, keeps to the four lines there.
+  const briefLines = await page.evaluate(async () => {
+    const { LEVELS } = await import(new URL('src/tale/levels.ts', document.baseURI).href);
+    const p = document.querySelector('.folio-foot .folio-brief p');
+    const probe = p.cloneNode(true);
+    probe.style.cssText = `position: absolute; left: 0; top: 0; width: ${p.offsetWidth}px; visibility: hidden`;
+    p.parentElement.append(probe);
+    const line = parseFloat(getComputedStyle(probe).lineHeight);
+    const lines = LEVELS.map(l => { probe.textContent = l.brief.slice(1); return [l.numeral, Math.round(probe.offsetHeight / line)]; });
+    probe.remove();
+    return { lines, own: Math.round(p.offsetHeight / line) };
+  });
+  const overlong = briefLines.lines.filter(([, n]) => n > 4);
+  assert.ok(briefLines.lines.length >= 17 && briefLines.own <= 4 && !overlong.length, `every brief keeps to four lines at the foot of the page (the Postern's runs to ${briefLines.own}${overlong.map(([f, n]) => `; folio ${f}'s to ${n}`).join('')})`);
+  const postern = await page.locator('.scene').boundingBox();
+  const onPostern = (x, y) => ({ x: postern.x + x * postern.width / 1280, y: postern.y + y * postern.height / 720 });
+  // Both trusses as the margin gives them, low in the moat: the first where the leap comes down, the second where the first throws.
+  for (const [i, cx, top] of [[0, 500, 600], [1, 860, 600]]) {
+    const token = await page.locator('.tray-piece').first().boundingBox();
+    await page.mouse.move(token.x + token.width / 2, token.y + token.height / 2);
+    await page.mouse.down();
+    const near = onPostern(cx, top + 30);
+    await page.mouse.move(near.x - 30, near.y + 20, { steps: 5 });
+    await page.mouse.move(near.x, near.y, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    let hay = (await saved(page)).folios['folio-17'].pieces[i];
+    const mid = { x: hay.x + hay.width / 2, y: hay.y + hay.height / 2 };
+    const from = onPostern(mid.x, mid.y), to = onPostern(cx, mid.y + top - (hay.y + .105 * hay.height));
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    hay = (await saved(page)).folios['folio-17'].pieces[i];
+    assert.ok(Math.abs(hay.x + hay.width / 2 - cx) < 4 && Math.abs(hay.y + .105 * hay.height - top) < 4, `truss ${i + 1} hangs with its middle at ${cx} and its top at ${top} (${Math.round(hay.x + hay.width / 2)}, ${Math.round(hay.y + .105 * hay.height)})`);
+    await page.mouse.click(onPostern(640, 120).x, onPostern(640, 120).y);
+    await page.waitForTimeout(150);
+  }
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.level-screen.mode-play')).toHaveCount(1);
+  // From the bluff, the rope at its knot over the raised bridge; the bridge comes down.
+  const knot17 = onPostern(1094, 280);
+  await page.mouse.move(knot17.x, knot17.y);
+  await page.waitForTimeout(80);
+  await page.mouse.click(knot17.x, knot17.y);
+  await page.waitForFunction(() => window.__playSession.struck.has('rope'), null, { timeout: 4000 });
+  await page.waitForTimeout(1100);
+  await page.mouse.move(postern.x + 10, postern.y + 10);
+  // A leap from the bluff's edge, steered on through both throws.
+  await page.evaluate(() => {
+    const s = window.__playSession; window.__thrown17 = 0;
+    const watch = () => { window.__thrown17 = Math.max(window.__thrown17, s.world.body.sprung); if (s.world.phase === 'playing') requestAnimationFrame(watch); };
+    requestAnimationFrame(watch);
+  });
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => { const s = window.__playSession, b = s.world.body; return (b.x + b.w / 2) * s.spec.field.cell >= 240; }, null, { timeout: 4000, polling: 'raf' });
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(380);
+  await page.keyboard.up('Space');
+  await expect(page.getByRole('dialog')).toContainText('Here endeth the seventeenth folio', { timeout: 8000 });
+  await page.keyboard.up('ArrowRight');
+  assert.equal(await page.evaluate(() => window.__thrown17), 2, 'the traveller was thrown twice, once by each truss');
+  await expect(page.getByRole('dialog')).toContainText('You slipped in at the postern.');
+  await expect(page.getByRole('dialog')).toContainText('2 pieces and 1 arrow used · par 3');
+  await expect(page.getByRole('dialog')).toContainText('More folios are being written');
+  await page.screenshot({ path: '.local/chapter-postern.png' });
+
   assert.deepEqual(errors, []);
-  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, Folio XVI’s wolf shot from the watchtower and the gorge crossed by a leap onto springy hay, no runtime errors');
+  console.log('PASS chapter: six folios in the contents, margin drag on Folio III, touch climbing on a phone, the compact column on an upright phone (drag, docked tools, touch pad below the picture, an arrow aimed and loosed by a finger), gutter buttons on a phone held sideways, the finale walked to the end of the first book, the second book turned to, Folio VII climbed by an aimed arrow, Folio VIII climbed on two arrows planned from the near bank, Folio IX climbed by a crate from the margin and an arrow in the timber, Folio X’s gate opened by ringing the bell, Folio XI crossed by the butt and the bell the drawbridge hid, and Folio XII’s wolf shot dead from the palisade to end the second book, the third book turned to, and Folio XIII’s keep climbed on the crate stretched and hung against it with an arrow in its face, the page turned to Folio XIV and its bell rung by one level shot from a stair of two crates as the margin gives them, Folio XV’s rope cut with the wolf beneath so the stone crushed him and served as a step with the crate, Folio XVI’s wolf shot from the watchtower and the gorge crossed by a leap onto springy hay, Folio XVII’s postern bridge cut down from the bluff and reached by a leap thrown on by two trusses of hay, no runtime errors');
 } finally { await browser.close(); }

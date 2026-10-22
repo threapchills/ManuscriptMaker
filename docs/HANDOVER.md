@@ -2,7 +2,31 @@
 
 Updated: 2026-10-22. Read together with `TODO.md`, `docs/GAME_VISION.md`, and `AGENTS.md`.
 
-## 2026-10-22 (evening, last) Claude session: what drops falls to the ground (read first)
+## 2026-10-22 (night, later) Claude session: the Postern (read first)
+
+- **Folio XVII, *The Postern*** (`folio17`; tray: two trusses of hay, springy; quiver: one arrow; par 3; sky dusk, moat at 640).
+  - **The scene.** The traveller starts high on a bluff (top at 300, its edge at 270). Below, a moat runs to the curtain wall at 1100. The postern is an arch on the wall with its sill at 400 and an oak door within (the goal). Its little drawbridge (a plank 72 long, hinged at the sill) is drawn up on a rope that runs from a cleat inside the arch, over a pulley on its crown, and down to the bridge's top, with the knot over the bridge.
+  - **The play.** Cut the rope from the bluff and the bridge comes down, still far out of reach. A leap from the bluff onto hay hung low in the moat throws the traveller far, but not far enough; a second truss, hung where the first throw comes down, throws them on to the bridge.
+  - **How it was shaped.** The first plan (a crate as perch and vantage, one truss as springboard) failed under the solver, and the reasons are worth keeping:
+    - Hay landed on softly (a fall under 40) is simply a platform, so one truss, or one crate, hung far enough out kept bridging the moat on its own.
+    - A bounce never rises above the leap that began it, so a crate (at most one leap above the road) gives the bounce little height to trade for distance.
+    - What hay does well is carry height across distance (as in the Gorge), so the folio became a chain of two throws from a high start.
+    - The largest truss (1.6 times) laid level with the bluff became a causeway: a running leap from its end reached the bridge. Shortening the bridge from 92 to 72 did not close it. It is kept as an expert's way (one truss, under par, needing the size, the height and the place all at once) and logged, not asserted.
+  - **Proved** (`test:levels`):
+    - closed bare and with the rope cut alone;
+    - closed to one truss, short of its largest, anywhere (72 placements at two sizes) with the rope cut, and to two trusses with the rope uncut (12 pairs): a parallel search;
+    - open three ways (both low at 500 and 860; the first higher at 580 and 520 with the second at 940; both low, nearer the bluff, at 420 and 780);
+    - the letters: B on the bluff bare; O and R only by the throws.
+    - A sweep of 48 pairs while shaping it opened 38: the chain is forgiving once understood.
+  - **Played** (`test:chapter`): the Gorge's end card turns to it; both trusses are set at 500 and 860, top 600; the rope is cut from the bluff, and one leap from its edge, steered on, is thrown twice and lands on the bridge (the check asserts both throws). A scratch run of the same took B and O but not R, which asks for a better second throw.
+  - **Letters** continue the motto: B, O, R.
+- **Briefs keep to the foot of the page.** The Postern's first brief ran to five lines where the foot holds four, and its last words fell below the page. It is shortened (198 characters), and two guards keep any brief from outgrowing the foot again:
+  - a unit test caps every brief at 230 characters, a rough measure;
+  - the chapter check sets every folio's brief in the page's own hand, at the brief's real width, and counts its lines. All are four or fewer; ten run to exactly four, so there is little room to spare.
+- **Checks run before pushing**: the whole suite passed on the Postern as first written: `npm test`, `npm run build`, `test:chapter`, `test:tale`, `test:levels`, `test:solidity`, `test:scriptorium`, `test:play` and `test:browser`. After the brief was shortened and its guards added, `npm test` (235 passing), `npm run build` and `test:chapter` (which measured every brief) passed again.
+- **Next**: Folio XVIII, the book's last (provisionally *The Crag*; XVI has a crag, so perhaps renamed).
+
+## 2026-10-22 (evening, last) Claude session: what drops falls to the ground
 
 A quality-of-life change to the scriptorium, long on the list.
 

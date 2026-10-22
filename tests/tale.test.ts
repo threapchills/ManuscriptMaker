@@ -86,4 +86,8 @@ describe('chapter one', () => {
   it('gives every walkable tray piece a physical description', () => {
     for (const level of LEVELS) for (const t of level.tray) expect(ASSET_PHYSICS[t.asset]?.material, t.asset).toBeTruthy();
   });
+  it('keeps every brief short enough for the four lines at the foot of the page', () => {
+    // A rough measure; the chapter check sets each brief in the page's own hand and counts its lines.
+    for (const level of LEVELS) expect(level.brief.length, `${level.id} runs to ${level.brief.length} characters`).toBeLessThanOrEqual(230);
+  });
 });
